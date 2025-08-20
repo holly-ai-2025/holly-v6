@@ -1,13 +1,16 @@
 {
   "version": 2,
+  "framework": "vite",
   "builds": [
     {
-      "src": "apps/frontend/**",
+      "src": "apps/frontend/package.json",
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
     }
   ],
-  "framework": "vite",
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true,
