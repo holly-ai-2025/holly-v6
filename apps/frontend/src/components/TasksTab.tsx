@@ -1,108 +1,82 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTaskStore } from "../store/useTaskStore";
 
-const TasksTab: React.FC = () => {
-  const { tasks, updateTask } = useTaskStore();
-
-  const groupTasks = () => {
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
-
-    const overdue: any[] = [];
-    const todayTasks: any[] = [];
-    const tomorrowTasks: any[] = [];
-    const upcoming: any[] = [];
-
-    tasks.forEach((task) => {
-      if (task.dueDate < today) {
-        overdue.push(task);
-      } else if (task.dueDate === today) {
-        todayTasks.push(task);
-      } else if (task.dueDate === tomorrowStr) {
-        tomorrowTasks.push(task);
-      } else {
-        upcoming.push(task);
-      }
-    });
-
-    return { overdue, todayTasks, tomorrowTasks, upcoming };
-  };
-
-  const { overdue, todayTasks, tomorrowTasks, upcoming } = groupTasks();
-
-  const getBgColor = (dueDate: string) => {
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
-
-    if (dueDate < today) return "bg-red-100";
-    if (dueDate === today) return "bg-purple-100";
-    if (dueDate === tomorrowStr) return "bg-purple-50";
-    return "bg-blue-100";
-  };
-
-  const renderTasks = (list: any[]) => (
-    <div className="space-y-2">
-      {list.map((task) => (
-        <div
-          key={task.id}
-          className={`flex items-center justify-between p-2 rounded-md shadow-sm ${getBgColor(
-            task.dueDate
-          )}`}
-          style={{ minHeight: "42px" }}
-        >
-          <span className="flex-1 font-medium">{task.title}</span>
-          <select
-            value={task.status}
-            onChange={(e) => updateTask(task.id, { status: e.target.value })}
-            className="mx-2 border rounded px-2 py-1 text-sm"
-          >
-            <option value="Todo">Todo</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Done">Done</option>
-          </select>
-          <input
-            type="date"
-            value={task.dueDate}
-            onChange={(e) => updateTask(task.id, { dueDate: e.target.value })}
-            className="border rounded px-2 py-1 text-sm"
-          />
-        </div>
-      ))}
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="mb-4">
+      <div
+        className="flex justify-between items-center cursor-pointer border-b pb-1 mb-2"
+        onClick={() => setOpen(!open)}
+      >
+        <h2 className="font-semibold text-gray-800">{title}</h2>
+        <span className="text-sm text-gray-500">{open ? "▼" : "▲"}</span>
+      </div>
+      {open && <div className="space-y-2">{children}</div>}
     </div>
+  );
+};
+
+const TaskItem = ({ task }) => {
+  let bg = "bg-gray-100";
+  const today = new Date().toISOString().split("T")[0];
+  if (task.dueDate < today) bg = "bg-red-100";
+  else if (task.dueDate === today) bg = "bg-purple-100";
+  else bg = "bg-blue-100";
+
+  return (
+    <div className={`flex justify-between items-center px-3 py-2 rounded-lg shadow-sm text-sm ${bg}`}>
+      <span className="font-medium text-gray-800">{task.title}</span>
+      <div className="flex items-center space-x-2">
+        <select
+          value={task.status}
+          className="border rounded px-1 text-sm"
+          onChange={() => {}}
+        >
+          <option>Todo</option>
+          <option>In Progress</option>
+          <option>Done</option>
+        </select>
+        <input type="date" value={task.dueDate} className="border rounded px-1 text-sm" />
+      </div>
+    </div>
+  );
+};
+
+const TasksTab = () => {
+  const { tasks } = useTaskStore();
+
+  const overdue = tasks.filter((t) => t.dueDate < new Date().toISOString().split("T")[0]);
+  const today = tasks.filter((t) => t.dueDate === new Date().toISOString().split("T")[0]);
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = tasks.filter((t) => t.dueDate === tomorrowDate.toISOString().split("T")[0]);
+  const upcoming = tasks.filter(
+    (t) => t.dueDate > tomorrowDate.toISOString().split("T")[0]
   );
 
   return (
-    <div className="space-y-6 p-4">
-      {overdue.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Overdue</h3>
-          {renderTasks(overdue)}
-        </div>
-      )}
-      {todayTasks.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Today</h3>
-          {renderTasks(todayTasks)}
-        </div>
-      )}
-      {tomorrowTasks.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Tomorrow</h3>
-          {renderTasks(tomorrowTasks)}
-        </div>
-      )}
-      {upcoming.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Upcoming</h3>
-          {renderTasks(upcoming)}
-        </div>
-      )}
+    <div className="p-4 bg-gray-50 min-h-full">
+      <Section title="Overdue">
+        {overdue.map((task, i) => (
+          <TaskItem key={i} task={task} />
+        ))}
+      </Section>
+      <Section title="Today">
+        {today.map((task, i) => (
+          <TaskItem key={i} task={task} />
+        ))}
+      </Section>
+      <Section title="Tomorrow">
+        {tomorrow.map((task, i) => (
+          <TaskItem key={i} task={task} />
+        ))}
+      </Section>
+      <Section title="Upcoming">
+        {upcoming.map((task, i) => (
+          <TaskItem key={i} task={task} />
+        ))}
+      </Section>
     </div>
   );
 };

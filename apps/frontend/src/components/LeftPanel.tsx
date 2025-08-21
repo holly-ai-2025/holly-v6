@@ -1,58 +1,48 @@
-import React, { useState } from "react";
+import React from "react";
 
-const LeftPanel: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
+const ChatMessage = ({ from, text }: { from: string; text: string }) => (
+  <div className={`mb-2 ${from === "me" ? "text-right" : "text-left"}`}>
     <div
-      className={`h-full transition-all duration-300 ease-in-out bg-white shadow-lg border-r border-gray-200 flex flex-col ${
-        isOpen ? "w-80" : "w-16"
+      className={`inline-block px-3 py-2 rounded-2xl text-sm shadow-sm ${
+        from === "me"
+          ? "bg-purple-600 text-white rounded-br-none"
+          : "bg-gray-200 text-gray-900 rounded-bl-none"
       }`}
     >
-      {/* Toggle Button */}
-      <div className="p-2 flex justify-center border-b border-gray-100">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-full bg-purple-100 hover:bg-purple-200"
-        >
-          {isOpen ? "←" : "→"}
-        </button>
+      {text}
+    </div>
+  </div>
+);
+
+const LeftPanel = () => {
+  const messages = [
+    { from: "system", text: "Hi! How can I help you today?" },
+    { from: "me", text: "Remind me about the sprint review." },
+    { from: "system", text: "Got it. I’ve scheduled it for tomorrow 10am." },
+  ];
+
+  return (
+    <div className="flex flex-col h-full bg-white border-r p-4 space-y-4 w-80">
+      <div className="flex-1 overflow-y-auto">
+        {messages.map((m, idx) => (
+          <ChatMessage key={idx} from={m.from} text={m.text} />
+        ))}
       </div>
-
-      {/* Content */}
-      {isOpen ? (
-        <div className="flex flex-col flex-1 overflow-y-auto p-3 space-y-4">
-          {/* Chat Box */}
-          <div className="bg-white rounded-2xl shadow p-3 h-1/2 flex flex-col">
-            <h2 className="font-semibold text-purple-600 mb-2">Chat</h2>
-            <div className="flex-1 overflow-y-auto border rounded-lg p-2 text-sm text-gray-700">
-              <p><strong>You:</strong> Hello Holly</p>
-              <p><strong>Holly:</strong> Hi! How can I help today?</p>
-            </div>
-            <input
-              type="text"
-              placeholder="Type a message..."
-              className="mt-2 p-2 border rounded-lg text-sm"
-            />
-          </div>
-
-          {/* Activity Log */}
-          <div className="bg-white rounded-2xl shadow p-3 h-1/2 overflow-y-auto">
-            <h2 className="font-semibold text-purple-600 mb-2">Activity Log</h2>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>✔ Task created: "Write UI mockup"</li>
-              <li>✔ Inbox item archived</li>
-              <li>✔ Project milestone updated</li>
-            </ul>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center flex-1 space-y-4">
-          {/* Placeholder logo + sound icon */}
-          <div className="w-10 h-10 rounded-full bg-purple-500 animate-spin"></div>
-          <div className="text-gray-500">🔊</div>
-        </div>
-      )}
+      <div className="mt-auto">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+        />
+      </div>
+      <div className="border-t pt-2">
+        <h3 className="font-semibold mb-2">Activity Log</h3>
+        <ul className="text-sm space-y-1 text-gray-600">
+          <li>✔ Task created: "Write UI mockup"</li>
+          <li>✔ Inbox item archived</li>
+          <li>✔ Project milestone updated</li>
+        </ul>
+      </div>
     </div>
   );
 };
