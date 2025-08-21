@@ -13,9 +13,10 @@ echo "Installing frontend dependencies..."
 cd apps/frontend || exit 1
 npm install
 
-# Go back to root
-echo "Returning to repo root..."
-cd ../../
+# Start frontend
+echo "Starting frontend dev server..."
+npm run dev &
 
-# Success message
-echo "✅ Update complete: code pulled and dependencies installed."
+# Go back to root
+cd ../../
+echo "✅ Update complete: code pulled, dependencies installed, dev server running."
