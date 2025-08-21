@@ -77,26 +77,27 @@ const App = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col p-6">
         {/* Top Bar */}
-        <div className="flex items-center justify-between bg-medium-purple text-white p-4 rounded-xl shadow-md space-x-6">
-          <h1 className="text-xl font-semibold flex-shrink-0">Holly AI</h1>
+        <div className="flex items-center justify-between bg-white text-deep-purple p-4 rounded-xl shadow-md">
+          {/* Left: Logo + Nav */}
+          <div className="flex items-center space-x-8">
+            <h1 className="text-xl font-semibold">Holly AI</h1>
+            <nav className="flex space-x-6">
+              {["Inbox", "Tasks", "Projects", "Calendar"].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => setActive(item)}
+                  className={`pb-2 hover:text-medium-purple ${
+                    active === item ? "border-b-2 border-medium-purple" : ""
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-          {/* Menu Items */}
-          <nav className="flex space-x-6">
-            {["Inbox", "Tasks", "Projects", "Calendar"].map((item) => (
-              <button
-                key={item}
-                onClick={() => setActive(item)}
-                className={`pb-2 text-white hover:text-light-purple ${
-                  active === item ? "border-b-2 border-white" : ""
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-
-          {/* Search Bar */}
-          <div className="flex items-center bg-white rounded-lg px-3 py-1 text-gray-900 flex-1 max-w-sm ml-auto">
+          {/* Right: Search */}
+          <div className="flex items-center bg-gray-100 rounded-lg px-3 py-1 text-gray-900 w-64">
             <Search className="w-4 h-4 mr-2 text-gray-500" />
             <input
               type="text"
