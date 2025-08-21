@@ -1,25 +1,35 @@
-import React, { useState } from "react";
-import Header from "./Header";
+import React from "react";
+import Header from "./Header.tsx";
+import LeftPanel from "./LeftPanel";
 import RightPanel from "./RightPanel";
 import CalendarView from "./CalendarView";
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("inbox");
+  const [activeTab, setActiveTab] = React.useState("inbox");
 
   return (
     <div className="flex min-h-screen bg-light-blue">
-      <div className="flex-1 flex flex-col">
+      {/* Left Panel */}
+      <LeftPanel />
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
         <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex flex-1 p-4 gap-4">
-          <div className="flex-1 bg-white shadow-lg rounded-xl p-4 overflow-auto">
-            {activeTab === "inbox" && <div>📥 Inbox placeholder content</div>}
-            {activeTab === "tasks" && <div>✅ Tasks placeholder content</div>}
-            {activeTab === "projects" && <div>📂 Projects placeholder content</div>}
-            {activeTab === "calendar" && <CalendarView />}
+
+        {activeTab === "calendar" ? (
+          <CalendarView />
+        ) : (
+          <div className="p-6 bg-white rounded-xl shadow-lg mt-4">
+            <h2 className="text-xl font-bold capitalize">{activeTab}</h2>
+            <p className="text-gray-600 mt-2">
+              Content for the {activeTab} tab will appear here.
+            </p>
           </div>
-          <RightPanel />
-        </main>
+        )}
       </div>
+
+      {/* Right Panel */}
+      <RightPanel />
     </div>
   );
 };
