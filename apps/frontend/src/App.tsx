@@ -1,126 +1,25 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Search, Mic } from "lucide-react";
+import React, { useState } from "react";
+import Header from "./Header";
 import RightPanel from "./RightPanel";
+import CalendarView from "./CalendarView";
 
-const App = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [micActive, setMicActive] = useState(false);
-  const [active, setActive] = useState("Inbox");
+const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("inbox");
 
   return (
-    <div className="flex min-h-screen bg-light-blue text-gray-900">
-      {/* Sidebar */}
-      <motion.div
-        className={`relative flex-shrink-0 transition-all duration-300 ease-in-out ${
-          sidebarOpen ? "w-80" : "w-20"
-        } bg-white shadow-lg rounded-r-xl overflow-hidden`}
-        onMouseEnter={() => setSidebarOpen(true)}
-        onMouseLeave={() => setSidebarOpen(false)}
-      >
-        {sidebarOpen ? (
-          <div className="flex flex-col h-full p-4">
-            <h2 className="text-lg font-semibold text-deep-purple mb-2">Chat</h2>
-            <div className="flex-1 overflow-y-auto space-y-2">
-              <div className="self-start bg-gray-200 text-gray-900 px-3 py-2 rounded-lg shadow-md w-fit max-w-[75%]">
-                Hi Holly, remind me about my meeting.
-              </div>
-              <div className="self-end bg-purple-500 text-white px-3 py-2 rounded-lg shadow-md w-fit max-w-[75%]">
-                Meeting with design team scheduled for 2pm.
-              </div>
-            </div>
-
-            <h2 className="text-lg font-semibold text-deep-purple mt-4 mb-2">
-              Action Log
-            </h2>
-            <div className="flex-1 overflow-y-auto bg-gray-50 rounded-md p-2 text-sm border border-gray-200">
-              <div>- Scheduled meeting with design team</div>
-              <div>- Added 3 tasks to Inbox</div>
-              <div>- Updated project deadline</div>
-            </div>
+    <div className="flex min-h-screen bg-light-blue">
+      <div className="flex-1 flex flex-col">
+        <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main className="flex flex-1 p-4 gap-4">
+          <div className="flex-1 bg-white shadow-lg rounded-xl p-4 overflow-auto">
+            {activeTab === "inbox" && <div>📥 Inbox placeholder content</div>}
+            {activeTab === "tasks" && <div>✅ Tasks placeholder content</div>}
+            {activeTab === "projects" && <div>📂 Projects placeholder content</div>}
+            {activeTab === "calendar" && <CalendarView />}
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full space-y-6">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-deep-purple to-medium-purple animate-spin-slow shadow-inner-strong" />
-
-            <div className="flex items-end space-x-1 h-10">
-              {[...Array(5)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="w-1 bg-bright-blue rounded"
-                  animate={{
-                    scaleY: micActive
-                      ? [0.5, 2, 0.8, 1.5, 1]
-                      : [0.7, 1, 0.9, 1.1, 0.8],
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: micActive ? 0.8 : 2,
-                    ease: "easeInOut",
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={() => setMicActive(!micActive)}
-              className={`p-2 rounded-full shadow-md transition ${
-                micActive ? "bg-deep-purple text-white" : "bg-gray-300 text-gray-700"
-              }`}
-            >
-              <Mic className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col p-6">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between bg-white text-deep-purple p-4 rounded-xl shadow-md">
-          {/* Left: Logo + Nav */}
-          <div className="flex items-center space-x-8">
-            <h1 className="text-xl font-semibold">Holly AI</h1>
-            <nav className="flex space-x-6">
-              {["Inbox", "Tasks", "Projects", "Calendar"].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setActive(item)}
-                  className={`pb-2 hover:text-medium-purple ${
-                    active === item ? "border-b-2 border-medium-purple" : ""
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Right: Search */}
-          <div className="flex items-center bg-gray-100 rounded-lg px-3 py-1 text-gray-900 w-64">
-            <Search className="w-4 h-4 mr-2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="outline-none text-sm bg-transparent w-full"
-            />
-          </div>
-        </div>
-
-        {/* Dummy Main Content */}
-        <div className="flex-1 mt-6 bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-deep-purple mb-4">{active} View</h2>
-          <ul className="space-y-2">
-            <li className="p-3 rounded-lg bg-gray-100 shadow-sm">Design review with team</li>
-            <li className="p-3 rounded-lg bg-gray-100 shadow-sm">Prepare project timeline</li>
-            <li className="p-3 rounded-lg bg-gray-100 shadow-sm">Update client on progress</li>
-          </ul>
-        </div>
+          <RightPanel />
+        </main>
       </div>
-
-      {/* Right Panel */}
-      <RightPanel />
     </div>
   );
 };
