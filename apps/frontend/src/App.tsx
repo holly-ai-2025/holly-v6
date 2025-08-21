@@ -80,32 +80,31 @@ export default function HollyApp() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col p-6">
         {/* Top Bar */}
-        <div className="flex items-center justify-between bg-medium-purple text-white p-4 rounded-xl shadow-md">
-          <h1 className="text-xl font-semibold">Holly AI</h1>
-          <div className="flex items-center space-x-4">
-            {/* Menu Items */}
-            <nav className="hidden md:flex space-x-4">
-              {["Inbox", "Today", "Upcoming", "Projects", "Habits", "Recent Actions"].map(
-                (item) => (
-                  <button
-                    key={item}
-                    className="px-3 py-1 rounded-lg hover:bg-deep-purple transition"
-                  >
-                    {item}
-                  </button>
-                )
-              )}
-            </nav>
+        <div className="flex items-center justify-between bg-medium-purple text-white p-4 rounded-xl shadow-md space-x-6">
+          <h1 className="text-xl font-semibold flex-shrink-0">Holly AI</h1>
 
-            {/* Search Bar */}
-            <div className="flex items-center bg-white rounded-lg px-3 py-1 text-gray-900">
-              <Search className="w-4 h-4 mr-2 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="outline-none text-sm bg-transparent"
-              />
-            </div>
+          {/* Menu Items */}
+          <nav className="flex flex-shrink-0 space-x-4">
+            {["Inbox", "Today", "Upcoming", "Projects", "Habits", "Recent Actions"].map(
+              (item) => (
+                <button
+                  key={item}
+                  className="px-3 py-1 rounded-lg hover:bg-deep-purple transition"
+                >
+                  {item}
+                </button>
+              )
+            )}
+          </nav>
+
+          {/* Search Bar */}
+          <div className="flex items-center bg-white rounded-lg px-3 py-1 text-gray-900 flex-1 max-w-sm ml-auto">
+            <Search className="w-4 h-4 mr-2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="outline-none text-sm bg-transparent w-full"
+            />
           </div>
         </div>
 
