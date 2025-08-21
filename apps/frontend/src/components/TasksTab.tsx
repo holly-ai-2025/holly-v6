@@ -1,60 +1,61 @@
-import React, { useState } from "react";
+import React from "react";
+import { tasks } from "../data/tasks";
+import { groupTasks } from "../utils/groupTasks";
+import { Card } from "./ui/Card";
+import { Button } from "./ui/Button";
 import { useTaskStore } from "../store/useTaskStore";
-import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
 
-const TasksTab: React.FC = () => {
-  const { tasks, markComplete, addTask } = useTaskStore();
-  const [newTask, setNewTask] = useState("");
+const Section = ({ title, children }) => (
+  <div className="mb-6">
+    <h2 className="text-lg font-semibold mb-2">{title}</h2>
+    <div className="space-y-2">{children}</div>
+  </div>
+);
 
-  const today = new Date().toISOString().split("T")[0];
-  const todaysTasks = tasks.filter(
-    (t) => t.dueDate.startsWith(today) && !t.completed
-  );
-  const completed = tasks.filter((t) => t.completed);
+export default function TasksTab() {
+  const { tasks, toggleTask } = useTaskStore();
+  const grouped = groupTasks(tasks);
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex gap-2">
-        <input
-          type="text"
-          placeholder="Quick add task"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          className="border px-2 py-1 rounded w-full"
-        />
-        <Button
-          onClick={() => {
-            if (newTask) {
-              addTask(newTask, today);
-              setNewTask("");
-            }
-          }}
-        >
-          Add
-        </Button>
-      </div>
+    <div className="p-4 overflow-y-auto">
+      <Section title="Today">
+        {grouped.today.map((task) => (
+          <Card key={task.id} className="flex justify-between items-center p-2">
+            <span className={task.completed ? "line-through text-gray-400" : ""}>
+              {task.title}
+            </span>
+            <Button onClick={() => toggleTask(task.id)} variant="outline" size="sm">
+              {task.completed ? "Undo" : "Done"}
+            </Button>
+          </Card>
+        ))}
+      </Section>
 
-      <h2 className="text-xl mb-2">Today's Tasks</h2>
-      {todaysTasks.map((task) => (
-        <Card key={task.id} className="mb-2">
-          <CardContent className="flex justify-between items-center">
-            <span>{task.title}</span>
-            <Button onClick={() => markComplete(task.id)}>Done</Button>
-          </CardContent>
-        </Card>
-      ))}
+      <Section title="Tomorrow">
+        {grouped.tomorrow.map((task) => (
+          <Card key={task.id} className="flex justify-between items-center p-2">
+            <span className={task.completed ? "line-through text-gray-400" : ""}>
+              {task.title}
+            </span>
+            <Button onClick={() => toggleTask(task.id)} variant="outline" size="sm">
+              {task.completed ? "Undo" : "Done"}
+            </Button>
+          </Card>
+        ))}
+      </Section>
 
-      <h2 className="text-xl mt-4 mb-2">Completed</h2>
-      {completed.map((task) => (
-        <Card key={task.id} className="mb-2 bg-gray-200">
-          <CardContent>
-            <span className="line-through">{task.title}</span>
-          </CardContent>
-        </Card>
-      ))}
+      <Section title="This Week">
+        {grouped.thisWeek.map((task) => (
+          <Card key={task.id} className="flex justify-between items-center p-2">
+            <span className={task.completed ? "line-through text-gray-400" : ""}>
+              {task.title}
+            </span>
+            <Button onClick={() => toggleTask(task.id)} variant="outline" size="sm">
+              {task.completed ? "Undo" : "Done"}
+            </Button>
+          </Card>
+        ))}
+      </Section>
     </div>
   );
-};
-
-export default TasksTab;
+}
