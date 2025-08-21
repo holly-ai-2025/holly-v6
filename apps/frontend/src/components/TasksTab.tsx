@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { tasks as initialTasks } from '../data/tasks';
+import { tasks as initialTasks } from '../data/tasks.ts';
 import { groupTasks } from '../utils/groupTasks';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
