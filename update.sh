@@ -5,11 +5,9 @@ set -e
 dirname=$(dirname "$0")
 cd "$dirname"
 
-# Make sure git is clean
-if ! git diff-index --quiet HEAD --; then
-  echo "⚠️  You have uncommitted changes. Please commit or stash before updating."
-  exit 1
-fi
+# Stash any local changes
+echo "💾 Stashing local changes (if any)..."
+git stash push -m "auto-stash before update" || true
 
 # Update repo
 echo "📥 Pulling latest changes from main..."
@@ -27,6 +25,10 @@ cd ../..
 
 # Backend setup (placeholder - extend if needed)
 echo "⚡ Backend setup placeholder - adjust if backend deps are added."
+
+# Restore stashed changes
+echo "🔄 Restoring stashed changes (if any)..."
+git stash pop || true
 
 # Start frontend dev server
 echo "🚀 Starting Vite dev server for frontend..."
