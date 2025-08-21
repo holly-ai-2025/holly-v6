@@ -1,11 +1,12 @@
-import React from "react";
-import Header from "./Header.tsx";
-import LeftPanel from "./LeftPanel";
-import RightPanel from "./RightPanel";
-import CalendarView from "./CalendarView";
+import React, { useState } from "react";
+import Header from "./components/Header";
+import LeftPanel from "./components/LeftPanel";
+import RightPanel from "./components/RightPanel";
+import CalendarPopup from "./components/CalendarPopup";
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = React.useState("inbox");
+  const [activeTab, setActiveTab] = useState("inbox");
+  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-light-blue">
@@ -13,23 +14,21 @@ const App: React.FC = () => {
       <LeftPanel />
 
       {/* Main Content */}
-      <div className="flex-1 p-6">
-        <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {activeTab === "calendar" ? (
-          <CalendarView />
-        ) : (
-          <div className="p-6 bg-white rounded-xl shadow-lg mt-4">
-            <h2 className="text-xl font-bold capitalize">{activeTab}</h2>
-            <p className="text-gray-600 mt-2">
-              Content for the {activeTab} tab will appear here.
-            </p>
-          </div>
-        )}
+      <div className="flex-1 flex flex-col p-4">
+        <Header activeTab={activeTab} setActiveTab={setActiveTab} setShowCalendar={setShowCalendar} />
+        <div className="flex-1 bg-white rounded-xl shadow-lg p-4 mt-4">
+          {activeTab === "inbox" && <p>Inbox Content</p>}
+          {activeTab === "tasks" && <p>Tasks Content</p>}
+          {activeTab === "projects" && <p>Projects Content</p>}
+          {activeTab === "calendar" && <p>Calendar Content</p>}
+        </div>
       </div>
 
       {/* Right Panel */}
       <RightPanel />
+
+      {/* Calendar Popup */}
+      {showCalendar && <CalendarPopup onClose={() => setShowCalendar(false)} />}
     </div>
   );
 };
