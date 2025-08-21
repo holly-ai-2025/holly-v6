@@ -4,6 +4,8 @@ import { groupTasks } from '../utils/groupTasks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+console.log("✅ TasksTab mounted");
+
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="mb-6">
     <h2 className="text-xl font-semibold mb-2">{title}</h2>
