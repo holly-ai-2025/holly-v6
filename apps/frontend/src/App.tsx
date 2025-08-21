@@ -24,7 +24,7 @@ export default function App() {
           {['Inbox', 'Tasks', 'Projects', 'Calendar'].map((tab) => (
             <button
               key={tab}
-              className={`$${activeTab === tab ? "text-purple-600 font-bold" : "text-gray-600"}`}
+              className={`${activeTab === tab ? "text-purple-600 font-bold" : "text-gray-600"}`}
               onClick={() => setActiveTab(tab)}
             >
               {tab}
