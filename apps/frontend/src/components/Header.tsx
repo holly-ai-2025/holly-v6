@@ -1,36 +1,27 @@
-import { useState } from "react";
+import React from "react";
 
-const Header = () => {
-  const [active, setActive] = useState("Inbox");
+interface HeaderProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
 
+const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
   const menuItems = ["Inbox", "Tasks", "Projects", "Calendar"];
 
   return (
-    <header className="flex items-center justify-between bg-white p-4 shadow-md rounded-xl">
-      {/* Left side nav */}
-      <nav className="flex space-x-8">
+    <header className="w-full flex items-center justify-between p-4 border-b bg-white shadow-sm">
+      <div className="flex items-center space-x-6">
         {menuItems.map((item) => (
           <button
             key={item}
-            onClick={() => setActive(item)}
-            className={`text-gray-700 pb-1 ${
-              active === item
-                ? "border-b-2 border-deep-purple font-medium"
-                : "hover:text-deep-purple"
-            }`}
+            onClick={() => setActiveTab(item)}
+            className={`text-lg font-medium transition-colors duration-200 ${
+              activeTab === item ? "border-b-2 border-purple-600" : ""
+            } text-purple-600 hover:text-purple-800`}
           >
             {item}
           </button>
         ))}
-      </nav>
-
-      {/* Right side search */}
-      <div className="flex items-center">
-        <input
-          type="text"
-          placeholder="Search..."
-          className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-medium-purple"
-        />
       </div>
     </header>
   );
