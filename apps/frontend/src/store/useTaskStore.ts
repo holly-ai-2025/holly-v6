@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from "zustand";
 import { tasks as initialTasks } from '../data/tasks';
 
 export interface Task {
