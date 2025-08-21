@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Mic } from "lucide-react";
+import RightPanel from "./RightPanel";
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -117,6 +118,9 @@ const App = () => {
           </ul>
         </div>
       </div>
+
+      {/* Right Panel */}
+      <RightPanel />
     </div>
   );
 };
