@@ -5,7 +5,7 @@ export type Task = {
   dueDate: string; // ISO date
   status: 'todo' | 'in_progress' | 'done';
   priority: 'low' | 'medium' | 'high';
-  people: string[]; // placeholder: user initials
+  people: string[];
   type: 'dashboard' | 'mobile' | 'web';
 };
 
