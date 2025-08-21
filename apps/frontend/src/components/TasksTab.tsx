@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { tasks as initialTasks } from '../data/tasks';
 import { groupTasks } from '../utils/groupTasks';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
 
 console.log("✅ TasksTab mounted");
 
