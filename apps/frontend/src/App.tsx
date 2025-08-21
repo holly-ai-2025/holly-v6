@@ -5,6 +5,7 @@ import { Search, Mic } from "lucide-react";
 export default function HollyApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [micActive, setMicActive] = useState(false);
+  const [activeMenu, setActiveMenu] = useState("Inbox");
 
   return (
     <div className="flex min-h-screen bg-light-blue text-gray-900">
@@ -89,7 +90,12 @@ export default function HollyApp() {
               (item) => (
                 <button
                   key={item}
-                  className="px-3 py-1 rounded-lg hover:bg-deep-purple transition"
+                  onClick={() => setActiveMenu(item)}
+                  className={`px-3 py-1 rounded-lg transition border-b-2 ${
+                    activeMenu === item
+                      ? "border-white font-semibold"
+                      : "border-transparent hover:border-white"
+                  }`}
                 >
                   {item}
                 </button>
@@ -110,7 +116,7 @@ export default function HollyApp() {
 
         {/* Dummy Main Content */}
         <div className="flex-1 mt-6 bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-lg font-semibold text-deep-purple mb-4">Today’s Tasks</h2>
+          <h2 className="text-lg font-semibold text-deep-purple mb-4">{activeMenu} View</h2>
           <ul className="space-y-2">
             <li className="p-3 rounded-lg bg-gray-100 shadow-sm">Design review with team</li>
             <li className="p-3 rounded-lg bg-gray-100 shadow-sm">Prepare project timeline</li>
