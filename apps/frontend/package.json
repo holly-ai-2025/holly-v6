@@ -14,7 +14,9 @@
     "shadcn-ui": "^0.6.0",
     "lucide-react": "^0.344.0",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
-    "@radix-ui/react-dialog": "^1.0.5"
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-slot": "^1.0.2",
+    "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {
     "vite": "^4.5.0",
