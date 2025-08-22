@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { useTaskStore } from "../store/useTaskStore";
+import { Card, CardHeader, CardContent } from "./ui/card";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "./ui/dropdown-menu";
+import { Button } from "./ui/button";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(true);
   return (
-    <div className="mb-4">
-      <div
-        className="flex justify-between items-center cursor-pointer border-b pb-1 mb-2"
-        onClick={() => setOpen(!open)}
-      >
+    <Card className="mb-4">
+      <CardHeader className="flex justify-between items-center cursor-pointer" onClick={() => setOpen(!open)}>
         <h2 className="font-semibold text-gray-800">{title}</h2>
         <span className="text-sm text-gray-500">{open ? "▼" : "▲"}</span>
-      </div>
-      {open && <div className="space-y-2">{children}</div>}
-    </div>
+      </CardHeader>
+      {open && <CardContent className="space-y-2">{children}</CardContent>}
+    </Card>
   );
 };
 
@@ -25,17 +25,22 @@ const TaskItem = ({ task }) => {
   else bg = "bg-blue-100";
 
   return (
-    <div className={`flex justify-between items-center px-3 py-2 rounded-lg shadow-sm text-sm ${bg}`}>
+    <Card className={`flex justify-between items-center px-3 py-2 shadow-sm text-sm ${bg}`}>
       <span className="font-medium text-gray-800">{task.title}</span>
       <div className="flex items-center space-x-2">
-        <select value={task.status} className="border rounded px-1 text-sm" onChange={() => {}}>
-          <option>Todo</option>
-          <option>In Progress</option>
-          <option>Done</option>
-        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">{task.status}</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Todo</DropdownMenuItem>
+            <DropdownMenuItem>In Progress</DropdownMenuItem>
+            <DropdownMenuItem>Done</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <input type="date" value={task.dueDate} className="border rounded px-1 text-sm" />
       </div>
-    </div>
+    </Card>
   );
 };
 

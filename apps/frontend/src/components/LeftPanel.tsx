@@ -1,4 +1,6 @@
 import React from "react";
+import { Card, CardHeader, CardContent } from "./ui/card";
+import { Input } from "./ui/input";
 
 const ChatMessage = ({ from, text }: { from: string; text: string }) => (
   <div className={`mb-2 ${from === "me" ? "text-right" : "text-left"}`}>
@@ -22,28 +24,24 @@ const LeftPanel = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white border-r p-4 space-y-4 w-80">
-      <div className="flex-1 overflow-y-auto">
+    <Card className="flex flex-col h-full w-80 border-r">
+      <CardContent className="flex-1 overflow-y-auto">
         {messages.map((m, idx) => (
           <ChatMessage key={idx} from={m.from} text={m.text} />
         ))}
-      </div>
-      <div className="mt-auto">
-        <input
-          type="text"
-          placeholder="Type a message..."
-          className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-      </div>
-      <div className="border-t pt-2">
+      </CardContent>
+      <CardContent className="mt-auto">
+        <Input type="text" placeholder="Type a message..." />
+      </CardContent>
+      <CardHeader>
         <h3 className="font-semibold mb-2">Activity Log</h3>
         <ul className="text-sm space-y-1 text-gray-600">
           <li>✔ Task created: "Write UI mockup"</li>
           <li>✔ Inbox item archived</li>
           <li>✔ Project milestone updated</li>
         </ul>
-      </div>
-    </div>
+      </CardHeader>
+    </Card>
   );
 };
 
