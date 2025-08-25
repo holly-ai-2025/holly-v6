@@ -1,5 +1,4 @@
 import React from "react";
-import { X } from "lucide-react";
 
 const dummyTranscript = [
   { sender: "You", text: "Hey Holly, remind me to call Alex" },
@@ -19,7 +18,7 @@ export function VoiceBar({ open, onClose }: { open: boolean; onClose: () => void
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <span className="font-semibold">Voice Transcript</span>
         <button onClick={onClose} className="p-1 rounded hover:bg-accent">
-          <X className="h-5 w-5" />
+          ✕
         </button>
       </div>
       <div className="overflow-y-auto p-4 space-y-2 h-48">

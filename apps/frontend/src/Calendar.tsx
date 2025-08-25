@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, format, isSameMonth, isSameDay, addDays } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Dialog } from '@headlessui/react';
 
 const dummyEvents: Record<string, string[]> = {
@@ -47,9 +46,9 @@ export default function Calendar() {
     <div className="p-4">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft /></button>
+        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>‹</button>
         <h2 className="text-lg font-bold">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight /></button>
+        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>›</button>
       </div>
 
       {/* Days */}

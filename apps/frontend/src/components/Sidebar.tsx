@@ -1,13 +1,12 @@
 import React from "react";
-import { Home, Calendar, ListTodo, Folder, Repeat, History } from "lucide-react";
-
+// Icon imports removed for simpler build
 const navItems = [
-  { icon: Home, label: "Inbox" },
-  { icon: Calendar, label: "Today" },
-  { icon: ListTodo, label: "Upcoming" },
-  { icon: Folder, label: "Projects" },
-  { icon: Repeat, label: "Habits" },
-  { icon: History, label: "Recent Actions" },
+  { label: "Inbox" },
+  { label: "Today" },
+  { label: "Upcoming" },
+  { label: "Projects" },
+  { label: "Habits" },
+  { label: "Recent Actions" },
 ];
 
 export function Sidebar({ active, onSelect }: { active: string; onSelect: (label: string) => void }) {
@@ -22,7 +21,6 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (label
             active === item.label ? "bg-primary text-white" : "hover:bg-accent"
           }`}
         >
-          <item.icon className="h-5 w-5" />
           <span>{item.label}</span>
         </button>
       ))}

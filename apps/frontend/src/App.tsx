@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
-import { MessageSquare, Undo, Flame, Award } from "lucide-react";
+// Icons replaced with emoji to avoid external dependency
 
 export default function App() {
   const [messages] = useState([
@@ -29,10 +29,10 @@ export default function App() {
       <aside className="bg-white border-r p-4 flex flex-col gap-6 shadow-md">
         {/* Chat Section */}
         <Card className="flex-1">
-          <CardHeader className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-indigo-600" />
-            <CardTitle>Chat with Holly</CardTitle>
-          </CardHeader>
+        <CardHeader className="flex items-center gap-2">
+          <span className="text-indigo-600">💬</span>
+          <CardTitle>Chat with Holly</CardTitle>
+        </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {messages.map((msg, i) => (
               <div
@@ -58,9 +58,7 @@ export default function App() {
             {actions.map((action) => (
               <div key={action.id} className="flex justify-between items-center text-sm">
                 <span>{action.text}</span>
-                <Button variant="outline" size="sm">
-                  <Undo className="h-4 w-4" />
-                </Button>
+                <Button variant="outline" size="sm">↺</Button>
               </div>
             ))}
           </CardContent>
@@ -101,7 +99,7 @@ export default function App() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Flame className="text-orange-500" /> Streak
+              <span className="text-orange-500">🔥</span> Streak
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -112,7 +110,7 @@ export default function App() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
-              <Award className="text-purple-500" /> Achievements
+              <span className="text-purple-500">🏆</span> Achievements
             </CardTitle>
           </CardHeader>
           <CardContent>
