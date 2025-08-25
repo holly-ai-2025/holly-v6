@@ -17,7 +17,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import RedeemIcon from "@mui/icons-material/Redeem";
 
-import { allTasks, Task } from "./data/tasks";
+import { tasks, Task } from "./data/tasks";
 import { projects } from "./data/projects";
 import { habits } from "./data/habits";
 import { rewards as initialRewards } from "./data/rewards";
@@ -94,7 +94,7 @@ export default function MainContent() {
               Tasks
             </Typography>
             <List>
-              {allTasks.slice(0, 30).map((task: Task) => (
+              {tasks.slice(0, 30).map((task: Task) => (
                 <ListItem key={task.id} divider>
                   <ListItemText
                     primary={task.title}

@@ -9,16 +9,16 @@ export type GroupedTasks = {
 
 export function groupTasks(tasks: Task[]): GroupedTasks {
   const now = new Date();
-  const today = tasks.filter(t => new Date(t.dueDate).toDateString() === now.toDateString());
+  const today = tasks.filter(t => new Date(t.due).toDateString() === now.toDateString());
 
   const tomorrowDate = new Date(now);
   tomorrowDate.setDate(now.getDate() + 1);
-  const tomorrow = tasks.filter(t => new Date(t.dueDate).toDateString() === tomorrowDate.toDateString());
+  const tomorrow = tasks.filter(t => new Date(t.due).toDateString() === tomorrowDate.toDateString());
 
   const weekEnd = new Date(now);
   weekEnd.setDate(now.getDate() + (7 - now.getDay()));
   const thisWeek = tasks.filter(t => {
-    const d = new Date(t.dueDate);
+    const d = new Date(t.due);
     return d > tomorrowDate && d <= weekEnd;
   });
 

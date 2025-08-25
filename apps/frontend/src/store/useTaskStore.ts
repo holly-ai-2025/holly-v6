@@ -1,12 +1,5 @@
 import { create } from "zustand";
-import { tasks as initialTasks } from '../data/tasks';
-
-export interface Task {
-  id: string;
-  title: string;
-  dueDate: string; // ISO date string
-  completed?: boolean;
-}
+import { Task, tasks as initialTasks } from '../data/tasks';
 
 interface LogEntry {
   id: string;
@@ -20,7 +13,7 @@ interface TaskState {
   xp: number;
   streak: number;
   markComplete: (id: string) => void;
-  addTask: (title: string, dueDate: string) => void;
+  addTask: (title: string, due: string) => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -37,7 +30,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const newXP = state.xp + 10;
       const today = new Date().toISOString().split('T')[0];
       const streak = updated.some(
-        (t) => t.completed && t.dueDate.startsWith(today)
+        (t) => t.completed && t.due.startsWith(today)
       )
         ? state.streak + 1
         : state.streak;
@@ -52,9 +45,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       };
     });
   },
-  addTask: (title, dueDate) => {
+  addTask: (title, due) => {
     set((state) => {
-      const newTask = { id: Date.now().toString(), title, dueDate };
+      const newTask: Task = { id: Date.now().toString(), title, due, status: 'Todo' };
       return {
         tasks: [...state.tasks, newTask],
         log: [

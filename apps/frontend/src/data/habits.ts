@@ -1,51 +1,26 @@
 export interface Habit {
   id: string;
   name: string;
-  type: "Daily" | "Weekly" | "Monthly" | "Yearly";
+  type: 'Daily' | 'Weekly' | 'Monthly';
   streak: number;
   goal: string;
-  status: "Active" | "Missed";
+  status: 'Active' | 'Missed';
 }
 
-export const habits: Habit[] = [
-  // 5 daily
-  ...Array.from({ length: 5 }, (_, i) => ({
-    id: `hd${i + 1}`,
-    name: `Daily Habit ${i + 1}`,
-    type: "Daily" as const,
-    streak: Math.floor(Math.random() * 30),
-    goal: "Daily",
-    status: Math.random() > 0.2 ? "Active" : "Missed",
-  })),
-
-  // 10 weekly
-  ...Array.from({ length: 10 }, (_, i) => ({
-    id: `hw${i + 1}`,
-    name: `Weekly Habit ${i + 1}`,
-    type: "Weekly" as const,
-    streak: Math.floor(Math.random() * 10),
-    goal: "Weekly",
-    status: Math.random() > 0.2 ? "Active" : "Missed",
-  })),
-
-  // 5 monthly
-  ...Array.from({ length: 5 }, (_, i) => ({
-    id: `hm${i + 1}`,
-    name: `Monthly Habit ${i + 1}`,
-    type: "Monthly" as const,
-    streak: Math.floor(Math.random() * 5),
-    goal: "Monthly",
-    status: Math.random() > 0.2 ? "Active" : "Missed",
-  })),
-
-  // 1 yearly
-  {
-    id: "hy1",
-    name: "Yearly Habit 1",
-    type: "Yearly",
-    streak: 1,
-    goal: "Yearly",
-    status: "Active",
-  },
-];
-
+export const habits: Record<'daily' | 'weekly' | 'monthly', Habit[]> = {
+  daily: [
+    { id: 'hd1', name: 'Morning Stretch', type: 'Daily', streak: 5, goal: 'Every morning', status: 'Active' },
+    { id: 'hd2', name: 'Read 10 pages', type: 'Daily', streak: 3, goal: 'Every day', status: 'Active' },
+    { id: 'hd3', name: 'Meditation', type: 'Daily', streak: 1, goal: 'Daily session', status: 'Missed' }
+  ],
+  weekly: [
+    { id: 'hw1', name: 'Call parents', type: 'Weekly', streak: 2, goal: 'Once a week', status: 'Active' },
+    { id: 'hw2', name: 'Grocery shopping', type: 'Weekly', streak: 4, goal: 'Weekly run', status: 'Active' },
+    { id: 'hw3', name: 'Clean house', type: 'Weekly', streak: 1, goal: 'Weekly tidy', status: 'Missed' }
+  ],
+  monthly: [
+    { id: 'hm1', name: 'Budget review', type: 'Monthly', streak: 6, goal: 'Monthly check', status: 'Active' },
+    { id: 'hm2', name: 'Plan trip', type: 'Monthly', streak: 2, goal: 'Monthly plan', status: 'Active' },
+    { id: 'hm3', name: 'Deep clean', type: 'Monthly', streak: 0, goal: 'Monthly deep clean', status: 'Missed' }
+  ]
+};
