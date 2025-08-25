@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -36,18 +35,16 @@ export default function App() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {messages.map((msg, i) => (
-              <motion.div
+              <div
                 key={i}
                 className={`p-2 rounded-lg ${
                   msg.from === "You"
                     ? "bg-indigo-100 ml-auto max-w-[80%]"
                     : "bg-gray-100 mr-auto max-w-[80%]"
                 }`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
               >
                 <span className="font-medium">{msg.from}:</span> {msg.text}
-              </motion.div>
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -75,10 +72,9 @@ export default function App() {
         <h1 className="text-2xl font-bold mb-4">Today’s Focus</h1>
         <div className="grid gap-4">
           {tasks.map((task) => (
-            <motion.div
+            <div
               key={task.id}
               className="bg-white rounded-2xl shadow-md p-4 flex justify-between items-center"
-              whileHover={{ scale: 1.02 }}
             >
               <div>
                 <p className="font-medium">{task.title}</p>
@@ -95,7 +91,7 @@ export default function App() {
               >
                 {task.status}
               </span>
-            </motion.div>
+            </div>
           ))}
         </div>
       </main>
