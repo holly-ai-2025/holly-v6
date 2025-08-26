@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -10,14 +9,32 @@ export default defineConfig({
       "@": resolve(__dirname, "src"),
     },
   },
-  root: "./",
-  build: {
-    outDir: "dist",
-    rollupOptions: {
-      external: [], // ✅ ensure recharts is bundled, not externalized
-    },
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      "*.ngrok-free.app",
+      /\.ngrok-free\.app$/,
+      "*.ngrok.app",
+      /\.ngrok\.app$/,
+      "*.ngrok.io",
+      /\.ngrok\.io$/
+    ],
   },
-  optimizeDeps: {
-    include: ["recharts"], // ✅ pre-bundle recharts
+  preview: {
+    host: "0.0.0.0",
+    port: 5173,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      "*.ngrok-free.app",
+      /\.ngrok-free\.app$/,
+      "*.ngrok.app",
+      /\.ngrok\.app$/,
+      "*.ngrok.io",
+      /\.ngrok\.io$/
+    ],
   },
 });

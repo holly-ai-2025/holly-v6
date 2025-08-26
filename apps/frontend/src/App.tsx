@@ -1,16 +1,22 @@
 import React, { useState } from "react";
-import { Sidebar } from "./components/Sidebar";
+import { Box } from "@mui/material";
 import MainContent from "./MainContent";
 import RightPanel from "./RightPanel";
+import LeftPanel from "./LeftPanel";
 
 export default function App() {
-  const [active, setActive] = useState("Inbox");
+  const [activeTab, setActiveTab] = useState("Dashboard");
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar active={active} onSelect={setActive} />
-      <MainContent />
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+      {/* Left Sidebar */}
+      <LeftPanel />
+
+      {/* Main Content */}
+      <MainContent activeTab={activeTab} />
+
+      {/* Right Sidebar */}
       <RightPanel />
-    </div>
+    </Box>
   );
 }
