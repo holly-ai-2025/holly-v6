@@ -1,25 +1,16 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { MessageSquare, Undo, Flame, Award } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import React, { useState } from "react";
+import { Sidebar } from "./components/Sidebar";
+import MainContent from "./MainContent";
+import RightPanel from "./RightPanel";
 
 export default function App() {
-  const [count, setCount] = useState(0);
+  const [active, setActive] = useState("Inbox");
 
   return (
-    <div className="p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Holly AI v6</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">Welcome to Holly AI v6 frontend.</p>
-          <Button variant="outline" size="sm" onClick={() => setCount(count + 1)}>
-            Count is {count}
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar active={active} onSelect={setActive} />
+      <MainContent />
+      <RightPanel />
     </div>
   );
 }
