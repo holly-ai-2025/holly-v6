@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Progress } from "@/components/ui/Progress";
 // Icons replaced with emoji to avoid external dependency
+import { tasks as allTasks } from "@/data/tasks";
 
 export default function App() {
   const [messages] = useState([
@@ -17,11 +17,7 @@ export default function App() {
     { id: 3, text: "Created new habit: Morning Walk" },
   ];
 
-  const tasks = [
-    { id: 1, title: "Finish project proposal", status: "In Progress", tag: "Work" },
-    { id: 2, title: "Read 20 pages", status: "Not Started", tag: "Personal" },
-    { id: 3, title: "Meditation", status: "Completed", tag: "Wellness" },
-  ];
+  const tasks = allTasks.slice(0, 3);
 
   return (
     <div className="grid grid-cols-[280px_1fr_260px] h-screen bg-gray-50 text-gray-900">
@@ -76,11 +72,11 @@ export default function App() {
             >
               <div>
                 <p className="font-medium">{task.title}</p>
-                <p className="text-sm text-gray-500">{task.tag}</p>
+                <p className="text-sm text-gray-500">Due {task.due}</p>
               </div>
               <span
                 className={`text-xs px-3 py-1 rounded-full ${
-                  task.status === "Completed"
+                  task.status === "Done"
                     ? "bg-green-100 text-green-700"
                     : task.status === "In Progress"
                     ? "bg-yellow-100 text-yellow-700"
