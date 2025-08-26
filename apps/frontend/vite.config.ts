@@ -13,5 +13,11 @@ export default defineConfig({
   root: "./",
   build: {
     outDir: "dist",
+    rollupOptions: {
+      external: [], // ✅ ensure recharts is bundled
+    },
+  },
+  optimizeDeps: {
+    include: ["recharts"], // ✅ force pre-bundling of recharts
   },
 });
