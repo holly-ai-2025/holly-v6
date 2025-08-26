@@ -1,6 +1,11 @@
 import React from "react";
 import { Box, Typography, Paper, Grid } from "@mui/material";
-import { widgets } from "../dummyData";
+
+const widgets = [
+  { title: "Streak", value: "5 days 🔥" },
+  { title: "Achievements", value: "Level 2 Explorer" },
+  { title: "XP", value: "1200 / 1500" },
+];
 
 export default function RightPanel({ open }: { open: boolean }) {
   return (
