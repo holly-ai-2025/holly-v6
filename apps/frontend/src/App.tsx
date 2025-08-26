@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Progress } from "@/components/ui/Progress";
+import Progress from "@/components/ui/Progress";
 // Icons replaced with emoji to avoid external dependency
 import { tasks as allTasks } from "@/data/tasks";
 
