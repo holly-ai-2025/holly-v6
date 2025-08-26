@@ -6,7 +6,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer
-} from 'recharts/lib';
+} from 'recharts';
 
 const RightPanel: React.FC = () => {
   const data = [
