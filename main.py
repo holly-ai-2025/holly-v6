@@ -13,10 +13,7 @@ load_dotenv(dotenv_path=env_path)
 app = FastAPI()
 
 # Tokens: allow multiple OPS_TOKEN values, comma-separated in .env
-OPS_TOKENS = [
-    t.strip()
-    for t in os.getenv("OPS_TOKEN", "my-super-secret-token").split(",")
-]
+OPS_TOKENS = [t.strip() for t in os.getenv("OPS_TOKEN", "").split(",") if t.strip()]
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = "holly-ai-2025/holly-v6"
 
@@ -31,12 +28,15 @@ print(f"[startup] Using ROOT_PATH: {ROOT_PATH}")
 
 # ---------- Middleware for Bearer Token ----------
 @app.middleware("http")
-async def check_auth(request: Request, call_next):
-    # Debug logging
-    headers_dict = {k: v for k, v in request.headers.items()}
-    print(f"[DEBUG] Incoming request → path: {request.url.path}, headers: {headers_dict}")
+async def verify_ops_token(request: Request, call_next):
+    if request.url.path.startswith("/ops/") or request.url.path.startswith("/git/"):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Missing Authorization header")
 
-    # ⚠️ Dev mode: skip token checks (ngrok testing)
+        token = auth_header.split("Bearer ")[-1].strip()
+        if token not in OPS_TOKENS:
+            raise HTTPException(status_code=403, detail="Invalid token")
     return await call_next(request)
 
 
