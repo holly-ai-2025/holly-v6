@@ -14,10 +14,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     rollupOptions: {
-      external: [], // ✅ ensure recharts is bundled
+      external: [], // ✅ ensure recharts is bundled, not externalized
     },
   },
   optimizeDeps: {
-    include: ["recharts"], // ✅ force pre-bundling of recharts
+    include: ["recharts"], // ✅ pre-bundle recharts
   },
 });
