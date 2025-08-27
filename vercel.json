@@ -5,8 +5,8 @@
       "use": "@vercel/static-build"
     }
   ],
-  "buildCommand": "cd apps/frontend && pnpm install && pnpm run build",
-  "outputDirectory": "apps/frontend/dist",
+  "buildCommand": "pnpm install && pnpm run build",
+  "outputDirectory": "dist",
   "routes": [
     { "src": "/(.*)", "dest": "/apps/frontend/dist/$1" }
   ]
