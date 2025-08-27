@@ -1,59 +1,59 @@
 import React, { useEffect, useState } from "react";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTaskStore } from "../store/useTaskStore";
 
 export default function TasksTab() {
-  const { groupedTasks, fetchTasks, updateTask } = useTaskStore();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const { groupedTasks, fetchTasks } = useTaskStore();
+  const [expanded, setExpanded] = useState<string | false>(false);
 
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  const toggleGroup = (group: string) => {
-    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
-  };
+  const handleChange =
+    (panel: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
+      setExpanded(isExpanded ? panel : false);
+    };
+
+  if (!groupedTasks || Object.keys(groupedTasks).length === 0) {
+    return <Typography>No tasks found</Typography>;
+  }
 
   return (
-    <div className="space-y-6">
+    <div style={{ width: "100%", maxWidth: "100%" }}>
       {Object.entries(groupedTasks).map(([group, tasks]) => (
-        <div key={group} className="space-y-2">
-          <div
-            className="flex items-center space-x-2 font-semibold text-lg cursor-pointer"
-            onClick={() => toggleGroup(group)}
-          >
-            <span>{group}</span>
-            <span className="ml-2 text-gray-500">{openGroups[group] ? "▾" : "▸"}</span>
-          </div>
-          {openGroups[group] && (
-            <div className="space-y-1">
-              {tasks.map((task) => (
-                <div
-                  key={task.task_id}
-                  className="flex items-center justify-between px-3 py-2 rounded-md shadow-sm bg-white"
-                >
-                  <span>{task.task_name}</span>
-                  <div className="flex items-center space-x-2">
-                    <select
-                      value={task.status}
-                      onChange={(e) => updateTask(task.task_id, { status: e.target.value })}
-                      className="border rounded px-1 py-0.5 text-sm"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Complete">Complete</option>
-                    </select>
-                    <input
-                      type="date"
-                      value={task.due_date || ""}
-                      onChange={(e) => updateTask(task.task_id, { due_date: e.target.value })}
-                      className="border rounded px-1 py-0.5 text-sm"
-                    />
-                  </div>
-                </div>
+        <Accordion
+          key={group}
+          expanded={expanded === group}
+          onChange={handleChange(group)}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">{group}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <List sx={{ width: "100%" }}>
+              {tasks.map((t) => (
+                <ListItem key={t.task_id} divider>
+                  <ListItemText
+                    primary={t.task_name}
+                    secondary={`${t.status || "Pending"} — Due: ${
+                      t.due_date || "N/A"
+                    }`}
+                  />
+                </ListItem>
               ))}
-            </div>
-          )}
-        </div>
+            </List>
+          </AccordionDetails>
+        </Accordion>
       ))}
     </div>
   );
