@@ -1,16 +1,7 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "apps/frontend/package.json",
-      "use": "@vercel/static-build"
-    }
-  ],
-  "buildCommand": "cd apps/frontend && pnpm install --no-frozen-lockfile --config.use-lockfile=false && pnpm run build",
+  "buildCommand": "cd apps/frontend && pnpm install && pnpm run build",
   "outputDirectory": "apps/frontend/dist",
-  "env": {
-    "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org/",
-    "PNPM_HOME": ".pnpm-store",
-    "PNPM_VERSION": "9.12.0"
-  }
+  "installCommand": "pnpm install",
+  "framework": "vite",
+  "ignoreCommand": "exit 0"
 }
