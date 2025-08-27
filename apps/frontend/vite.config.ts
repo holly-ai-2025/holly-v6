@@ -1,11 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
+// Vite config for Holly v6 frontend
 export default defineConfig({
   plugins: [react()],
-  root: "./",
   build: {
-    outDir: "dist",
+    outDir: "dist",       // build output inside apps/frontend/dist
+    emptyOutDir: true,
   },
 });
