@@ -1,11 +1,8 @@
 {
   "builds": [
-    {
-      "src": "apps/frontend/package.json",
-      "use": "@vercel/static-build"
-    }
+    { "src": "apps/frontend/package.json", "use": "@vercel/static-build" }
   ],
-  "buildCommand": "pnpm install && pnpm run build",
+  "buildCommand": "corepack enable && corepack prepare pnpm@9.12.0 --activate && pnpm install && pnpm run build",
   "outputDirectory": "dist",
   "routes": [
     { "src": "/(.*)", "dest": "/apps/frontend/dist/$1" }
