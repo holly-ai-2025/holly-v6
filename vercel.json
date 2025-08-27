@@ -6,6 +6,11 @@
       "use": "@vercel/static-build"
     }
   ],
-  "buildCommand": "cd apps/frontend && pnpm install --no-frozen-lockfile && pnpm run build",
-  "outputDirectory": "apps/frontend/dist"
+  "buildCommand": "cd apps/frontend && pnpm install --no-frozen-lockfile --config.use-lockfile=false && pnpm run build",
+  "outputDirectory": "apps/frontend/dist",
+  "env": {
+    "NPM_CONFIG_REGISTRY": "https://registry.npmjs.org/",
+    "PNPM_HOME": ".pnpm-store",
+    "PNPM_VERSION": "9.12.0"
+  }
 }
