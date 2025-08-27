@@ -19,6 +19,7 @@ interface TaskState {
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || "/db";
+console.log("[TaskStore] Using API_BASE:", API_BASE);
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
