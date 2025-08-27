@@ -1,11 +1,15 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// Vite config for Holly v6 frontend
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  build: {
-    outDir: "dist",       // build output inside apps/frontend/dist
-    emptyOutDir: true,
+  server: {
+    proxy: {
+      '/db': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
-});
+})
