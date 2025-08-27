@@ -1,22 +1,16 @@
-// App shell
 import React, { useState } from "react";
 import { Box } from "@mui/material";
 import LeftPanel from "./components/LeftPanel";
+import RightPanel from "./components/RightPanel";
 import MainContent from "./MainContent";
-import RightPanel from "./RightPanel";
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [activeTab, setActiveTab] = useState("tasks");
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      {/* Left Sidebar */}
       <LeftPanel />
-
-      {/* Main Content */}
-      <MainContent activeTab={activeTab} />
-
-      {/* Right Sidebar */}
+      <MainContent activeTab={activeTab} sx={{ flex: 1, overflow: "auto" }} />
       <RightPanel />
     </Box>
   );
