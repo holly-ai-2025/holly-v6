@@ -21,12 +21,13 @@ import { allTasks, Task } from "./data/tasks";
 import { projects } from "./data/projects";
 import { habits } from "./data/habits";
 import { rewards as initialRewards } from "./data/rewards";
+import CalendarView from "./CalendarView";
 
-export default function MainContent() {
+export default function MainContent({ activeTab }: { activeTab: string }) {
   const [tab, setTab] = useState(0);
   const [rewards, setRewards] = useState(initialRewards);
   const [newReward, setNewReward] = useState({ name: "", cost: 0 });
-  const [tokens, setTokens] = useState(500); // dummy token count
+  const [tokens, setTokens] = useState(500);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -53,18 +54,7 @@ export default function MainContent() {
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-      {/* Header with tabs */}
-      <Paper
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          px: 2,
-          py: 1,
-          borderRadius: 0,
-          borderBottom: "1px solid #e0e0e0",
-        }}
-      >
+      <Paper sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1, borderRadius: 0, borderBottom: "1px solid #e0e0e0" }}>
         <Tabs value={tab} onChange={handleTabChange}>
           <Tab label="Dashboard" />
           <Tab label="Tasks" />
@@ -73,33 +63,21 @@ export default function MainContent() {
           <Tab label="Calendar" />
           <Tab label="Rewards" />
         </Tabs>
-        <TextField
-          placeholder="Search…"
-          size="small"
-          sx={{ width: 240 }}
-        />
+        <TextField placeholder="Search…" size="small" sx={{ width: 240 }} />
       </Paper>
 
-      {/* Content */}
       <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
         {tab === 0 && (
-          <Typography>
-            Welcome to Holly AI Dashboard. Choose a tab to get started.
-          </Typography>
+          <Typography>Welcome to Holly AI Dashboard. Choose a tab to get started.</Typography>
         )}
 
         {tab === 1 && (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Tasks
-            </Typography>
+            <Typography variant="h6" gutterBottom>Tasks</Typography>
             <List>
               {allTasks.slice(0, 30).map((task: Task) => (
                 <ListItem key={task.id} divider>
-                  <ListItemText
-                    primary={task.title}
-                    secondary={`${task.status} — Due: ${task.due}`}
-                  />
+                  <ListItemText primary={task.title} secondary={`${task.status} — Due: ${task.due}`} />
                 </ListItem>
               ))}
             </List>
@@ -108,26 +86,17 @@ export default function MainContent() {
 
         {tab === 2 && (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Projects
-            </Typography>
+            <Typography variant="h6" gutterBottom>Projects</Typography>
             {projects.map((project) => (
               <Paper key={project.id} sx={{ p: 2, mb: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {project.name}
-                </Typography>
+                <Typography variant="subtitle1" fontWeight={600}>{project.name}</Typography>
                 {project.phases.map((phase) => (
                   <Box key={phase.id} sx={{ ml: 2, mt: 1 }}>
-                    <Typography variant="body1" fontWeight={500}>
-                      {phase.name}
-                    </Typography>
+                    <Typography variant="body1" fontWeight={500}>{phase.name}</Typography>
                     <List dense>
                       {phase.tasks.map((task) => (
                         <ListItem key={task.id}>
-                          <ListItemText
-                            primary={task.title}
-                            secondary={`${task.status} — Due: ${task.due}`}
-                          />
+                          <ListItemText primary={task.title} secondary={`${task.status} — Due: ${task.due}`} />
                         </ListItem>
                       ))}
                     </List>
@@ -140,15 +109,11 @@ export default function MainContent() {
 
         {tab === 3 && (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Habits
-            </Typography>
+            <Typography variant="h6" gutterBottom>Habits</Typography>
             <Divider sx={{ mb: 2 }} />
             {Object.entries(habits).map(([frequency, list]) => (
               <Box key={frequency} sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {frequency.toUpperCase()}
-                </Typography>
+                <Typography variant="subtitle1" fontWeight={600}>{frequency.toUpperCase()}</Typography>
                 <List dense>
                   {list.map((habit) => (
                     <ListItem key={habit.id}>
@@ -161,71 +126,28 @@ export default function MainContent() {
           </Box>
         )}
 
-        {tab === 4 && (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Calendar
-            </Typography>
-            <Typography>
-              (Calendar component will go here — large format view)
-            </Typography>
-          </Box>
-        )}
+        {tab === 4 && <CalendarView />}
 
         {tab === 5 && (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Rewards
-            </Typography>
-            <Typography variant="subtitle1" color="primary" fontWeight={600} sx={{ mb: 2 }}>
-              You have {tokens} Tokens
-            </Typography>
+            <Typography variant="h6" gutterBottom>Rewards</Typography>
+            <Typography variant="subtitle1" color="primary" fontWeight={600} sx={{ mb: 2 }}>You have {tokens} Tokens</Typography>
 
             <Stack spacing={2} sx={{ mb: 3 }}>
-              <TextField
-                label="Reward Name"
-                size="small"
-                value={newReward.name}
-                onChange={(e) =>
-                  setNewReward({ ...newReward, name: e.target.value })
-                }
-              />
-              <TextField
-                label="Cost (tokens)"
-                size="small"
-                type="number"
-                value={newReward.cost}
-                onChange={(e) =>
-                  setNewReward({ ...newReward, cost: parseInt(e.target.value) })
-                }
-              />
-              <Button variant="contained" onClick={addReward}>
-                Add Reward
-              </Button>
+              <TextField label="Reward Name" size="small" value={newReward.name} onChange={(e) => setNewReward({ ...newReward, name: e.target.value })} />
+              <TextField label="Cost (tokens)" size="small" type="number" value={newReward.cost} onChange={(e) => setNewReward({ ...newReward, cost: parseInt(e.target.value) })} />
+              <Button variant="contained" onClick={addReward}>Add Reward</Button>
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
 
             <Stack spacing={2}>
               {rewards.map((reward, idx) => (
-                <Paper
-                  key={idx}
-                  sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                >
+                <Paper key={idx} sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Typography>{reward.name} — {reward.cost} Tokens</Typography>
                   <Stack direction="row" spacing={1}>
-                    <Button
-                      variant="contained"
-                      color="success"
-                      size="small"
-                      startIcon={<RedeemIcon />}
-                      onClick={() => claimReward(idx)}
-                    >
-                      Claim
-                    </Button>
-                    <IconButton color="error" onClick={() => deleteReward(idx)}>
-                      <DeleteIcon />
-                    </IconButton>
+                    <Button variant="contained" color="success" size="small" startIcon={<RedeemIcon />} onClick={() => claimReward(idx)}>Claim</Button>
+                    <IconButton color="error" onClick={() => deleteReward(idx)}><DeleteIcon /></IconButton>
                   </Stack>
                 </Paper>
               ))}
@@ -236,4 +158,3 @@ export default function MainContent() {
     </Box>
   );
 }
-
