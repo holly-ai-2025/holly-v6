@@ -1,0 +1,6 @@
+
+# Ignore caches
+__pycache__/
+apps/frontend/node_modules/
+apps/frontend/.vite/
+.DS_Store
