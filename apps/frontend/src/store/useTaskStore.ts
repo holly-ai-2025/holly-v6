@@ -23,12 +23,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   groupedTasks: {},
   fetchTasks: async () => {
     try {
+      console.log("[TaskStore] Fetching tasks from DB...");
       const res = await fetch("/db/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql: "SELECT * FROM tasks", params: [] }),
       });
+      console.log("[TaskStore] Response status:", res.status);
       const data = await res.json();
+      console.log("[TaskStore] Raw data from DB:", data);
+
       const tasks: Task[] = data.map((row: any) => ({
         task_id: row.task_id,
         task_name: row.task_name,
@@ -38,13 +42,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         priority: row.priority,
         category: row.category,
       }));
-      set({ tasks, groupedTasks: groupTasks(tasks) });
+
+      console.log("[TaskStore] Normalized tasks:", tasks);
+      const grouped = groupTasks(tasks);
+      console.log("[TaskStore] Grouped tasks:", grouped);
+
+      set({ tasks, groupedTasks: grouped });
     } catch (e) {
-      console.error("Failed to fetch tasks", e);
+      console.error("[TaskStore] Failed to fetch tasks", e);
     }
   },
   updateTask: async (id, updates) => {
     try {
+      console.log("[TaskStore] Updating task", id, updates);
       const fields = Object.keys(updates)
         .map((k) => `${k} = ?`)
         .join(", ");
@@ -57,10 +67,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
           params: [...values, id],
         }),
       });
-      // Refresh after update
+      console.log("[TaskStore] Update success, refreshing tasks...");
       await get().fetchTasks();
     } catch (e) {
-      console.error("Failed to update task", e);
+      console.error("[TaskStore] Failed to update task", e);
     }
   },
 }));
