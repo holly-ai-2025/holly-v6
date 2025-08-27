@@ -1,5 +1,11 @@
 {
-  "buildCommand": "cd apps/frontend && pnpm run build",
-  "installCommand": "cd apps/frontend && pnpm install",
-  "framework": "vite"
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/frontend/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "buildCommand": "cd apps/frontend && pnpm install && pnpm run build",
+  "outputDirectory": "apps/frontend/dist"
 }
