@@ -9,13 +9,8 @@ export default function App() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      {/* Left Sidebar */}
       <LeftPanel />
-
-      {/* Main Content */}
       <MainContent activeTab={activeTab} />
-
-      {/* Right Sidebar */}
       <RightPanel />
     </Box>
   );
