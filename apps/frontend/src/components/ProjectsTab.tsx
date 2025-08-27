@@ -1,10 +1,18 @@
 import React from "react";
 
-export default function ProjectsTab() {
+export default function ProjectsTab({ projects = [] }: { projects?: any[] }) {
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-2">Projects</h2>
-      <p>Manage your projects here.</p>
+    <div>
+      <h2>Projects</h2>
+      {projects.length === 0 ? (
+        <p>No projects yet</p>
+      ) : (
+        <ul>
+          {projects.map((p, i) => (
+            <li key={i}>{p.project_name || "Unnamed Project"}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
