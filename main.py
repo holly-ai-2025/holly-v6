@@ -274,4 +274,4 @@ async def git_close_pr(request: Request):
         resp = requests.patch(url, headers=headers, json=payload)
         return {"ok": resp.status_code == 200, "status_code": resp.status_code, "response": resp.json()}
     except Exception as e:
-        return {"ok": False, "error": str(e)}%                     
+        return {"ok": False, "error": str(e)}                     
