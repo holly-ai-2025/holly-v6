@@ -18,16 +18,24 @@ interface TaskState {
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "/db";
+// --- Debug: inspect Vite env ---
+console.log("[TaskStore] import.meta.env:", import.meta.env);
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/db";
 console.log("[TaskStore] Using API_BASE:", API_BASE);
+
+if (!import.meta.env.VITE_API_URL) {
+  console.warn("[TaskStore] VITE_API_URL not set, falling back to http://localhost:5000/db");
+}
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   groupedTasks: {},
   fetchTasks: async () => {
     try {
-      console.log("[TaskStore] Fetching tasks from", `${API_BASE}/query`);
-      const res = await fetch(`${API_BASE}/query`, {
+      const url = `${API_BASE}/query`;
+      console.log("[TaskStore] Fetching tasks from:", url);
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql: "SELECT * FROM tasks", params: [] }),
@@ -57,12 +65,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   updateTask: async (id, updates) => {
     try {
-      console.log("[TaskStore] Updating task", id, updates);
+      const url = `${API_BASE}/exec`;
+      console.log("[TaskStore] Updating task via:", url, "payload:", updates);
       const fields = Object.keys(updates)
         .map((k) => `${k} = ?`)
         .join(", ");
       const values = Object.values(updates);
-      await fetch(`${API_BASE}/exec`, {
+      await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
