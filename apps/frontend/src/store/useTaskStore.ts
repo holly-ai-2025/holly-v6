@@ -18,13 +18,15 @@ interface TaskState {
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || "/db";
+
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
   groupedTasks: {},
   fetchTasks: async () => {
     try {
-      console.log("[TaskStore] Fetching tasks from DB...");
-      const res = await fetch("/db/query", {
+      console.log("[TaskStore] Fetching tasks from", `${API_BASE}/query`);
+      const res = await fetch(`${API_BASE}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql: "SELECT * FROM tasks", params: [] }),
@@ -59,7 +61,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         .map((k) => `${k} = ?`)
         .join(", ");
       const values = Object.values(updates);
-      await fetch("/db/exec", {
+      await fetch(`${API_BASE}/exec`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
