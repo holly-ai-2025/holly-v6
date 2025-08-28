@@ -6,3 +6,4 @@ apps/frontend/.vite/
 .DS_Store
 .env
 infra/data/
+.venv/
