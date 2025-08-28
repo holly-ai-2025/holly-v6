@@ -194,8 +194,6 @@ async def ops_write(request: Request):
 # ================ GITHUB ENDPOINTS ===================
 # =====================================================
 
-import json
-
 @app.post("/git/create-branch")
 async def git_create_branch(request: Request):
     data = await request.json()
@@ -233,6 +231,63 @@ async def git_commit_multi(request: Request):
         subprocess.run(["git", "add", "."], cwd=ROOT_PATH, check=True)
         result = subprocess.run(["git", "commit", "-m", message], cwd=ROOT_PATH, capture_output=True, text=True)
 
+        return {"ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/git/push")
+async def git_push(request: Request):
+    data = await request.json()
+    branch = data.get("branch")
+    if not branch:
+        raise HTTPException(status_code=400, detail="'branch' is required")
+
+    try:
+        # Ensure origin uses token-authenticated URL
+        authed_url = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git"
+        subprocess.run(["git", "remote", "set-url", "origin", authed_url], cwd=ROOT_PATH, check=True)
+
+        result = subprocess.run(
+            ["git", "push", "-u", "origin", branch],
+            cwd=ROOT_PATH, capture_output=True, text=True
+        )
+        return {"ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/git/pull")
+async def git_pull(request: Request):
+    try:
+        result = subprocess.run(
+            ["git", "pull", "origin", "main"],
+            cwd=ROOT_PATH, capture_output=True, text=True
+        )
+        return {"ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/git/status")
+async def git_status():
+    try:
+        result = subprocess.run(
+            ["git", "status", "--short", "--branch"],
+            cwd=ROOT_PATH, capture_output=True, text=True
+        )
+        return {"ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/git/diff")
+async def git_diff():
+    try:
+        result = subprocess.run(
+            ["git", "diff"],
+            cwd=ROOT_PATH, capture_output=True, text=True
+        )
         return {"ok": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
     except Exception as e:
         return {"ok": False, "error": str(e)}
