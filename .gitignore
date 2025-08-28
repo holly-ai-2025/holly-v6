@@ -4,3 +4,5 @@ __pycache__/
 apps/frontend/node_modules/
 apps/frontend/.vite/
 .DS_Store
+.env
+infra/data/
