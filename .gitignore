@@ -7,3 +7,4 @@ apps/frontend/.vite/
 .env
 infra/data/
 .venv/
+!infra/data/seed.sql
