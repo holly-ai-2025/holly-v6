@@ -10,8 +10,13 @@ import {
   List,
   ListItem,
   ListItemText,
+  Select,
+  MenuItem,
+  Checkbox,
+  IconButton,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FolderIcon from "@mui/icons-material/Folder";
 import { styled } from "@mui/material/styles";
 
 interface Task {
@@ -24,11 +29,18 @@ interface Task {
   category?: string;
 }
 
+const groupColors: Record<string, string> = {
+  Overdue: "#fdecea",
+  Today: "#e3f2fd",
+  Tomorrow: "#bbdefb",
+  "This Week": "#f3e5f5",
+  Later: "#d1c4e9",
+};
+
 const StyledAccordion = styled(Accordion)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   borderRadius: theme.shape.borderRadius * 2,
   boxShadow: theme.shadows[2],
-  background: theme.palette.background.paper,
 }));
 
 export default function TabTasks() {
@@ -45,7 +57,10 @@ export default function TabTasks() {
   return (
     <Box p={2}>
       {Object.keys(tasks).map((group) => (
-        <StyledAccordion key={group}>
+        <StyledAccordion
+          key={group}
+          sx={{ background: groupColors[group] || "inherit" }}
+        >
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6">{group}</Typography>
             <Chip
@@ -60,12 +75,25 @@ export default function TabTasks() {
             <List>
               {tasks[group].map((task) => (
                 <ListItem key={task.id} divider>
+                  {task.project && <FolderIcon sx={{ mr: 1, color: "text.secondary" }} />}
                   <ListItemText
                     primary={task.name}
-                    secondary={`Due: ${task.due_date || "N/A"} | Status: ${
-                      task.status || "todo"
-                    } | Priority: ${task.priority || "-"}`}
+                    secondary={
+                      (group === "This Week" || group === "Later") && task.due_date
+                        ? `📅 ${task.due_date}`
+                        : `Due: ${task.due_date || "N/A"}`
+                    }
                   />
+                  <Select
+                    size="small"
+                    value={task.status || "todo"}
+                    sx={{ mr: 2, minWidth: 120 }}
+                  >
+                    <MenuItem value="todo">Todo</MenuItem>
+                    <MenuItem value="in progress">In Progress</MenuItem>
+                    <MenuItem value="done">Done</MenuItem>
+                  </Select>
+                  <Checkbox />
                 </ListItem>
               ))}
             </List>
