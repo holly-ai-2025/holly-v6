@@ -3,23 +3,28 @@ import { createTheme } from "@mui/material/styles";
 const theme = createTheme({
   palette: {
     primary: {
-      main: "#4F46E5", // Indigo
+      main: "#4A90E2", // calm blue
     },
     secondary: {
-      main: "#06B6D4", // Teal
+      main: "#50E3C2", // soft teal
     },
     background: {
-      default: "#F9FAFC", // Light background
+      default: "#F9FAFB",
       paper: "#FFFFFF",
     },
   },
   shape: {
-    borderRadius: 16,
+    borderRadius: 12,
   },
-  typography: {
-    fontFamily: "'Inter', 'Roboto', sans-serif",
-    h6: { fontWeight: 700 },
-    body1: { fontSize: "0.95rem" },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        },
+      },
+    },
   },
 });
 
