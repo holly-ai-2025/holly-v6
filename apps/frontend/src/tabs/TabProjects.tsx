@@ -18,7 +18,7 @@ export default function TabProjects() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
       },
-      body: JSON.stringify({ sql: "SELECT * FROM projects" }),
+      body: JSON.stringify({ sql: "SELECT project_id, name, status, progress FROM projects" }),
     })
       .then((res) => res.json())
       .then((data) => {

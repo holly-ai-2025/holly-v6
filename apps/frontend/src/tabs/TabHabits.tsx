@@ -7,6 +7,7 @@ interface Habit {
   frequency?: string;
   streak?: number;
   goal?: string;
+  last_completed?: string;
 }
 
 export default function TabHabits() {
@@ -19,7 +20,7 @@ export default function TabHabits() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
       },
-      body: JSON.stringify({ sql: "SELECT * FROM habits" }),
+      body: JSON.stringify({ sql: "SELECT habit_id, habit_name, frequency, streak, goal, last_completed FROM habits" }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -30,6 +31,7 @@ export default function TabHabits() {
             frequency: row[2],
             streak: row[3],
             goal: row[4],
+            last_completed: row[5],
           }));
           setHabits(rows);
         }
