@@ -2,7 +2,8 @@ import React from "react";
 import { Box, Typography, Paper } from "@mui/material";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import "@fullcalendar/daygrid/index.css"; // ✅ Ensure proper CSS for v6
+import "@fullcalendar/daygrid/main.css"; // ✅ use main.css
+import "./styles/calendar.css"; // custom Apple-inspired styling
 import { allTasks } from "./data/tasks";
 
 export default function CalendarView() {

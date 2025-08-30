@@ -3,7 +3,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Paper } from "@mui/material";
-import "@fullcalendar/daygrid/index.css";
+import "@fullcalendar/daygrid/main.css"; // ✅ use main.css for compatibility
+import "../styles/calendar.css"; // custom styling
 
 interface TaskEvent {
   id: string;
@@ -48,15 +49,6 @@ export default function TabCalendar() {
           dayMaxEventRows={3}
         />
       </Paper>
-      <style>{`
-        .fc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        .fc-toolbar-title { font-size: 1.2rem; font-weight: 600; color: #333; }
-        .fc-daygrid-day { border-radius: 12px; padding: 4px; }
-        .fc-daygrid-day-frame { border: none !important; }
-        .fc-daygrid-day-number { font-size: 0.9rem; font-weight: 500; color: #666; }
-        .fc-day-today { background-color: #e3f2fd !important; border-radius: 12px; }
-        .fc-event { border-radius: 8px !important; padding: 2px 6px; font-size: 0.8rem; background-color: #4A90E2 !important; color: white !important; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-      `}</style>
     </Box>
   );
 }
