@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Typography,
   Box,
   Chip,
@@ -13,11 +10,10 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  IconButton,
+  Paper,
+  Stack,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FolderIcon from "@mui/icons-material/Folder";
-import { styled } from "@mui/material/styles";
 
 interface Task {
   id: string;
@@ -29,19 +25,14 @@ interface Task {
   category?: string;
 }
 
+// Colors per group (Overdue = red, rest in blues)
 const groupColors: Record<string, string> = {
-  Overdue: "#fdecea",
-  Today: "#e3f2fd",
-  Tomorrow: "#bbdefb",
-  "This Week": "#f3e5f5",
-  Later: "#d1c4e9",
+  Overdue: "#f8d7da", // softer red than before
+  Today: "#e3f2fd",   // light blue
+  Tomorrow: "#bbdefb", // medium light blue
+  "This Week": "#90caf9", // medium blue
+  Later: "#64b5f6",   // darker blue
 };
-
-const StyledAccordion = styled(Accordion)(({ theme }) => ({
-  marginBottom: theme.spacing(2),
-  borderRadius: theme.shape.borderRadius * 2,
-  boxShadow: theme.shadows[2],
-}));
 
 export default function TabTasks() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
@@ -57,48 +48,66 @@ export default function TabTasks() {
   return (
     <Box p={2}>
       {Object.keys(tasks).map((group) => (
-        <StyledAccordion
-          key={group}
-          sx={{ background: groupColors[group] || "inherit" }}
-        >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Box key={group} mb={3}>
+          <Stack direction="row" alignItems="center" mb={1}>
             <Typography variant="h6">{group}</Typography>
             <Chip
               label={tasks[group].length}
               color="primary"
               size="small"
-              sx={{ ml: 2 }}
+              sx={{ ml: 1 }}
             />
-          </AccordionSummary>
-          <AccordionDetails>
-            <Divider sx={{ mb: 1 }} />
-            <List>
-              {tasks[group].map((task) => (
-                <ListItem key={task.id} divider>
-                  {task.project && <FolderIcon sx={{ mr: 1, color: "text.secondary" }} />}
+          </Stack>
+          <Divider sx={{ mb: 2 }} />
+
+          <List>
+            {tasks[group].map((task) => (
+              <Paper
+                key={task.id}
+                sx={{
+                  background: groupColors[group] || "#f5f5f5",
+                  mb: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {task.project && <FolderIcon fontSize="small" color="action" />}
+                  {task.category && (
+                    <Box
+                      sx={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        backgroundColor: "#4A90E2", // placeholder, could map categories to colors later
+                      }}
+                    />
+                  )}
                   <ListItemText
                     primary={task.name}
-                    secondary={
-                      (group === "This Week" || group === "Later") && task.due_date
-                        ? `📅 ${task.due_date}`
-                        : `Due: ${task.due_date || "N/A"}`
-                    }
+                    secondary={task.due_date ? `📅 ${task.due_date}` : undefined}
                   />
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <Select
                     size="small"
                     value={task.status || "todo"}
-                    sx={{ mr: 2, minWidth: 120 }}
+                    sx={{ minWidth: 120 }}
                   >
                     <MenuItem value="todo">Todo</MenuItem>
                     <MenuItem value="in progress">In Progress</MenuItem>
                     <MenuItem value="done">Done</MenuItem>
                   </Select>
                   <Checkbox />
-                </ListItem>
-              ))}
-            </List>
-          </AccordionDetails>
-        </StyledAccordion>
+                </Box>
+              </Paper>
+            ))}
+          </List>
+        </Box>
       ))}
     </Box>
   );
