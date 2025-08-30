@@ -3,8 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Paper } from "@mui/material";
-import "@fullcalendar/common/main.css";
-import "@fullcalendar/daygrid/main.css";
+import "@fullcalendar/daygrid/index.css";
 
 interface TaskEvent {
   title: string;
