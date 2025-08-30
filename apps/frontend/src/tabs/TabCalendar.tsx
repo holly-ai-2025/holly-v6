@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -6,6 +6,7 @@ import { Box, Paper } from "@mui/material";
 import "@fullcalendar/daygrid/index.css";
 
 interface TaskEvent {
+  id: string;
   title: string;
   date: string;
 }
@@ -20,10 +21,10 @@ export default function TabCalendar() {
       .then((res) => res.json())
       .then((data) => {
         const evts: TaskEvent[] = [];
-        Object.values(data).forEach((arr: any) => {
-          (arr as any[]).forEach((task) => {
+        Object.keys(data).forEach((group) => {
+          data[group].forEach((task: any) => {
             if (task.due_date) {
-              evts.push({ title: task.name, date: task.due_date });
+              evts.push({ id: task.id, title: task.name, date: task.due_date });
             }
           });
         });
@@ -32,27 +33,30 @@ export default function TabCalendar() {
   }, []);
 
   return (
-    <Box p={2}>
-      <Paper elevation={2} sx={{ borderRadius: 3, overflow: "hidden", p: 2 }}>
+    <Box p={3}>
+      <Paper sx={{ p: 2, borderRadius: 4, boxShadow: 3 }}>
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={events}
-          height="auto"
-          headerToolbar={{ left: "prev,next today", center: "title", right: "" }}
+          height="80vh"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,dayGridWeek,dayGridDay",
+          }}
           dayMaxEventRows={3}
         />
       </Paper>
-      <style>
-        {`
-          .fc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-          .fc-toolbar-title { font-size: 1.2rem; font-weight: 600; color: #333; }
-          .fc-daygrid-day { border: none !important; padding: 6px !important; }
-          .fc-daygrid-day-frame { border-radius: 10px; transition: background 0.2s; }
-          .fc-daygrid-day-frame:hover { background: #f5f5f5; }
-          .fc-event { border-radius: 8px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: #1976d2 !important; color: white !important; padding: 2px 6px; font-size: 0.8rem; }
-        `}
-      </style>
+      <style>{`
+        .fc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .fc-toolbar-title { font-size: 1.2rem; font-weight: 600; color: #333; }
+        .fc-daygrid-day { border-radius: 12px; padding: 4px; }
+        .fc-daygrid-day-frame { border: none !important; }
+        .fc-daygrid-day-number { font-size: 0.9rem; font-weight: 500; color: #666; }
+        .fc-day-today { background-color: #e3f2fd !important; border-radius: 12px; }
+        .fc-event { border-radius: 8px !important; padding: 2px 6px; font-size: 0.8rem; background-color: #4A90E2 !important; color: white !important; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+      `}</style>
     </Box>
   );
 }
