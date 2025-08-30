@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import FullCalendar from "@fullcalendar/react";
+import "@fullcalendar/daygrid/index.css";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Paper } from "@mui/material";

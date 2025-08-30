@@ -1,10 +1,2 @@
-
-# Ignore caches
-__pycache__/
-apps/frontend/node_modules/
-apps/frontend/.vite/
+# Ignore macOS metadata
 .DS_Store
-.env
-infra/data/
-.venv/
-!infra/data/seed.sql
