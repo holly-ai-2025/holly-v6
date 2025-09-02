@@ -14,28 +14,11 @@ export default function TabHabits() {
   const [habits, setHabits] = useState<Habit[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-      },
-      body: JSON.stringify({ sql: "SELECT habit_id, habit_name, frequency, streak, goal, last_completed FROM habits" }),
+    fetch(`${import.meta.env.VITE_API_URL}/db/habits`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          const rows = data.rows.map((row: any) => ({
-            habit_id: row[0],
-            habit_name: row[1],
-            frequency: row[2],
-            streak: row[3],
-            goal: row[4],
-            last_completed: row[5],
-          }));
-          setHabits(rows);
-        }
-      });
+      .then((data) => setHabits(data));
   }, []);
 
   return (

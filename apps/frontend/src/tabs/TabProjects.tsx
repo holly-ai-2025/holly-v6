@@ -12,26 +12,11 @@ export default function TabProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-      },
-      body: JSON.stringify({ sql: "SELECT project_id, name, status, progress FROM projects" }),
+    fetch(`${import.meta.env.VITE_API_URL}/db/projects`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          const rows = data.rows.map((row: any) => ({
-            project_id: row[0],
-            name: row[1],
-            status: row[2],
-            progress: row[3],
-          }));
-          setProjects(rows);
-        }
-      });
+      .then((data) => setProjects(data));
   }, []);
 
   return (
@@ -48,7 +33,7 @@ export default function TabProjects() {
                 <Box mt={2}>
                   <LinearProgress
                     variant="determinate"
-                    value={proj.progress || 0}
+                    value={proj.progress ? Number(proj.progress) : 0}
                   />
                   <Typography variant="caption">{proj.progress || 0}%</Typography>
                 </Box>
