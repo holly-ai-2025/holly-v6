@@ -18,10 +18,21 @@ export default function LeftPanel() {
       sx={{
         width: 320,
         borderRight: "1px solid #e0e0e0",
-        bgcolor: "background.paper",
+        bgcolor: "#f0f6fb",
         display: "flex",
         flexDirection: "column",
         p: 2,
+        position: "relative",
+        boxShadow: "4px 0 8px rgba(0,0,0,0.06)",
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          right: 0,
+          width: "6px",
+          height: "100%",
+          background: "linear-gradient(to left, rgba(0,0,0,0.12), transparent)",
+        },
       }}
     >
       {/* Chat Section */}
@@ -37,6 +48,7 @@ export default function LeftPanel() {
           borderRadius: 2,
           boxShadow: 1,
           overflowY: "auto",
+          bgcolor: "#fff",
         }}
       >
         <Typography>

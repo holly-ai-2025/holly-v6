@@ -13,3 +13,4 @@ infra/data/holly.db
 
 # Logs
 *.log
+.DS_Store
