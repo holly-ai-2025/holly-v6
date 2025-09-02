@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_SRC = ROOT / "apps" / "frontend" / "src"
 BACKEND_OPS = ROOT / "apps" / "ops"
 BACKEND_APP = ROOT / "apps" / "backend"
+ROOT_MAIN = ROOT / "main.py"
 
 def list_files():
     return subprocess.check_output(["ls", "-R"], cwd=ROOT).decode()
@@ -23,10 +24,16 @@ def parse_frontend_api_calls():
 
 def parse_backend_endpoints():
     endpoints = []
+    # Scan apps/ops and apps/backend
     for path in list(BACKEND_OPS.glob("*.py")) + list(BACKEND_APP.glob("*.py")):
         text = path.read_text(errors="ignore")
         for m in re.finditer(r"@app\.(get|post|put|delete)\(\"([^)]+)\"\)", text):
             endpoints.append((str(path.relative_to(ROOT)), m.group(1).upper(), m.group(2)))
+    # Scan root-level main.py (read-only, no edits)
+    if ROOT_MAIN.exists():
+        text = ROOT_MAIN.read_text(errors="ignore")
+        for m in re.finditer(r"@app\.(get|post|put|delete)\(\"([^)]+)\"\)", text):
+            endpoints.append((str(ROOT_MAIN.relative_to(ROOT)), m.group(1).upper(), m.group(2)))
     return endpoints
 
 def main():
