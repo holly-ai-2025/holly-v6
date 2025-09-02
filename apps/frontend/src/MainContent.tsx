@@ -31,7 +31,7 @@ export default function MainContent() {
       </Box>
 
       {/* Custom Divider below header */}
-      <Box sx={{ height: "3px", bgcolor: "#d0d8e0", mx: 2 }} />
+      <Box sx={{ height: "3px", bgcolor: "#a0acb8", mx: 2 }} />
 
       {/* Tab Content */}
       <Box sx={{ flex: 1, p: 2 }}>
