@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Grid from "@mui/material/Grid2";
-import { Card, CardContent, Typography, LinearProgress, Box } from "@mui/material";
+import { Grid, Card, CardContent, Typography, LinearProgress, Box } from "@mui/material";
 
 interface Habit {
   habit_id: string;
@@ -26,7 +25,7 @@ export default function TabHabits() {
     <Box p={2}>
       <Grid container spacing={2}>
         {habits.map((habit) => (
-          <Grid key={habit.habit_id} xs={12} md={6} lg={4}>
+          <Grid item xs={12} md={6} lg={4} key={habit.habit_id}>
             <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
               <CardContent>
                 <Typography variant="h6">{habit.habit_name}</Typography>
