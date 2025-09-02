@@ -28,7 +28,6 @@ interface Task {
   category?: string;
 }
 
-// Background colors for task groups
 const groupColors: Record<string, string> = {
   Overdue: "#fdecea",
   Today: "#e3f2fd",
@@ -37,7 +36,6 @@ const groupColors: Record<string, string> = {
   Later: "#d1c4e9",
 };
 
-// Category color mapping (fallback to gray if undefined)
 const categoryColors: Record<string, string> = {
   Work: "#42a5f5",
   Personal: "#66bb6a",
@@ -57,7 +55,6 @@ export default function TabTasks() {
       .then((res) => res.json())
       .then((data) => {
         setTasks(data);
-        // default: all groups open
         const init: Record<string, boolean> = {};
         Object.keys(data).forEach((g) => (init[g] = true));
         setOpenGroups(init);
@@ -71,30 +68,43 @@ export default function TabTasks() {
   return (
     <Box p={2}>
       {Object.keys(tasks).map((group) => (
-        <Box key={group} sx={{ mb: 3 }}>
+        <Box key={group} sx={{ mb: 2 }}>
           {/* Group header */}
-          <Box sx={{ display: "flex", alignItems: "center", cursor: "pointer", mb: 1 }} onClick={() => toggleGroup(group)}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", mb: 1 }}
+            onClick={() => toggleGroup(group)}
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               {group}
             </Typography>
-            <Chip label={tasks[group].length} color="primary" size="small" sx={{ ml: 2 }} />
-            <IconButton size="small" sx={{ ml: 1 }}>
-              {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Chip label={tasks[group].length} color="primary" size="small" sx={{ mr: 1 }} />
+              <IconButton size="small">
+                {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
           </Box>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: 1 }} />
 
           {/* Task list */}
           <Collapse in={openGroups[group]}>
             <List>
               {tasks[group].map((task) => (
-                <ListItem key={task.id} disableGutters sx={{ mb: 2 }}>
+                <ListItem key={task.id} disableGutters sx={{ mb: 1, display: "flex", alignItems: "center" }}>
+                  {/* Checkbox outside card */}
+                  <Checkbox
+                    sx={{
+                      mr: 1.5,
+                      "& .MuiSvgIcon-root": { borderRadius: "50%" },
+                    }}
+                  />
+
                   <Paper
                     sx={{
-                      p: 2,
+                      p: 1.5,
                       width: "100%",
-                      borderRadius: 3,
-                      boxShadow: 2,
+                      borderRadius: 2,
+                      boxShadow: 1,
                       background: groupColors[group] || "#fafafa",
                       display: "flex",
                       alignItems: "center",
@@ -105,22 +115,23 @@ export default function TabTasks() {
                       {/* Category dot */}
                       <Box
                         sx={{
-                          width: 10,
-                          height: 10,
+                          width: 8,
+                          height: 8,
                           borderRadius: "50%",
-                          backgroundColor:
-                            categoryColors[task.category || "Other"],
-                          mr: 1.5,
+                          backgroundColor: categoryColors[task.category || "Other"],
+                          mr: 1,
                         }}
                       />
 
                       {/* Folder icon if part of project */}
                       {task.project && (
-                        <FolderIcon sx={{ mr: 1, color: "text.secondary" }} />
+                        <FolderIcon sx={{ mr: 1, color: "text.secondary", fontSize: 18 }} />
                       )}
 
                       {/* Task text */}
                       <ListItemText
+                        primaryTypographyProps={{ variant: "body2" }}
+                        secondaryTypographyProps={{ variant: "caption" }}
                         primary={task.name}
                         secondary={task.due_date ? `📅 ${task.due_date}` : "No due date"}
                       />
@@ -131,13 +142,12 @@ export default function TabTasks() {
                       <Select
                         size="small"
                         value={task.status || "todo"}
-                        sx={{ mr: 2, minWidth: 120 }}
+                        sx={{ mr: 1, minWidth: 110 }}
                       >
                         <MenuItem value="todo">Todo</MenuItem>
                         <MenuItem value="in progress">In Progress</MenuItem>
                         <MenuItem value="done">Done</MenuItem>
                       </Select>
-                      <Checkbox />
                     </Box>
                   </Paper>
                 </ListItem>
