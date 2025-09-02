@@ -25,8 +25,8 @@ export default function TabHabits() {
     <Box p={2}>
       <Grid container spacing={2}>
         {habits.map((habit) => (
-          <Grid item xs={12} md={6} lg={4} key={habit.habit_id}>
-            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+          <Box key={habit.habit_id} sx={{ width: { xs: "100%", md: "50%", lg: "33.33%" } }}>
+            <Card sx={{ borderRadius: 3, boxShadow: 3, m: 1 }}>
               <CardContent>
                 <Typography variant="h6">{habit.habit_name}</Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -43,7 +43,7 @@ export default function TabHabits() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
       </Grid>
     </Box>
