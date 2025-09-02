@@ -22,8 +22,11 @@ export default function TabProjects() {
   return (
     <Box p={2}>
       <Grid container spacing={2}>
-        {projects.map((proj) => (
-          <Box key={proj.project_id} sx={{ width: { xs: "100%", md: "50%", lg: "33.33%" } }}>
+        {projects.map((proj, index) => (
+          <Box
+            key={proj.project_id || `project-${index}`}
+            sx={{ width: { xs: "100%", md: "50%", lg: "33.33%" } }}
+          >
             <Card sx={{ borderRadius: 3, boxShadow: 3, m: 1 }}>
               <CardContent>
                 <Typography variant="h6">{proj.name}</Typography>
