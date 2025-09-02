@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Typography,
   Box,
   Chip,
@@ -14,8 +11,11 @@ import {
   MenuItem,
   Checkbox,
   Paper,
+  Collapse,
+  IconButton,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FolderIcon from "@mui/icons-material/Folder";
 
 interface Task {
@@ -48,30 +48,44 @@ const categoryColors: Record<string, string> = {
 
 export default function TabTasks() {
   const [tasks, setTasks] = useState<Record<string, Task[]>>({});
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => setTasks(data));
+      .then((data) => {
+        setTasks(data);
+        // default: all groups open
+        const init: Record<string, boolean> = {};
+        Object.keys(data).forEach((g) => (init[g] = true));
+        setOpenGroups(init);
+      });
   }, []);
+
+  const toggleGroup = (group: string) => {
+    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
+  };
 
   return (
     <Box p={2}>
       {Object.keys(tasks).map((group) => (
-        <Accordion key={group} sx={{ mb: 2, borderRadius: 2, boxShadow: 1 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">{group}</Typography>
-            <Chip
-              label={tasks[group].length}
-              color="primary"
-              size="small"
-              sx={{ ml: 2 }}
-            />
-          </AccordionSummary>
-          <AccordionDetails>
-            <Divider sx={{ mb: 1 }} />
+        <Box key={group} sx={{ mb: 3 }}>
+          {/* Group header */}
+          <Box sx={{ display: "flex", alignItems: "center", cursor: "pointer", mb: 1 }} onClick={() => toggleGroup(group)}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {group}
+            </Typography>
+            <Chip label={tasks[group].length} color="primary" size="small" sx={{ ml: 2 }} />
+            <IconButton size="small" sx={{ ml: 1 }}>
+              {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+
+          {/* Task list */}
+          <Collapse in={openGroups[group]}>
             <List>
               {tasks[group].map((task) => (
                 <ListItem key={task.id} disableGutters sx={{ mb: 2 }}>
@@ -129,8 +143,8 @@ export default function TabTasks() {
                 </ListItem>
               ))}
             </List>
-          </AccordionDetails>
-        </Accordion>
+          </Collapse>
+        </Box>
       ))}
     </Box>
   );
