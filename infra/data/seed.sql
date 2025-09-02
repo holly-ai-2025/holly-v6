@@ -1,61 +1,44 @@
--- =====================================================
--- Projects
--- =====================================================
-INSERT INTO projects VALUES
-('p1','AI Companion','active',20),
-('p2','Frontend Redesign','planning',0),
-('p3','Mobile App','active',10),
-('p4','Marketing Site','active',50),
-('p5','Data Pipeline','planning',0);
+-- Seed script for Holly v6
 
--- =====================================================
--- Phases
--- =====================================================
-INSERT INTO phases VALUES
-('ph1','Setup Backend','p1'),
-('ph2','Integrate Voice','p1'),
-('ph3','Deploy Prototype','p1'),
-('ph4','Wireframes','p2'),
-('ph5','Implement UI','p2'),
-('ph6','Polish Styling','p2'),
-('ph7','Auth System','p3'),
-('ph8','Offline Mode','p3'),
-('ph9','Notifications','p3'),
-('ph10','Landing Page','p4'),
-('ph11','Docs Section','p4'),
-('ph12','SEO Optimisation','p4'),
-('ph13','Ingestion','p5'),
-('ph14','Processing','p5'),
-('ph15','Analytics','p5');
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS phases;
 
--- =====================================================
--- Project Tasks (sample, truncated for brevity)
--- =====================================================
-INSERT INTO tasks VALUES
-('pt1','Design DB schema','Define core tables','2025-09-01','done','high','work','p1','ph1'),
-('pt2','Implement FastAPI','Scaffold endpoints','2025-09-02','in_progress','high','work','p1','ph1'),
-('pt3','Auth middleware','Secure tokens','2025-09-03','todo','medium','work','p1','ph1'),
-('pt4','Integrate Whisper','STT engine','2025-09-04','todo','high','work','p1','ph2'),
-('pt5','Integrate Coqui TTS','Voice output','2025-09-05','todo','high','work','p1','ph2');
+CREATE TABLE IF NOT EXISTS projects (
+    project_id TEXT PRIMARY KEY,
+    project_name TEXT NOT NULL
+);
 
--- =====================================================
--- Standalone Tasks (Week 1 only shown here)
--- =====================================================
-INSERT INTO tasks VALUES
-('t001','Plan sprint','Define backlog for week','2025-09-01','done','high','work',NULL,NULL),
-('t002','Doctor appointment','Annual checkup','2025-09-01','done','medium','personal',NULL,NULL),
-('t003','Team standup','Daily sync','2025-09-02','done','medium','work',NULL,NULL),
-('t004','Write unit tests','Cover db models','2025-09-02','in_progress','high','work',NULL,NULL),
-('t005','Grocery shopping','Weekly essentials','2025-09-02','todo','low','personal',NULL,NULL);
+CREATE TABLE IF NOT EXISTS phases (
+    phase_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    phase_name TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(project_id)
+);
 
--- (Weeks 2–5 + remaining ~120 tasks to be expanded from seed data we prepared)
+-- Insert projects
+INSERT INTO projects (project_id, project_name) VALUES
+ ('proj1', 'Project 1'),
+ ('proj2', 'Project 2'),
+ ('proj3', 'Project 3'),
+ ('proj4', 'Project 4'),
+ ('proj5', 'Project 5');
 
--- =====================================================
--- Habits
--- =====================================================
-INSERT INTO habits VALUES
-('h1','Morning Walk','daily',12,'30 days','2025-08-27'),
-('h2','Journal 5 Minutes','daily',7,'30 days','2025-08-27'),
-('h3','No Sugar','daily',4,'30 days','2025-08-26'),
-('h4','Workout','3x/week',2,'12 weeks','2025-08-25'),
-('h5','Read 20 Minutes','daily',10,'30 days','2025-08-27');
+-- Insert phases (3 per project)
+INSERT INTO phases (phase_id, project_id, phase_name) VALUES
+ ('proj1_phase1', 'proj1', 'Phase 1 of proj1'),
+ ('proj1_phase2', 'proj1', 'Phase 2 of proj1'),
+ ('proj1_phase3', 'proj1', 'Phase 3 of proj1'),
+ ('proj2_phase1', 'proj2', 'Phase 1 of proj2'),
+ ('proj2_phase2', 'proj2', 'Phase 2 of proj2'),
+ ('proj2_phase3', 'proj2', 'Phase 3 of proj2'),
+ ('proj3_phase1', 'proj3', 'Phase 1 of proj3'),
+ ('proj3_phase2', 'proj3', 'Phase 2 of proj3'),
+ ('proj3_phase3', 'proj3', 'Phase 3 of proj3'),
+ ('proj4_phase1', 'proj4', 'Phase 1 of proj4'),
+ ('proj4_phase2', 'proj4', 'Phase 2 of proj4'),
+ ('proj4_phase3', 'proj4', 'Phase 3 of proj4'),
+ ('proj5_phase1', 'proj5', 'Phase 1 of proj5'),
+ ('proj5_phase2', 'proj5', 'Phase 2 of proj5'),
+ ('proj5_phase3', 'proj5', 'Phase 3 of proj5');
+
+-- Tasks are inserted dynamically in app seeding script (see Python helper)
