@@ -12,34 +12,22 @@ export default function TabProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-      },
-      body: JSON.stringify({ sql: "SELECT project_id, name, status, progress FROM projects" }),
+    fetch(`${import.meta.env.VITE_API_URL}/db/projects`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          const rows = data.rows.map((row: any) => ({
-            project_id: row[0],
-            name: row[1],
-            status: row[2],
-            progress: row[3],
-          }));
-          setProjects(rows);
-        }
-      });
+      .then((data) => setProjects(data));
   }, []);
 
   return (
     <Box p={2}>
       <Grid container spacing={2}>
-        {projects.map((proj) => (
-          <Grid item xs={12} md={6} lg={4} key={proj.project_id}>
-            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+        {projects.map((proj, index) => (
+          <Box
+            key={proj.project_id || `project-${index}`}
+            sx={{ width: { xs: "100%", md: "50%", lg: "33.33%" } }}
+          >
+            <Card sx={{ borderRadius: 3, boxShadow: 3, m: 1 }}>
               <CardContent>
                 <Typography variant="h6">{proj.name}</Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -48,13 +36,13 @@ export default function TabProjects() {
                 <Box mt={2}>
                   <LinearProgress
                     variant="determinate"
-                    value={proj.progress || 0}
+                    value={proj.progress ? Number(proj.progress) : 0}
                   />
                   <Typography variant="caption">{proj.progress || 0}%</Typography>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
       </Grid>
     </Box>

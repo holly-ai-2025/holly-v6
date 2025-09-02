@@ -6,7 +6,7 @@ interface Habit {
   habit_name: string;
   frequency?: string;
   streak?: number;
-  goal?: string;
+  goal?: number;
   last_completed?: string;
 }
 
@@ -14,36 +14,22 @@ export default function TabHabits() {
   const [habits, setHabits] = useState<Habit[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-      },
-      body: JSON.stringify({ sql: "SELECT habit_id, habit_name, frequency, streak, goal, last_completed FROM habits" }),
+    fetch(`${import.meta.env.VITE_API_URL}/db/habits`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          const rows = data.rows.map((row: any) => ({
-            habit_id: row[0],
-            habit_name: row[1],
-            frequency: row[2],
-            streak: row[3],
-            goal: row[4],
-            last_completed: row[5],
-          }));
-          setHabits(rows);
-        }
-      });
+      .then((data) => setHabits(data));
   }, []);
 
   return (
     <Box p={2}>
       <Grid container spacing={2}>
-        {habits.map((habit) => (
-          <Grid item xs={12} md={6} lg={4} key={habit.habit_id}>
-            <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
+        {habits.map((habit, index) => (
+          <Box
+            key={habit.habit_id || `habit-${index}`}
+            sx={{ width: { xs: "100%", md: "50%", lg: "33.33%" } }}
+          >
+            <Card sx={{ borderRadius: 3, boxShadow: 3, m: 1 }}>
               <CardContent>
                 <Typography variant="h6">{habit.habit_name}</Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -52,15 +38,15 @@ export default function TabHabits() {
                 <Box mt={2}>
                   <LinearProgress
                     variant="determinate"
-                    value={Math.min(100, ((habit.streak || 0) / 30) * 100)}
+                    value={Math.min(100, ((habit.streak || 0) / (habit.goal || 1)) * 100)}
                   />
                   <Typography variant="caption">
-                    Streak: {habit.streak || 0} — Goal: {habit.goal}
+                    Streak: {habit.streak || 0} — Goal: {habit.goal || 0}
                   </Typography>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
         ))}
       </Grid>
     </Box>
