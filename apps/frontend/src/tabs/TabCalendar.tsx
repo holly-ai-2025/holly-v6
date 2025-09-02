@@ -4,7 +4,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { Box } from "@mui/material";
 
 // ✅ Fixed import for FullCalendar v6
-import "@fullcalendar/daygrid/index.css";
+import "@fullcalendar/daygrid/index.global.css";
 
 export default function TabCalendar() {
   return (
