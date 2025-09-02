@@ -21,7 +21,7 @@ export default function RightPanel() {
           left: 0,
           width: "6px",
           height: "100%",
-          background: "linear-gradient(to right, rgba(0,0,0,0.06), transparent)",
+          background: "linear-gradient(to right, rgba(0,0,0,0.12), transparent)",
         },
       }}
     >
