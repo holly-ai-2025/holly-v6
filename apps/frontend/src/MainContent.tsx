@@ -18,16 +18,21 @@ export default function MainContent() {
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
           textColor="primary"
-          indicatorColor="primary"
+          TabIndicatorProps={{ style: { display: "none" } }}
         >
-          <Tab label="Dashboard" sx={{ color: activeTab === 0 ? "primary.main" : "#333", fontWeight: 500 }} />
-          <Tab label="Tasks" sx={{ color: activeTab === 1 ? "primary.main" : "#333", fontWeight: 500 }} />
-          <Tab label="Projects" sx={{ color: activeTab === 2 ? "primary.main" : "#333", fontWeight: 500 }} />
-          <Tab label="Habits" sx={{ color: activeTab === 3 ? "primary.main" : "#333", fontWeight: 500 }} />
-          <Tab label="Calendar" sx={{ color: activeTab === 4 ? "primary.main" : "#333", fontWeight: 500 }} />
-          <Tab label="Rewards" sx={{ color: activeTab === 5 ? "primary.main" : "#333", fontWeight: 500 }} />
+          <Tab label="Dashboard" sx={{ color: activeTab === 0 ? "primary.main" : "#333", fontWeight: activeTab === 0 ? 700 : 500 }} />
+          <Tab label="Tasks" sx={{ color: activeTab === 1 ? "primary.main" : "#333", fontWeight: activeTab === 1 ? 700 : 500 }} />
+          <Tab label="Projects" sx={{ color: activeTab === 2 ? "primary.main" : "#333", fontWeight: activeTab === 2 ? 700 : 500 }} />
+          <Tab label="Habits" sx={{ color: activeTab === 3 ? "primary.main" : "#333", fontWeight: activeTab === 3 ? 700 : 500 }} />
+          <Tab label="Calendar" sx={{ color: activeTab === 4 ? "primary.main" : "#333", fontWeight: activeTab === 4 ? 700 : 500 }} />
+          <Tab label="Rewards" sx={{ color: activeTab === 5 ? "primary.main" : "#333", fontWeight: activeTab === 5 ? 700 : 500 }} />
         </Tabs>
-        <TextField size="small" placeholder="Search..." variant="outlined" />
+        <TextField
+          size="small"
+          placeholder="Search..."
+          variant="outlined"
+          sx={{ width: 260, "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+        />
       </Box>
 
       {/* Custom Divider below header */}
