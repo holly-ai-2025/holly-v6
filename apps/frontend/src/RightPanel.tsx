@@ -7,7 +7,7 @@ export default function RightPanel() {
       sx={{
         width: 280,
         borderLeft: "1px solid #e0e0e0",
-        bgcolor: "background.paper",
+        bgcolor: "#f5f7fa",
         p: 2,
         display: "flex",
         flexDirection: "column",

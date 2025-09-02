@@ -14,7 +14,7 @@ import {
 
 export default function LeftPanel() {
   return (
-    <Box sx={{ width: 320, borderRight: "1px solid #e0e0e0", bgcolor: "background.paper", display: "flex", flexDirection: "column", p: 2 }}>
+    <Box sx={{ width: 320, borderRight: "1px solid #e0e0e0", bgcolor: "#f5f7fa", display: "flex", flexDirection: "column", p: 2 }}>
       <Typography variant="subtitle1" fontWeight={600} gutterBottom>Chat with Holly</Typography>
       <Paper variant="outlined" sx={{ p: 2, flex: 1, mb: 2, borderRadius: 2, boxShadow: 1, overflowY: "auto" }}>
         <Typography><b>Holly:</b> Good morning! Ready to plan your day?</Typography>
