@@ -3,8 +3,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box } from "@mui/material";
 
-// ✅ Fixed import for FullCalendar v6
-import "@fullcalendar/daygrid/index.css";
+// ✅ Fixed import for FullCalendar v6 (CSS is bundled in JS)
+import "@fullcalendar/daygrid/index.global.js";
 
 export default function TabCalendar() {
   return (
