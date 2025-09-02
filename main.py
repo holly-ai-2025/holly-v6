@@ -81,6 +81,22 @@ class Task(Base):
     project_id = Column(String)
     phase_id = Column(String)
 
+class Project(Base):
+    __tablename__ = "projects"
+    project_id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    status = Column(String)
+    progress = Column(String)
+
+class Habit(Base):
+    __tablename__ = "habits"
+    habit_id = Column(String, primary_key=True, index=True)
+    habit_name = Column(String, nullable=False)
+    frequency = Column(String)
+    streak = Column(Integer)
+    goal = Column(Integer)
+    last_completed = Column(String)
+
 Base.metadata.create_all(bind=engine)
 
 @app.get("/db/tasks")
@@ -152,6 +168,34 @@ async def create_task(request: Request):
 
     return {"ok": True, "task": data}
 
+@app.get("/db/projects")
+async def get_projects():
+    session = SessionLocal()
+    projects = session.query(Project).all()
+    session.close()
+
+    return [
+        {"id": p.project_id, "name": p.name, "status": p.status, "progress": p.progress}
+        for p in projects
+    ]
+
+@app.get("/db/habits")
+async def get_habits():
+    session = SessionLocal()
+    habits = session.query(Habit).all()
+    session.close()
+
+    return [
+        {
+            "id": h.habit_id,
+            "name": h.habit_name,
+            "frequency": h.frequency,
+            "streak": h.streak,
+            "goal": h.goal,
+            "last_completed": h.last_completed,
+        }
+        for h in habits
+    ]
 
 # =====================================================
 # ================ OPS ENDPOINTS ======================
@@ -207,7 +251,6 @@ async def ops_write(request: Request):
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
 
 # =====================================================
 # ================ GITHUB ENDPOINTS ===================
@@ -288,4 +331,3 @@ async def git_close_pr(request: Request):
         return {"ok": resp.status_code == 200, "status_code": resp.status_code, "response": resp.json()}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
