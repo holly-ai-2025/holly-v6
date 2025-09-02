@@ -2,32 +2,35 @@ name: Update Architecture Map
 
 on:
   pull_request:
-    branches: [ main ]
-  push:
-    branches: [ main, feature/** ]
+    branches:
+      - main
 
 jobs:
   update-architecture:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install anytree
 
       - name: Generate architecture map
         run: |
-          python scripts/generate_architecture.py
+          python scripts/generate_architecture.py > docs/architecture.md
 
-      - name: Commit updated architecture map
+      - name: Commit changes
         run: |
-          git config user.name "holly-bot"
-          git config user.email "holly-bot@users.noreply.github.com"
-          git add docs/architecture.md
-          git commit -m "ci: auto-update architecture map [skip ci]" || echo "No changes to commit"
-          git push
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/architecture.md infra/data/seed.sql
+          git reset infra/data/holly.db || true
+          git commit -m "ci: update architecture map" || echo "No changes to commit"
+          git push origin HEAD:${{ github.head_ref }}

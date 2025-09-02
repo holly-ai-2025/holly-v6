@@ -1,10 +1,15 @@
+# Node modules
+node_modules
 
-# Ignore caches
-__pycache__/
-apps/frontend/node_modules/
-apps/frontend/.vite/
-.DS_Store
+# Python cache
+__pycache__
+*.pyc
+
+# Environment variables
 .env
-infra/data/
-.venv/
-!infra/data/seed.sql
+
+# SQLite database (binary file should not be committed)
+infra/data/holly.db
+
+# Logs
+*.log
