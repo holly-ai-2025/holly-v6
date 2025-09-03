@@ -57,6 +57,20 @@ const getTokenGradient = (value?: number) => {
   }
 };
 
+const normalizeStatus = (status?: string) => {
+  if (!status) return "Todo";
+  const s = status.toLowerCase();
+  if (s === "done") return "Done";
+  if (s === "in progress") return "In Progress";
+  return "Todo";
+};
+
+const statusColors: Record<string, string> = {
+  Todo: "#ccc",
+  "In Progress": "orange",
+  Done: "green",
+};
+
 const TabTasks: React.FC = () => {
   const [tasks, setTasks] = useState<TaskGroups>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -83,7 +97,7 @@ const TabTasks: React.FC = () => {
   const updateTask = async (taskId: string | undefined, updates: Partial<Task>) => {
     if (!taskId) return;
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -91,17 +105,21 @@ const TabTasks: React.FC = () => {
         },
         body: JSON.stringify(updates),
       });
+      if (!res.ok) throw new Error("Failed to update task");
+
+      // ✅ Update local state for instant UI feedback
+      setTasks((prev) => {
+        const newTasks: TaskGroups = { ...prev };
+        for (const group of Object.keys(newTasks)) {
+          newTasks[group] = newTasks[group].map((t) =>
+            t.task_id === taskId ? { ...t, ...updates } : t
+          );
+        }
+        return newTasks;
+      });
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
     }
-  };
-
-  const normalizeStatus = (status?: string) => {
-    if (!status) return "Todo";
-    const s = status.toLowerCase();
-    if (s === "done") return "Done";
-    if (s === "in progress") return "In Progress";
-    return "Todo";
   };
 
   return (
@@ -160,11 +178,11 @@ const TabTasks: React.FC = () => {
                           sx={{
                             background: getTokenGradient(task.token_value),
                             borderRadius: "999px",
-                            px: 1.2,
-                            py: 0.2,
-                            minWidth: "30px",
+                            px: 1.4,
+                            py: 0.4,
+                            minWidth: "36px",
                             textAlign: "center",
-                            fontSize: "0.65rem",
+                            fontSize: "0.75rem",
                             fontWeight: 700,
                             color: "#fff",
                             letterSpacing: "0.5px",
@@ -224,11 +242,11 @@ const TabTasks: React.FC = () => {
                               "& .MuiOutlinedInput-root": {
                                 borderRadius: "14px",
                                 backgroundColor: "#fff",
-                                height: "22px",
+                                height: "20px",
                                 "& fieldset": { border: "none" },
                               },
                               "& .MuiInputBase-input": {
-                                px: 0.8,
+                                px: 0.6,
                                 fontSize: "0.65rem",
                                 textAlign: "center",
                                 py: 0,
@@ -243,28 +261,26 @@ const TabTasks: React.FC = () => {
                         }}
                       />
 
-                      {/* Status Dropdown */}
+                      {/* Status Dropdown as icon-only */}
                       <Select
                         size="small"
                         value={normalizeStatus(task.status)}
                         onChange={(e) => updateTask(taskId, { status: e.target.value })}
                         sx={{
                           ml: 1,
-                          borderRadius: "14px",
-                          fontSize: "0.65rem",
+                          borderRadius: "50%",
+                          width: "22px",
                           height: "22px",
-                          backgroundColor: "#fff",
+                          backgroundColor: statusColors[normalizeStatus(task.status)],
                           "& .MuiSelect-select": {
-                            px: 0.8,
-                            py: 0,
-                            fontSize: "0.65rem",
-                            textAlign: "center",
+                            display: "none",
                           },
+                          "& fieldset": { border: "none" },
                         }}
                       >
-                        <MenuItem value="Todo">Todo</MenuItem>
-                        <MenuItem value="In Progress">In Progress</MenuItem>
-                        <MenuItem value="Done">Done</MenuItem>
+                        <MenuItem value="Todo">⚪</MenuItem>
+                        <MenuItem value="In Progress">🟠</MenuItem>
+                        <MenuItem value="Done">🟢</MenuItem>
                       </Select>
                     </Box>
                   </Box>
