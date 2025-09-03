@@ -1,15 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from apps.backend.models import Task, Project, Base
+from apps.backend.models import Task, Project, Phase, Base
 from apps.backend.database import SessionLocal, engine
 from datetime import datetime, date, timedelta
+import uuid
 
 app = FastAPI()
 
 # ✅ Enable wide-open CORS for dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origins=["*"],  # explicitly allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,6 +42,7 @@ async def get_tasks():
             "project_id": t.project_id,
             "phase_id": t.phase_id,
             "token_value": t.token_value,
+            "notes": t.notes,
         }
         if not t.due_date:
             grouped["Later"].append(task_data)
@@ -58,6 +60,28 @@ async def get_tasks():
     session.close()
     return grouped
 
+@app.post("/db/tasks")
+async def create_task(task: dict):
+    session = SessionLocal()
+    new_task = Task(
+        task_id=str(uuid.uuid4()),
+        task_name=task.get("task_name"),
+        description=task.get("description"),
+        due_date=datetime.strptime(task["due_date"], "%Y-%m-%d").date() if task.get("due_date") else None,
+        status=task.get("status"),
+        priority=task.get("priority"),
+        category=task.get("category"),
+        project_id=task.get("project_id") or None,
+        phase_id=task.get("phase_id") or None,
+        token_value=task.get("token_value"),
+        notes=task.get("notes"),
+    )
+    session.add(new_task)
+    session.commit()
+    session.refresh(new_task)
+    session.close()
+    return {"message": "Task created", "task_id": new_task.task_id}
+
 @app.patch("/db/tasks/{task_id}")
 async def update_task(task_id: str, updates: dict):
     session = SessionLocal()
@@ -74,6 +98,8 @@ async def update_task(task_id: str, updates: dict):
                 except ValueError:
                     session.close()
                     raise HTTPException(status_code=400, detail="Invalid date format")
+            if key in ["project_id", "phase_id"] and value == "":
+                value = None
             setattr(task, key, value)
 
     session.commit()
@@ -99,3 +125,37 @@ async def get_projects():
 
     session.close()
     return result
+
+@app.get("/db/projects/{project_id}/phases")
+async def get_phases(project_id: str):
+    session = SessionLocal()
+    phases = session.query(Phase).filter(Phase.project_id == project_id).all()
+    print(f"[Backend] Returning {len(phases)} phases for project {project_id}")
+
+    result = [
+        {
+            "phase_id": ph.phase_id,
+            "project_id": ph.project_id,
+            "name": ph.name,
+            "description": ph.description,
+        }
+        for ph in phases
+    ]
+
+    session.close()
+    return result
+
+@app.post("/db/projects/{project_id}/phases")
+async def create_phase(project_id: str, phase: dict):
+    session = SessionLocal()
+    new_phase = Phase(
+        phase_id=str(uuid.uuid4()),
+        project_id=project_id,
+        name=phase.get("name"),
+        description=phase.get("description"),
+    )
+    session.add(new_phase)
+    session.commit()
+    session.refresh(new_phase)
+    session.close()
+    return {"message": "Phase created", "phase_id": new_phase.phase_id}

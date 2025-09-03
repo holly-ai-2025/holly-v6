@@ -16,6 +16,7 @@ class Task(Base):
     project_id = Column(String)
     phase_id = Column(String)
     token_value = Column(Integer)
+    notes = Column(String)  # ✅ new field
 
 class Project(Base):
     __tablename__ = "projects"
@@ -24,3 +25,11 @@ class Project(Base):
     name = Column(String, nullable=False)
     status = Column(String)
     progress = Column(Integer)
+
+class Phase(Base):
+    __tablename__ = "phases"
+
+    phase_id = Column(String, primary_key=True, index=True)
+    project_id = Column(String, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String)
