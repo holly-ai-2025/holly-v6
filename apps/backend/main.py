@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from apps.backend.models import Task, Project, Base
 from apps.backend.database import SessionLocal, engine
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 app = FastAPI()
 
-# ✅ Enable wide-open CORS for dev (fix PATCH issues)
+# ✅ Enable wide-open CORS for dev
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=".*",
@@ -25,6 +25,10 @@ async def get_tasks():
     print(f"[Backend] Returning {len(tasks)} tasks")
 
     grouped = {"Overdue": [], "Today": [], "Tomorrow": [], "This Week": [], "Later": []}
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    end_of_week = today + timedelta(days=(6 - today.weekday()))
+
     for t in tasks:
         task_data = {
             "task_id": t.task_id,
@@ -38,7 +42,18 @@ async def get_tasks():
             "phase_id": t.phase_id,
             "token_value": t.token_value,
         }
-        grouped["Today"].append(task_data)
+        if not t.due_date:
+            grouped["Later"].append(task_data)
+        elif t.due_date < today:
+            grouped["Overdue"].append(task_data)
+        elif t.due_date == today:
+            grouped["Today"].append(task_data)
+        elif t.due_date == tomorrow:
+            grouped["Tomorrow"].append(task_data)
+        elif t.due_date <= end_of_week:
+            grouped["This Week"].append(task_data)
+        else:
+            grouped["Later"].append(task_data)
 
     session.close()
     return grouped
