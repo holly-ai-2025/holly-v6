@@ -5,10 +5,10 @@ from apps.backend.database import SessionLocal, engine
 
 app = FastAPI()
 
-# ✅ Enable CORS for Vite dev server
+# ✅ Enable wide-open CORS for dev (fix PATCH issues)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
