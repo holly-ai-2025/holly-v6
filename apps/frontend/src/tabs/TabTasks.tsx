@@ -41,19 +41,19 @@ const groupColors: Record<string, string> = {
   Later: "#b5d7f3", // darkest blue shade
 };
 
-// Dynamic pill color by token reward
-const getTokenColor = (value?: number) => {
+// 🎨 Gradient backgrounds tied to logo palette
+const getTokenGradient = (value?: number) => {
   switch (value) {
     case 5:
-      return "#f0f0f0"; // light grey
+      return "linear-gradient(135deg, #00e0ff, #00cfff)"; // cyan
     case 10:
-      return "#d6e9f8"; // light blue
+      return "linear-gradient(135deg, #3399ff, #0088ff)"; // blue
     case 15:
-      return "#c5e0f6"; // medium blue
+      return "linear-gradient(135deg, #5c4dff, #4b32ff)"; // indigo
     case 20:
-      return "#a3c8f2"; // darker blue
+      return "linear-gradient(135deg, #9d4bff, #8a2be2)"; // purple
     default:
-      return "#e0e0e0";
+      return "linear-gradient(135deg, #e0e0e0, #c0c0c0)"; // grey fallback
   }
 };
 
@@ -147,22 +147,29 @@ const TabTasks: React.FC = () => {
                     {/* Token reward pill with tooltip */}
                     {task.token_value !== undefined && task.token_value !== null && (
                       <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
-                        <Box
+                        <Typography
+                          component="span"
                           sx={{
-                            backgroundColor: getTokenColor(task.token_value),
-                            borderRadius: "12px",
-                            px: 1,
-                            py: 0.2,
-                            minWidth: "32px",
+                            background: getTokenGradient(task.token_value),
+                            borderRadius: "999px",
+                            px: 1.4,
+                            py: 0.4,
+                            minWidth: "36px",
                             textAlign: "center",
-                            fontSize: "0.75rem",
-                            fontWeight: 500,
-                            color: "#333",
-                            cursor: "default",
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                            color: "#fff",
+                            letterSpacing: "0.5px",
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                            transition: "transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
+                            "&:hover": {
+                              transform: "scale(1.15)",
+                              boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                            },
                           }}
                         >
                           +{task.token_value}
-                        </Box>
+                        </Typography>
                       </Tooltip>
                     )}
 
