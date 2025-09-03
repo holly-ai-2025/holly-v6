@@ -9,6 +9,7 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -71,6 +72,28 @@ const statusColors: Record<string, string> = {
   Done: "green",
 };
 
+const groupByDate = (tasks: Task[]): TaskGroups => {
+  const grouped: TaskGroups = { Overdue: [], Today: [], Tomorrow: [], "This Week": [], Later: [] };
+  const today = dayjs().startOf("day");
+  const tomorrow = today.add(1, "day");
+  const endOfWeek = today.endOf("week");
+
+  tasks.forEach((t) => {
+    if (!t.due_date) {
+      grouped["Later"].push(t);
+      return;
+    }
+    const due = dayjs(t.due_date).startOf("day");
+    if (due.isBefore(today)) grouped["Overdue"].push(t);
+    else if (due.isSame(today)) grouped["Today"].push(t);
+    else if (due.isSame(tomorrow)) grouped["Tomorrow"].push(t);
+    else if (due.isBefore(endOfWeek)) grouped["This Week"].push(t);
+    else grouped["Later"].push(t);
+  });
+
+  return grouped;
+};
+
 const TabTasks: React.FC = () => {
   const [tasks, setTasks] = useState<TaskGroups>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -81,13 +104,17 @@ const TabTasks: React.FC = () => {
     Later: false,
   });
 
-  useEffect(() => {
+  const fetchTasks = () => {
     fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
       .then((data) => setTasks(data))
       .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
+  };
+
+  useEffect(() => {
+    fetchTasks();
   }, []);
 
   const handleToggle = (group: string) => {
@@ -107,16 +134,8 @@ const TabTasks: React.FC = () => {
       });
       if (!res.ok) throw new Error("Failed to update task");
 
-      // ✅ Update local state for instant UI feedback
-      setTasks((prev) => {
-        const newTasks: TaskGroups = { ...prev };
-        for (const group of Object.keys(newTasks)) {
-          newTasks[group] = newTasks[group].map((t) =>
-            t.task_id === taskId ? { ...t, ...updates } : t
-          );
-        }
-        return newTasks;
-      });
+      // ✅ Re-fetch tasks to recalc correct groups
+      fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
     }
@@ -157,7 +176,7 @@ const TabTasks: React.FC = () => {
                     gap={1.2}
                     sx={{ mb: 1 }}
                   >
-                    {/* Checkbox: toggles Done/Todo */}
+                    {/* Checkbox */}
                     <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
                       <Checkbox
                         size="small"
@@ -225,7 +244,7 @@ const TabTasks: React.FC = () => {
                         <FolderIcon fontSize="small" sx={{ ml: 1, color: "#555" }} />
                       )}
 
-                      {/* Compact Date Picker */}
+                      {/* Date Picker */}
                       <DatePicker
                         value={task.due_date ? dayjs(task.due_date) : null}
                         onChange={(newDate) =>
@@ -233,6 +252,7 @@ const TabTasks: React.FC = () => {
                             due_date: newDate?.format("YYYY-MM-DD"),
                           })
                         }
+                        slots={{ textField: TextField }}
                         slotProps={{
                           textField: {
                             size: "small",
@@ -242,7 +262,7 @@ const TabTasks: React.FC = () => {
                               "& .MuiOutlinedInput-root": {
                                 borderRadius: "14px",
                                 backgroundColor: "#fff",
-                                height: "20px",
+                                height: "22px",
                                 "& fieldset": { border: "none" },
                               },
                               "& .MuiInputBase-input": {
@@ -261,27 +281,30 @@ const TabTasks: React.FC = () => {
                         }}
                       />
 
-                      {/* Status Dropdown as icon-only */}
-                      <Select
-                        size="small"
-                        value={normalizeStatus(task.status)}
-                        onChange={(e) => updateTask(taskId, { status: e.target.value })}
-                        sx={{
-                          ml: 1,
-                          borderRadius: "50%",
-                          width: "22px",
-                          height: "22px",
-                          backgroundColor: statusColors[normalizeStatus(task.status)],
-                          "& .MuiSelect-select": {
-                            display: "none",
-                          },
-                          "& fieldset": { border: "none" },
-                        }}
-                      >
-                        <MenuItem value="Todo">⚪</MenuItem>
-                        <MenuItem value="In Progress">🟠</MenuItem>
-                        <MenuItem value="Done">🟢</MenuItem>
-                      </Select>
+                      {/* Status Dropdown with tooltip */}
+                      <Tooltip title={normalizeStatus(task.status)} arrow>
+                        <Select
+                          size="small"
+                          value={normalizeStatus(task.status)}
+                          onChange={(e) => updateTask(taskId, { status: e.target.value })}
+                          sx={{
+                            ml: 1,
+                            borderRadius: "50%",
+                            width: "22px",
+                            height: "22px",
+                            backgroundColor: statusColors[normalizeStatus(task.status)],
+                            "& .MuiSelect-select": {
+                              p: 0,
+                              fontSize: 0,
+                            },
+                            "& fieldset": { border: "none" },
+                          }}
+                        >
+                          <MenuItem value="Todo">⚪</MenuItem>
+                          <MenuItem value="In Progress">🟠</MenuItem>
+                          <MenuItem value="Done">🟢</MenuItem>
+                        </Select>
+                      </Tooltip>
                     </Box>
                   </Box>
                 );
