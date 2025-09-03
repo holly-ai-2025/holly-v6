@@ -9,11 +9,11 @@ import {
   Select,
   MenuItem,
   Tooltip,
-  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FolderIcon from "@mui/icons-material/Folder";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 
@@ -112,7 +112,6 @@ const TabTasks: React.FC = () => {
       });
       if (!res.ok) throw new Error("Failed to update task");
 
-      // ✅ Refresh tasks from backend for regrouping
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
@@ -154,7 +153,6 @@ const TabTasks: React.FC = () => {
                     gap={1.2}
                     sx={{ mb: 1 }}
                   >
-                    {/* Checkbox */}
                     <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
                       <Checkbox
                         size="small"
@@ -169,7 +167,7 @@ const TabTasks: React.FC = () => {
                     </Box>
 
                     {task.token_value !== undefined && (
-                      <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
+                      <Tooltip title={`Reward: ${task.token_value} tokens`} arrow slotProps={{ popper: { modifiers: [{ name: 'offset', options: { offset: [0, 6] } }] }, tooltip: { sx: { fontSize: '0.9rem' } } }}>
                         <Typography
                           component="span"
                           sx={{
@@ -222,46 +220,31 @@ const TabTasks: React.FC = () => {
                         <FolderIcon fontSize="small" sx={{ ml: 1, color: "#555" }} />
                       )}
 
-                      {/* Date Picker */}
-                      <DatePicker
-                        value={task.due_date ? dayjs(task.due_date) : null}
-                        onChange={(newDate) =>
-                          updateTask(taskId, {
-                            due_date: newDate?.format("YYYY-MM-DD"),
-                          })
-                        }
-                        enableAccessibleFieldDOMStructure={false}
-                        slots={{ textField: TextField }}
-                        slotProps={{
-                          textField: {
-                            size: "small",
-                            sx: {
-                              ml: 1,
-                              borderRadius: "14px",
-                              "& .MuiOutlinedInput-root": {
-                                borderRadius: "14px",
-                                backgroundColor: "#fff",
-                                height: "22px",
-                                "& fieldset": { border: "none" },
-                              },
-                              "& .MuiInputBase-input": {
-                                px: 0.6,
-                                fontSize: "0.65rem",
-                                textAlign: "center",
-                                py: 0,
-                              },
-                              "& .MuiIconButton-root": {
-                                color: "#666",
-                                fontSize: "0.8rem",
-                                p: 0,
-                              },
-                            },
-                          },
-                        }}
-                      />
+                      {/* Date icon with tooltip */}
+                      <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <DatePicker
+                            value={task.due_date ? dayjs(task.due_date) : null}
+                            onChange={(newDate) =>
+                              updateTask(taskId, {
+                                due_date: newDate?.format("YYYY-MM-DD"),
+                              })
+                            }
+                            slots={{ openPickerIcon: CalendarTodayIcon }}
+                            slotProps={{
+                              textField: { sx: { display: "none" } },
+                            }}
+                          />
+                        </IconButton>
+                      </Tooltip>
 
                       {/* Status Dropdown with tooltip */}
-                      <Tooltip title={normalizeStatus(task.status)} arrow>
+                      <Tooltip title={normalizeStatus(task.status)} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
                         <Select
                           size="small"
                           value={normalizeStatus(task.status)}
@@ -275,6 +258,13 @@ const TabTasks: React.FC = () => {
                             "& .MuiSelect-select": {
                               p: 0,
                               fontSize: 0,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            },
+                            "& svg": {
+                              fontSize: "1rem",
+                              color: "#fff",
                             },
                             "& fieldset": { border: "none" },
                           }}
