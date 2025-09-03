@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Path to SQLite database file
-SQLALCHEMY_DATABASE_URL = "sqlite:///./holly.db"
+# Path to unified SQLite database file
+SQLALCHEMY_DATABASE_URL = "sqlite:///apps/backend/holly.db"
 
 # Create engine
 engine = create_engine(
