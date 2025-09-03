@@ -128,8 +128,18 @@ const TabTasks: React.FC = () => {
                   gap={1.2}
                   sx={{ mb: 1 }}
                 >
+                  {/* Checkbox: toggles Done/Todo */}
                   <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
-                    <Checkbox size="small" sx={{ borderRadius: "50%" }} />
+                    <Checkbox
+                      size="small"
+                      sx={{ borderRadius: "50%" }}
+                      checked={task.status?.toLowerCase() === "done"}
+                      onChange={(e) =>
+                        updateTask(task.task_id || task.id || "", {
+                          status: e.target.checked ? "Done" : "Todo",
+                        })
+                      }
+                    />
                   </Box>
 
                   {task.token_value !== undefined && (
@@ -140,17 +150,17 @@ const TabTasks: React.FC = () => {
                           background: getTokenGradient(task.token_value),
                           borderRadius: "999px",
                           px: 1.4,
-                          py: 0.4,
-                          minWidth: "36px",
+                          py: 0.3,
+                          minWidth: "32px",
                           textAlign: "center",
-                          fontSize: "0.8rem",
+                          fontSize: "0.7rem",
                           fontWeight: 700,
                           color: "#fff",
                           letterSpacing: "0.5px",
                           boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                           transition: "transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out",
                           "&:hover": {
-                            transform: "scale(1.15)",
+                            transform: "scale(1.1)",
                             boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
                           },
                         }}
@@ -171,8 +181,8 @@ const TabTasks: React.FC = () => {
                       boxShadow: 1,
                       py: 0.3,
                       px: 0.6,
-                      minHeight: "34px",
-                      fontSize: "0.85rem",
+                      minHeight: "32px",
+                      fontSize: "0.8rem",
                     }}
                   >
                     <Typography
@@ -191,7 +201,7 @@ const TabTasks: React.FC = () => {
                       <FolderIcon fontSize="small" sx={{ ml: 1, color: "#555" }} />
                     )}
 
-                    {/* Date Picker */}
+                    {/* Compact Date Picker */}
                     <DatePicker
                       value={task.due_date ? dayjs(task.due_date) : null}
                       onChange={(newDate) =>
@@ -209,18 +219,20 @@ const TabTasks: React.FC = () => {
                               borderRadius: "14px",
                               backgroundColor: "#fff",
                               boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                              height: "26px",
                               "& fieldset": { border: "none" },
                               "&:hover fieldset": { border: "1px solid #ddd" },
                               "&.Mui-focused fieldset": { border: "1px solid #aaa" },
                             },
                             "& .MuiInputBase-input": {
-                              px: 1.2,
-                              fontSize: "0.75rem",
+                              px: 1,
+                              fontSize: "0.7rem",
                               textAlign: "center",
                             },
                             "& .MuiIconButton-root": {
                               color: "#666",
-                              fontSize: "1rem",
+                              fontSize: "0.9rem",
+                              p: 0.2,
                             },
                           },
                         },
@@ -237,12 +249,12 @@ const TabTasks: React.FC = () => {
                       sx={{
                         ml: 1,
                         borderRadius: "14px",
-                        fontSize: "0.75rem",
-                        height: "28px",
+                        fontSize: "0.7rem",
+                        height: "26px",
                         backgroundColor: "#fff",
                         "& .MuiSelect-select": {
-                          px: 1.2,
-                          fontSize: "0.75rem",
+                          px: 1,
+                          fontSize: "0.7rem",
                           textAlign: "center",
                         },
                       }}
