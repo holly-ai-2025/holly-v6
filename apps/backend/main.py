@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from apps.backend.models import Task, Project, Base
 from apps.backend.database import SessionLocal, engine
+from datetime import datetime
 
 app = FastAPI()
 
@@ -52,6 +53,12 @@ async def update_task(task_id: str, updates: dict):
 
     for key, value in updates.items():
         if hasattr(task, key):
+            if key == "due_date" and isinstance(value, str):
+                try:
+                    value = datetime.strptime(value, "%Y-%m-%d").date()
+                except ValueError:
+                    session.close()
+                    raise HTTPException(status_code=400, detail="Invalid date format")
             setattr(task, key, value)
 
     session.commit()
