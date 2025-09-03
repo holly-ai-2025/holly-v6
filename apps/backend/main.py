@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from apps.backend.models import Task, Project, Base
 from apps.backend.database import SessionLocal, engine
@@ -41,6 +41,23 @@ async def get_tasks():
 
     session.close()
     return grouped
+
+@app.patch("/db/tasks/{task_id}")
+async def update_task(task_id: str, updates: dict):
+    session = SessionLocal()
+    task = session.query(Task).filter(Task.task_id == task_id).first()
+    if not task:
+        session.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    for key, value in updates.items():
+        if hasattr(task, key):
+            setattr(task, key, value)
+
+    session.commit()
+    session.refresh(task)
+    session.close()
+    return {"message": "Task updated", "task_id": task.task_id}
 
 @app.get("/db/projects")
 async def get_projects():

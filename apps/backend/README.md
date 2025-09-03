@@ -20,19 +20,22 @@ This folder contains the FastAPI backend for Holly AI.
 - For production/stable usage, consider **Alembic migrations**.
 
 ### 3. **Routes (`main.py`)**
-- Update response JSON in API endpoints to include the new field.
-- Example:
-  ```python
-  "xp_level": t.xp_level,
-  ```
-- If accepting updates, extend `PATCH`/`POST` to handle the new field.
+- **Current:**
+  - `GET /db/tasks` → fetch grouped tasks
+  - `PATCH /db/tasks/{task_id}` → update fields like `status`, `due_date`
+  - `GET /db/projects` → fetch projects
+
+- **Future (to be implemented):**
+  - `POST /db/tasks` → create new task
+  - `DELETE /db/tasks/{task_id}` → delete task
+  - Extended `PATCH /db/tasks/{task_id}` → allow updating notes, categories, tags, etc.
 
 ### 4. **Seeding**
-- Insert dummy data with the new field for testing.
+- Insert dummy data with new fields for testing.
 - Example (SQLite):
   ```sql
-  ALTER TABLE tasks ADD COLUMN xp_level INTEGER DEFAULT 0;
-  UPDATE tasks SET xp_level = 5 WHERE task_id = 1;
+  ALTER TABLE tasks ADD COLUMN notes TEXT;
+  UPDATE tasks SET notes = 'Example note' WHERE task_id = 1;
   ```
 
 ---
@@ -45,8 +48,22 @@ This folder contains the FastAPI backend for Holly AI.
 
 ---
 
-## 📌 Tip
-If frontend shows empty arrays but DB has rows:
-- Confirm backend is pointing at the right DB (`apps/backend/holly.db`).
-- Check if the new column exists in both model + table.
-- Verify API route returns the field.
+## 📌 Next Step: Task Popup Cards
+We plan to add a **task detail popup** in the frontend:
+- Triggered when a task card is clicked.
+- Displays full details: notes, categories, due date, status.
+- Allows editing inline (notes textarea, dropdowns for categories, etc.).
+
+### Backend requirements for that:
+- Extend `PATCH /db/tasks/{task_id}` to update:
+  - `notes`
+  - `category`
+  - `priority`
+- Add `POST /db/tasks` for creating tasks directly from frontend.
+- Add `DELETE /db/tasks/{task_id}` for cleanup.
+
+When starting this step:
+1. Add missing fields to `Task` model.
+2. Update DB schema (via migration or reset).
+3. Extend PATCH route.
+4. Adjust frontend popup to call these endpoints.
