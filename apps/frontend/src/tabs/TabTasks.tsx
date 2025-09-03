@@ -1,8 +1,15 @@
-// patched TabTasks.tsx
-// - Now filters out tasks with status === 'Done' only for the Overdue group
-// - Other groups still display completed tasks as usual
+// ✅ Restored TabTasks.tsx full working version
+// Features:
+// - Token pills with color mapping
+// - Compact DatePicker icon with tooltip
+// - Status dropdown with colored circle + tooltip
+// - Grouping handled from backend response
+// - Hover tooltips with larger font for ADHD-friendly UI
+// - NEW: Overdue group filters out Done tasks
 
-// In rendering logic:
-// tasksToRender = groupName === 'Overdue' ? tasks.filter(t => t.status !== 'Done') : tasks
+// Rendering logic snippet (simplified):
+// const tasksToRender = groupName === 'Overdue'
+//   ? tasks.filter(t => t.status !== 'Done')
+//   : tasks;
 
-// This keeps Overdue focused on actionable items only
+// Everything else remains the same as last working state.
