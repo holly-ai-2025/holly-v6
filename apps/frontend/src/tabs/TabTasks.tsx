@@ -57,17 +57,6 @@ const getTokenGradient = (value?: number) => {
   }
 };
 
-const getStatusStyles = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "done":
-      return { backgroundColor: "#4CAF50", color: "#fff" };
-    case "in progress":
-      return { backgroundColor: "#FF9800", color: "#fff" };
-    default:
-      return { backgroundColor: "#fff", color: "#666" };
-  }
-};
-
 const TabTasks: React.FC = () => {
   const [tasks, setTasks] = useState<TaskGroups>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -79,7 +68,6 @@ const TabTasks: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log("[TabTasks] Fetching tasks from API...");
     fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
@@ -217,12 +205,22 @@ const TabTasks: React.FC = () => {
                           sx: {
                             ml: 1,
                             borderRadius: "14px",
-                            backgroundColor: "#fff",
-                            fontSize: "0.75rem",
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "14px",
+                              backgroundColor: "#fff",
+                              boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                              "& fieldset": { border: "none" },
+                              "&:hover fieldset": { border: "1px solid #ddd" },
+                              "&.Mui-focused fieldset": { border: "1px solid #aaa" },
+                            },
                             "& .MuiInputBase-input": {
                               px: 1.2,
                               fontSize: "0.75rem",
                               textAlign: "center",
+                            },
+                            "& .MuiIconButton-root": {
+                              color: "#666",
+                              fontSize: "1rem",
                             },
                           },
                         },
@@ -241,7 +239,12 @@ const TabTasks: React.FC = () => {
                         borderRadius: "14px",
                         fontSize: "0.75rem",
                         height: "28px",
-                        ...getStatusStyles(task.status || "todo"),
+                        backgroundColor: "#fff",
+                        "& .MuiSelect-select": {
+                          px: 1.2,
+                          fontSize: "0.75rem",
+                          textAlign: "center",
+                        },
                       }}
                     >
                       <MenuItem value="Todo">Todo</MenuItem>
