@@ -1,67 +1,47 @@
-import { create } from "zustand";
-import { tasks as initialTasks } from '../data/tasks';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
+// Task type
 export interface Task {
   id: string;
-  title: string;
-  dueDate: string; // ISO date string
-  completed?: boolean;
+  name: string;
+  due_date: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
+  project?: string | null;
+  category?: string | null;
+  token_value?: number | null;
 }
 
-interface LogEntry {
-  id: string;
-  message: string;
-  timestamp: string;
-}
-
+// Store state
 interface TaskState {
   tasks: Task[];
-  log: LogEntry[];
+  log: string[];
   xp: number;
   streak: number;
-  markComplete: (id: string) => void;
-  addTask: (title: string, dueDate: string) => void;
+  addTask: (task: Task) => void;
+  setTasks: (tasks: Task[]) => void;
+  addLog: (entry: string) => void;
+  addXP: (amount: number) => void;
+  incrementStreak: () => void;
 }
 
-export const useTaskStore = create<TaskState>((set, get) => ({
-  tasks: initialTasks,
-  log: [],
-  xp: 0,
-  streak: 0,
-  markComplete: (id) => {
-    set((state) => {
-      const updated = state.tasks.map((t) =>
-        t.id === id ? { ...t, completed: true } : t
-      );
-      const completedCount = updated.filter((t) => t.completed).length;
-      const newXP = state.xp + 10;
-      const today = new Date().toISOString().split('T')[0];
-      const streak = updated.some(
-        (t) => t.completed && t.dueDate.startsWith(today)
-      )
-        ? state.streak + 1
-        : state.streak;
-      return {
-        tasks: updated,
-        xp: newXP,
-        streak,
-        log: [
-          ...state.log,
-          { id: id + Date.now(), message: `✅ Completed task: ${id}`, timestamp: new Date().toISOString() },
-        ],
-      };
-    });
-  },
-  addTask: (title, dueDate) => {
-    set((state) => {
-      const newTask = { id: Date.now().toString(), title, dueDate };
-      return {
-        tasks: [...state.tasks, newTask],
-        log: [
-          ...state.log,
-          { id: newTask.id, message: `➕ Added task: ${title}`, timestamp: new Date().toISOString() },
-        ],
-      };
-    });
-  },
-}));
+// Create store
+export const useTaskStore = create<TaskState>()(
+  persist(
+    (set) => ({
+      tasks: [], // start empty, will be populated by DB fetch
+      log: [],
+      xp: 0,
+      streak: 0,
+      addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
+      setTasks: (tasks) => set({ tasks }),
+      addLog: (entry) => set((state) => ({ log: [...state.log, entry] })),
+      addXP: (amount) => set((state) => ({ xp: state.xp + amount })),
+      incrementStreak: () => set((state) => ({ streak: state.streak + 1 })),
+    }),
+    {
+      name: 'task-storage',
+    }
+  )
+);

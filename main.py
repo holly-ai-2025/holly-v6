@@ -80,6 +80,7 @@ class Task(Base):
     category = Column(String)
     project_id = Column(String)
     phase_id = Column(String)
+    token_value = Column(Integer)
 
 class Project(Base):
     __tablename__ = "projects"
