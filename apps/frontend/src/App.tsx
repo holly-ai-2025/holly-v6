@@ -1,23 +1,17 @@
-// App shell
-import React, { useState } from "react";
+import React from "react";
 import { Box } from "@mui/material";
-import LeftPanel from "./components/LeftPanel";
 import MainContent from "./MainContent";
-import RightPanel from "./RightPanel";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState("Dashboard");
-
+function App() {
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
-      {/* Left Sidebar */}
-      <LeftPanel />
-
-      {/* Main Content */}
-      <MainContent activeTab={activeTab} />
-
-      {/* Right Sidebar */}
-      <RightPanel />
-    </Box>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box display="flex" flexDirection="column" height="100vh">
+        <MainContent />
+      </Box>
+    </LocalizationProvider>
   );
 }
+
+export default App;
