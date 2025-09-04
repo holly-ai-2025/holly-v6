@@ -9,6 +9,7 @@ import {
   Select,
   MenuItem,
   Tooltip,
+  Button,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -16,6 +17,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
+import TaskDialog from "../components/TaskDialog";
 
 interface Task {
   token_value?: number;
@@ -31,6 +33,7 @@ interface Task {
   project_id?: string;
   project?: string;
   phase_id?: string;
+  notes?: string;
 }
 
 type TaskGroups = Record<string, Task[]>;
@@ -82,6 +85,9 @@ const TabTasks: React.FC = () => {
     Later: false,
   });
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
   const fetchTasks = () => {
     fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
@@ -118,8 +124,50 @@ const TabTasks: React.FC = () => {
     }
   };
 
+  const createTask = async (newTask: Partial<Task>) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
+        },
+        body: JSON.stringify(newTask),
+      });
+      if (!res.ok) throw new Error("Failed to create task");
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabTasks] Failed to create task", err);
+    }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleDialogSave = async (updates: Partial<Task>) => {
+    if (selectedTask && selectedTask.task_id) {
+      await updateTask(selectedTask.task_id, updates);
+    } else {
+      await createTask(updates);
+    }
+    handleDialogClose();
+  };
+
   return (
     <Box p={2}>
+      <Box display="flex" justifyContent="flex-end" mb={2}>
+        <Button variant="contained" onClick={() => setDialogOpen(true)}>
+          + New Task
+        </Button>
+      </Box>
+
       {Object.keys(tasks || {}).map((group) => {
         const groupTasks = group === "Overdue"
           ? tasks[group]?.filter((t) => normalizeStatus(t.status) !== "Done")
@@ -156,18 +204,20 @@ const TabTasks: React.FC = () => {
                       display="flex"
                       alignItems="center"
                       gap={1.2}
-                      sx={{ mb: 1 }}
+                      sx={{ mb: 1, cursor: "pointer" }}
+                      onClick={() => handleTaskClick(task)}
                     >
                       <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
                         <Checkbox
                           size="small"
                           sx={{ borderRadius: "50%" }}
                           checked={normalizeStatus(task.status) === "Done"}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            e.stopPropagation();
                             updateTask(taskId, {
                               status: e.target.checked ? "Done" : "Todo",
-                            })
-                          }
+                            });
+                          }}
                         />
                       </Box>
 
@@ -225,7 +275,6 @@ const TabTasks: React.FC = () => {
                           <FolderIcon fontSize="small" sx={{ ml: 1, color: "#555" }} />
                         )}
 
-                        {/* Date icon with tooltip */}
                         <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
                           <IconButton
                             size="small"
@@ -246,7 +295,6 @@ const TabTasks: React.FC = () => {
                           </IconButton>
                         </Tooltip>
 
-                        {/* Status Dropdown */}
                         <Tooltip title={normalizeStatus(task.status)} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
                           <Select
                             size="small"
@@ -286,6 +334,13 @@ const TabTasks: React.FC = () => {
           </Box>
         );
       })}
+
+      <TaskDialog
+        open={dialogOpen}
+        task={selectedTask}
+        onClose={handleDialogClose}
+        onSave={handleDialogSave}
+      />
     </Box>
   );
 };
