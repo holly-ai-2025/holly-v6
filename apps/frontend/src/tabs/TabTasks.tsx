@@ -1,81 +1,40 @@
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Checkbox,
-  Collapse,
-  IconButton,
-  Divider,
-  Select,
-  MenuItem,
-  Tooltip,
-  Button,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import FolderIcon from "@mui/icons-material/Folder";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import TaskDialog from "../components/TaskDialog";
+import { Box, Typography, Collapse, List, ListItem, ListItemText, IconButton } from "@mui/material";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 
 interface Task {
-  task_id?: string;
-  task_name?: string;
-  description?: string;
-  due_date?: string;
+  task_id: number;
+  task_name: string;
+  due_date?: string | null;
   status?: string;
   priority?: string;
-  category?: string;
-  project_id?: string;
-  phase_id?: string;
-  board_id?: string;
-  parent_task_id?: string;
-  token_value?: number;
   notes?: string;
-  urgency_score?: number;
-  effort_level?: string; // tiny | small | medium | big
-  created_at?: string;
-  updated_at?: string;
 }
 
-type TaskGroups = Record<string, Task[]>;
+interface TaskGroups {
+  [key: string]: Task[];
+}
 
-const groupColors: Record<string, string> = {
-  Overdue: "#fdecea",
-  Today: "#e6f0fa",
-  Tomorrow: "#d6e9f8",
-  "This Week": "#c5e0f6",
-  Later: "#b5d7f3",
-};
+const groupTasks = (tasks: Task[]): TaskGroups => {
+  const groups: TaskGroups = { Overdue: [], Today: [], Tomorrow: [], "This Week": [], Later: [] };
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
 
-const getTokenGradient = (value?: number) => {
-  switch (value) {
-    case 5:
-      return "linear-gradient(135deg, #00e0ff, #00cfff)";
-    case 10:
-      return "linear-gradient(135deg, #3399ff, #0088ff)";
-    case 15:
-      return "linear-gradient(135deg, #5c4dff, #4b32ff)";
-    case 20:
-      return "linear-gradient(135deg, #9d4bff, #8a2be2)";
-    default:
-      return "linear-gradient(135deg, #e0e0e0, #c0c0c0)";
-  }
-};
-
-const normalizeStatus = (status?: string) => {
-  if (!status) return "Todo";
-  const s = status.toLowerCase();
-  if (s === "done") return "Done";
-  if (s === "in progress") return "In Progress";
-  return "Todo";
-};
-
-const statusColors: Record<string, string> = {
-  Todo: "#ccc",
-  "In Progress": "orange",
-  Done: "green",
+  tasks.forEach((t) => {
+    if (!t.due_date) {
+      groups["Later"].push(t);
+    } else {
+      const due = new Date(t.due_date);
+      if (due < today) groups["Overdue"].push(t);
+      else if (due.toDateString() === today.toDateString()) groups["Today"].push(t);
+      else if (due.toDateString() === tomorrow.toDateString()) groups["Tomorrow"].push(t);
+      else if (due.getTime() - today.getTime() < 7 * 24 * 60 * 60 * 1000) groups["This Week"].push(t);
+      else groups["Later"].push(t);
+    }
+  });
+  return groups;
 };
 
 const TabTasks: React.FC = () => {
@@ -88,15 +47,10 @@ const TabTasks: React.FC = () => {
     Later: false,
   });
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-
   const fetchTasks = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
+    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`)
       .then((res) => res.json())
-      .then((data) => setTasks(data))
+      .then((data) => setTasks(groupTasks(data)))
       .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
   };
 
@@ -108,28 +62,36 @@ const TabTasks: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const updateTask = async (taskId: string | undefined, updates: Partial<Task>) => {
-    if (!taskId) return;
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error("Failed to update task");
-      fetchTasks();
-    } catch (err) {
-      console.error("[TabTasks] Failed to update task", err);
-    }
-  };
-
   return (
     <Box>
-      <Typography variant="h5">Tasks</Typography>
-      {/* Task rendering logic */}
+      <Typography variant="h5" gutterBottom>Tasks</Typography>
+      {Object.entries(tasks).map(([group, groupTasks]) => (
+        <Box key={group} mb={2}>
+          <Box display="flex" alignItems="center">
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>{group}</Typography>
+            <IconButton onClick={() => handleToggle(group)}>
+              {openGroups[group] ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
+          </Box>
+          <Collapse in={openGroups[group]}>
+            <List>
+              {groupTasks.map((task) => (
+                <ListItem key={task.task_id}>
+                  <ListItemText
+                    primary={task.task_name}
+                    secondary={`${task.priority || ""} ${task.due_date ? `– due ${new Date(task.due_date).toLocaleDateString()}` : ""}`}
+                  />
+                </ListItem>
+              ))}
+              {groupTasks.length === 0 && (
+                <ListItem>
+                  <ListItemText primary="No tasks" />
+                </ListItem>
+              )}
+            </List>
+          </Collapse>
+        </Box>
+      ))}
     </Box>
   );
 };
