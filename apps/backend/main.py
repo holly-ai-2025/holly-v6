@@ -1,161 +1,123 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from apps.backend.models import Task, Project, Phase, Base
+from sqlalchemy.orm import Session
 from apps.backend.database import SessionLocal, engine
-from datetime import datetime, date, timedelta
-import uuid
+from apps.backend import models
 
 app = FastAPI()
 
-# ✅ Enable wide-open CORS for dev
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # explicitly allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ Ensure DB tables exist
-Base.metadata.create_all(bind=engine)
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
+# --- TASK ROUTES ---
 @app.get("/db/tasks")
-async def get_tasks():
-    session = SessionLocal()
-    tasks = session.query(Task).all()
-    print(f"[Backend] Returning {len(tasks)} tasks")
-
-    grouped = {"Overdue": [], "Today": [], "Tomorrow": [], "This Week": [], "Later": []}
-    today = date.today()
-    tomorrow = today + timedelta(days=1)
-    end_of_week = today + timedelta(days=(6 - today.weekday()))
-
-    for t in tasks:
-        task_data = {
-            "task_id": t.task_id,
-            "task_name": t.task_name,
-            "description": t.description,
-            "due_date": t.due_date,
-            "status": t.status,
-            "priority": t.priority,
-            "category": t.category,
-            "project_id": t.project_id,
-            "phase_id": t.phase_id,
-            "token_value": t.token_value,
-            "notes": t.notes,
-        }
-        if not t.due_date:
-            grouped["Later"].append(task_data)
-        elif t.due_date < today:
-            grouped["Overdue"].append(task_data)
-        elif t.due_date == today:
-            grouped["Today"].append(task_data)
-        elif t.due_date == tomorrow:
-            grouped["Tomorrow"].append(task_data)
-        elif t.due_date <= end_of_week:
-            grouped["This Week"].append(task_data)
-        else:
-            grouped["Later"].append(task_data)
-
-    session.close()
-    return grouped
-
-@app.post("/db/tasks")
-async def create_task(task: dict):
-    session = SessionLocal()
-    new_task = Task(
-        task_id=str(uuid.uuid4()),
-        task_name=task.get("task_name"),
-        description=task.get("description"),
-        due_date=datetime.strptime(task["due_date"], "%Y-%m-%d").date() if task.get("due_date") else None,
-        status=task.get("status"),
-        priority=task.get("priority"),
-        category=task.get("category"),
-        project_id=task.get("project_id") or None,
-        phase_id=task.get("phase_id") or None,
-        token_value=task.get("token_value"),
-        notes=task.get("notes"),
-    )
-    session.add(new_task)
-    session.commit()
-    session.refresh(new_task)
-    session.close()
-    return {"message": "Task created", "task_id": new_task.task_id}
+def get_tasks(db: Session = next(get_db())):
+    return db.query(models.Task).all()
 
 @app.patch("/db/tasks/{task_id}")
-async def update_task(task_id: str, updates: dict):
-    session = SessionLocal()
-    task = session.query(Task).filter(Task.task_id == task_id).first()
+def update_task(task_id: str, updates: dict, db: Session = next(get_db())):
+    task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not task:
-        session.close()
         raise HTTPException(status_code=404, detail="Task not found")
-
     for key, value in updates.items():
         if hasattr(task, key):
-            if key == "due_date" and isinstance(value, str):
-                try:
-                    value = datetime.strptime(value, "%Y-%m-%d").date()
-                except ValueError:
-                    session.close()
-                    raise HTTPException(status_code=400, detail="Invalid date format")
-            if key in ["project_id", "phase_id"] and value == "":
-                value = None
             setattr(task, key, value)
+    db.commit()
+    db.refresh(task)
+    # Log activity
+    activity = models.TaskActivity(task_id=task_id, user_id=updates.get("user_id", "system"), action="update", details=str(updates))
+    db.add(activity)
+    db.commit()
+    return task
 
-    session.commit()
-    session.refresh(task)
-    session.close()
-    return {"message": "Task updated", "task_id": task.task_id}
+@app.post("/db/tasks")
+def create_task(task: dict, db: Session = next(get_db())):
+    new_task = models.Task(**task)
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
+    return new_task
 
+@app.delete("/db/tasks/{task_id}")
+def delete_task(task_id: str, db: Session = next(get_db())):
+    task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(task)
+    db.commit()
+    return {"message": "Task deleted"}
+
+# --- PROJECT ROUTES ---
 @app.get("/db/projects")
-async def get_projects():
-    session = SessionLocal()
-    projects = session.query(Project).all()
-    print(f"[Backend] Returning {len(projects)} projects")
+def get_projects(db: Session = next(get_db())):
+    return db.query(models.Project).all()
 
-    result = [
-        {
-            "project_id": p.project_id,
-            "name": p.name,
-            "status": p.status,
-            "progress": p.progress,
-        }
-        for p in projects
-    ]
+@app.patch("/db/projects/{project_id}")
+def update_project(project_id: str, updates: dict, db: Session = next(get_db())):
+    project = db.query(models.Project).filter(models.Project.project_id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    for key, value in updates.items():
+        if hasattr(project, key):
+            setattr(project, key, value)
+    db.commit()
+    db.refresh(project)
+    return project
 
-    session.close()
-    return result
+# --- TAGS ---
+@app.get("/db/tags")
+def get_tags(db: Session = next(get_db())):
+    return db.query(models.Tag).all()
 
-@app.get("/db/projects/{project_id}/phases")
-async def get_phases(project_id: str):
-    session = SessionLocal()
-    phases = session.query(Phase).filter(Phase.project_id == project_id).all()
-    print(f"[Backend] Returning {len(phases)} phases for project {project_id}")
+@app.post("/db/tags")
+def create_tag(tag: dict, db: Session = next(get_db())):
+    new_tag = models.Tag(**tag)
+    db.add(new_tag)
+    db.commit()
+    db.refresh(new_tag)
+    return new_tag
 
-    result = [
-        {
-            "phase_id": ph.phase_id,
-            "project_id": ph.project_id,
-            "name": ph.name,
-            "description": ph.description,
-        }
-        for ph in phases
-    ]
+# --- REFLECTIONS ---
+@app.get("/db/reflections")
+def get_reflections(db: Session = next(get_db())):
+    return db.query(models.Reflection).all()
 
-    session.close()
-    return result
+@app.post("/db/reflections")
+def create_reflection(reflection: dict, db: Session = next(get_db())):
+    new_reflection = models.Reflection(**reflection)
+    db.add(new_reflection)
+    db.commit()
+    db.refresh(new_reflection)
+    return new_reflection
 
-@app.post("/db/projects/{project_id}/phases")
-async def create_phase(project_id: str, phase: dict):
-    session = SessionLocal()
-    new_phase = Phase(
-        phase_id=str(uuid.uuid4()),
-        project_id=project_id,
-        name=phase.get("name"),
-        description=phase.get("description"),
-    )
-    session.add(new_phase)
-    session.commit()
-    session.refresh(new_phase)
-    session.close()
-    return {"message": "Phase created", "phase_id": new_phase.phase_id}
+# --- ATTACHMENTS ---
+@app.post("/db/attachments")
+def create_attachment(attachment: dict, db: Session = next(get_db())):
+    new_attachment = models.Attachment(**attachment)
+    db.add(new_attachment)
+    db.commit()
+    db.refresh(new_attachment)
+    return new_attachment
+
+# --- LINKS ---
+@app.post("/db/links")
+def create_link(link: dict, db: Session = next(get_db())):
+    new_link = models.Link(**link)
+    db.add(new_link)
+    db.commit()
+    db.refresh(new_link)
+    return new_link
