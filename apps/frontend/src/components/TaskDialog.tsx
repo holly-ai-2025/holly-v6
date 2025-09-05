@@ -13,6 +13,7 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Divider,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
@@ -27,10 +28,12 @@ interface TaskDialogProps {
 }
 
 const statuses = ["Todo", "In Progress", "Done"];
+const effortLevels = ["Tiny", "Small", "Medium", "Big"];
 
 export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
   const [form, setForm] = useState<Partial<any>>({});
   const [projects, setProjects] = useState<any[]>([]);
+  const [boards, setBoards] = useState<any[]>([]);
   const [phases, setPhases] = useState<any[]>([]);
 
   useEffect(() => {
@@ -44,6 +47,13 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
       .then((res) => res.json())
       .then((data) => setProjects(data))
       .catch((err) => console.error("[TaskDialog] Failed to fetch projects", err));
+
+    fetch(`${import.meta.env.VITE_API_URL}/db/boards`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setBoards(data))
+      .catch((err) => console.error("[TaskDialog] Failed to fetch boards", err));
   }, []);
 
   useEffect(() => {
@@ -71,146 +81,141 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
       <DialogContent dividers sx={{ maxHeight: "80vh", overflowY: "auto" }}>
-        <Box display="flex" flexDirection="column" gap={2}>
-          {/* Task Name */}
-          <TextField
-            label="Task Name"
-            value={form.task_name || ""}
-            onChange={(e) => handleChange("task_name", e.target.value)}
-            fullWidth
-            size="medium"
-          />
+        <Box display="flex" flexDirection="column" gap={3}>
+          {/* --- Core Details --- */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>Details</Typography>
+            <TextField
+              label="Task Name"
+              value={form.task_name || ""}
+              onChange={(e) => handleChange("task_name", e.target.value)}
+              fullWidth
+              size="medium"
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="Description"
+              value={form.description || ""}
+              onChange={(e) => handleChange("description", e.target.value)}
+              fullWidth
+              multiline
+              rows={2}
+              size="small"
+            />
+          </Box>
 
-          {/* Description */}
-          <TextField
-            label="Description"
-            value={form.description || ""}
-            onChange={(e) => handleChange("description", e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-            size="small"
-          />
+          <Divider />
 
-          {/* Row: Due Date + Priority + Category */}
-          <Grid container spacing={2}>
-            <Grid item xs={4}>
-              <DatePicker
-                label="Due Date"
-                value={form.due_date ? dayjs(form.due_date) : null}
-                onChange={(date: Dayjs | null) =>
-                  handleChange("due_date", date ? date.format("YYYY-MM-DD") : null)
-                }
-                slotProps={{ textField: { size: "small", fullWidth: true } }}
-              />
+          {/* --- Scheduling --- */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>Scheduling</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={4}>
+                <DatePicker
+                  label="Due Date"
+                  value={form.due_date ? dayjs(form.due_date) : null}
+                  onChange={(date: Dayjs | null) =>
+                    handleChange("due_date", date ? date.format("YYYY-MM-DD") : null)
+                  }
+                  slotProps={{ textField: { size: "small", fullWidth: true } }}
+                />
+              </Grid>
+              <Grid item xs={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={form.status || "Todo"}
+                    onChange={(e) => handleChange("status", e.target.value)}
+                  >
+                    {statuses.map((s) => (
+                      <MenuItem key={s} value={s}>{s}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Effort Level</InputLabel>
+                  <Select
+                    value={form.effort_level || ""}
+                    onChange={(e) => handleChange("effort_level", e.target.value)}
+                  >
+                    {effortLevels.map((lvl) => (
+                      <MenuItem key={lvl} value={lvl}>{lvl}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Priority"
-                value={form.priority || ""}
-                onChange={(e) => handleChange("priority", e.target.value)}
-                fullWidth
-                size="small"
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Category"
-                value={form.category || ""}
-                onChange={(e) => handleChange("category", e.target.value)}
-                fullWidth
-                size="small"
-              />
-            </Grid>
-          </Grid>
+          </Box>
 
-          {/* Row: Project + Phase + Status */}
-          <Grid container spacing={2}>
-            <Grid item xs={4}>
-              <FormControl fullWidth size="medium">
-                <InputLabel>Project</InputLabel>
-                <Select
-                  value={form.project_id || ""}
-                  onChange={(e) => handleChange("project_id", e.target.value)}
-                >
-                  {projects.map((p) => (
-                    <MenuItem key={p.project_id} value={p.project_id}>
-                      {p.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={4}>
-              <FormControl fullWidth size="medium">
-                <InputLabel>Phase</InputLabel>
-                <Select
-                  value={form.phase_id || ""}
-                  onChange={(e) => handleChange("phase_id", e.target.value)}
-                  disabled={!form.project_id}
-                >
-                  {phases.map((ph) => (
-                    <MenuItem key={ph.phase_id} value={ph.phase_id}>
-                      {ph.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Status"
-                select
-                value={form.status || "Todo"}
-                onChange={(e) => handleChange("status", e.target.value)}
-                fullWidth
-                size="small"
-              >
-                {statuses.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {s}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-          </Grid>
+          <Divider />
 
-          {/* Token Value */}
-          <TextField
-            label="Token Value"
-            type="number"
-            value={form.token_value || ""}
-            onChange={(e) => handleChange("token_value", parseInt(e.target.value))}
-            fullWidth
-            size="small"
-          />
+          {/* --- Urgency --- */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>Urgency</Typography>
+            <TextField
+              label="Urgency Score"
+              value={form.urgency_score || 0}
+              onChange={(e) => handleChange("urgency_score", Number(e.target.value))}
+              fullWidth
+              size="small"
+              type="number"
+            />
+          </Box>
 
-          {/* Notes */}
-          <Box flexGrow={1} display="flex" flexDirection="column">
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Notes
-            </Typography>
+          <Divider />
+
+          {/* --- Notes --- */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>Notes</Typography>
             <ReactQuill
               theme="snow"
               value={form.notes || ""}
               onChange={(value) => handleChange("notes", value)}
-              style={{
-                backgroundColor: "white",
-                borderRadius: "8px",
-                minHeight: "400px",
-                maxHeight: "60vh",
-                flexGrow: 1,
-                overflowY: "auto",
-              }}
+              style={{ height: "200px", borderRadius: "8px" }}
             />
+          </Box>
+
+          <Divider />
+
+          {/* --- Assignment --- */}
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>Assignment</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Board</InputLabel>
+                  <Select
+                    value={form.board_id || ""}
+                    onChange={(e) => handleChange("board_id", e.target.value)}
+                  >
+                    {boards.map((b) => (
+                      <MenuItem key={b.board_id} value={b.board_id}>{b.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Project</InputLabel>
+                  <Select
+                    value={form.project_id || ""}
+                    onChange={(e) => handleChange("project_id", e.target.value)}
+                  >
+                    {projects.map((p) => (
+                      <MenuItem key={p.project_id} value={p.project_id}>{p.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Box>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSave}>
-          Save
-        </Button>
+        <Button onClick={onClose} color="secondary">Cancel</Button>
+        <Button onClick={handleSave} variant="contained" color="primary">Save</Button>
       </DialogActions>
     </Dialog>
   );
