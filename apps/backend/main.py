@@ -6,11 +6,11 @@ from apps.backend import models
 
 app = FastAPI()
 
-# CORS setup - regex to allow localhost and 127.0.0.1 on any port
+# CORS setup - allow all origins (no credentials for dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
