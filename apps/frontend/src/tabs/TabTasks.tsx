@@ -70,16 +70,18 @@ const normalizeStatus = (status?: string) => {
   if (!status) return "Todo";
   const s = status.toLowerCase();
   if (s === "done") return "Done";
-  if (s === "in progress") return "In Progress";
+  if (s === "in progress" || s === "in_progress") return "In Progress";
   if (s === "pinned") return "Pinned";
   return "Todo";
 };
 
-const backendStatusMap: Record<string, string> = {
-  Todo: "todo",
-  "In Progress": "in_progress",
-  Done: "done",
-  Pinned: "pinned",
+const toBackendStatus = (status?: string) => {
+  if (!status) return "todo";
+  const s = status.toLowerCase();
+  if (s === "done") return "done";
+  if (s === "in progress" || s === "in_progress") return "in_progress";
+  if (s === "pinned") return "pinned";
+  return "todo";
 };
 
 const statusColors: Record<string, string> = {
@@ -179,7 +181,7 @@ const TabTasks: React.FC = () => {
     Object.entries(rest).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         if (key === "status") {
-          payload[key] = backendStatusMap[normalizeStatus(value as string)] || value;
+          payload[key] = toBackendStatus(value as string);
         } else if (key === "due_date") {
           payload[key] = dayjs(value).format("YYYY-MM-DD");
         } else {
