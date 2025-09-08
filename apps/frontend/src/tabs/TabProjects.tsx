@@ -6,6 +6,9 @@ interface Project {
   name: string;
   status?: string;
   progress?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function TabProjects() {
@@ -33,6 +36,11 @@ export default function TabProjects() {
                 <Typography variant="body2" color="text.secondary">
                   Status: {proj.status}
                 </Typography>
+                {proj.notes && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Notes: {proj.notes}
+                  </Typography>
+                )}
                 <Box mt={2}>
                   <LinearProgress
                     variant="determinate"

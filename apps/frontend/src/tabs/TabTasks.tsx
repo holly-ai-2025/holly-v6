@@ -20,20 +20,23 @@ import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
 
 interface Task {
-  token_value?: number;
-  task_id?: string;
-  id?: string;
+  task_id?: number;
   task_name?: string;
-  name?: string;
   description?: string;
-  due_date?: string;
+  due_date?: string | null;
   status?: string;
   priority?: string;
   category?: string;
-  project_id?: string;
+  project_id?: number;
   project?: string;
-  phase_id?: string;
+  phase_id?: number;
   notes?: string;
+  token_value?: number;
+  urgency_score?: number;
+  effort_level?: string;
+  board_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 type TaskGroups = Record<string, Task[]>;
@@ -41,7 +44,9 @@ type TaskGroups = Record<string, Task[]>;
 const groupColors: Record<string, string> = {
   Overdue: "#fdecea",
   Today: "#e6f0fa",
+  SuggestedToday: "#f5faff",
   Tomorrow: "#d6e9f8",
+  SuggestedTomorrow: "#eef7ff",
   "This Week": "#c5e0f6",
   Later: "#b5d7f3",
 };
@@ -65,14 +70,70 @@ const normalizeStatus = (status?: string) => {
   if (!status) return "Todo";
   const s = status.toLowerCase();
   if (s === "done") return "Done";
-  if (s === "in progress") return "In Progress";
+  if (s === "in progress" || s === "in_progress") return "In Progress";
+  if (s === "pinned") return "Pinned";
   return "Todo";
+};
+
+const toBackendStatus = (status?: string) => {
+  if (!status) return "todo";
+  const s = status.toLowerCase();
+  if (s === "done") return "done";
+  if (s === "in progress" || s === "in_progress") return "in_progress";
+  if (s === "pinned") return "pinned";
+  return "todo";
 };
 
 const statusColors: Record<string, string> = {
   Todo: "#ccc",
   "In Progress": "orange",
   Done: "green",
+  Pinned: "purple",
+};
+
+const groupTasksByDate = (tasks: Task[]): TaskGroups => {
+  const groups: TaskGroups = {
+    Overdue: [],
+    Today: [],
+    SuggestedToday: [],
+    Tomorrow: [],
+    SuggestedTomorrow: [],
+    "This Week": [],
+    Later: [],
+  };
+
+  const today = dayjs().startOf("day");
+  const tomorrow = today.add(1, "day");
+  const endOfWeek = today.endOf("week");
+
+  tasks.forEach((task) => {
+    const status = normalizeStatus(task.status);
+    if (status === "Done") return;
+
+    if (!task.due_date) {
+      if ((task.urgency_score || 0) > 5) {
+        groups.SuggestedToday.push(task);
+      } else {
+        groups.SuggestedTomorrow.push(task);
+      }
+      return;
+    }
+
+    const due = dayjs(task.due_date);
+    if (due.isBefore(today, "day")) {
+      groups.Overdue.push(task);
+    } else if (due.isSame(today, "day")) {
+      groups.Today.push(task);
+    } else if (due.isSame(tomorrow, "day")) {
+      groups.Tomorrow.push(task);
+    } else if (due.isBefore(endOfWeek, "day")) {
+      groups["This Week"].push(task);
+    } else {
+      groups.Later.push(task);
+    }
+  });
+
+  return groups;
 };
 
 const TabTasks: React.FC = () => {
@@ -80,7 +141,9 @@ const TabTasks: React.FC = () => {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Overdue: true,
     Today: true,
+    SuggestedToday: true,
     Tomorrow: true,
+    SuggestedTomorrow: true,
     "This Week": false,
     Later: false,
   });
@@ -93,7 +156,13 @@ const TabTasks: React.FC = () => {
       headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
     })
       .then((res) => res.json())
-      .then((data) => setTasks(data))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setTasks(groupTasksByDate(data));
+        } else {
+          setTasks(data);
+        }
+      })
       .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
   };
 
@@ -105,8 +174,31 @@ const TabTasks: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const updateTask = async (taskId: string | undefined, updates: Partial<Task>) => {
+  const cleanPayload = (updates: Partial<Task>): Record<string, any> => {
+    const { task_id, created_at, updated_at, ...rest } = updates;
+    const payload: Record<string, any> = {};
+
+    Object.entries(rest).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        if (key === "status") {
+          payload[key] = toBackendStatus(value as string);
+        } else if (key === "due_date") {
+          payload[key] = dayjs(value).format("YYYY-MM-DD");
+        } else {
+          payload[key] = value;
+        }
+      }
+    });
+
+    return payload;
+  };
+
+  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
     if (!taskId) return;
+
+    const payload = cleanPayload(updates);
+    console.debug("[TabTasks] PATCH payload", payload);
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
         method: "PATCH",
@@ -114,10 +206,9 @@ const TabTasks: React.FC = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
         },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to update task");
-
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
@@ -132,7 +223,7 @@ const TabTasks: React.FC = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
         },
-        body: JSON.stringify(newTask),
+        body: JSON.stringify(cleanPayload(newTask)),
       });
       if (!res.ok) throw new Error("Failed to create task");
       fetchTasks();
@@ -169,10 +260,7 @@ const TabTasks: React.FC = () => {
       </Box>
 
       {Object.keys(tasks || {}).map((group) => {
-        const groupTasks = group === "Overdue"
-          ? tasks[group]?.filter((t) => normalizeStatus(t.status) !== "Done")
-          : tasks[group];
-
+        const groupTasks = tasks[group] || [];
         return (
           <Box key={group} mt={2}>
             <Box
@@ -186,7 +274,7 @@ const TabTasks: React.FC = () => {
                 {group}
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2">{groupTasks?.length || 0}</Typography>
+                <Typography variant="body2">{groupTasks.length}</Typography>
                 <IconButton size="small">
                   {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </IconButton>
@@ -196,8 +284,8 @@ const TabTasks: React.FC = () => {
 
             <Collapse in={openGroups[group]}>
               <Box mt={0.5}>
-                {groupTasks?.map((task) => {
-                  const taskId = task.task_id || task.id;
+                {groupTasks.map((task) => {
+                  const taskId = task.task_id;
                   return (
                     <Box
                       key={taskId}
@@ -207,6 +295,7 @@ const TabTasks: React.FC = () => {
                       sx={{ mb: 1, cursor: "pointer" }}
                       onClick={() => handleTaskClick(task)}
                     >
+                      {/* Checkbox */}
                       <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
                         <Checkbox
                           size="small"
@@ -221,8 +310,9 @@ const TabTasks: React.FC = () => {
                         />
                       </Box>
 
+                      {/* Tokens */}
                       {task.token_value !== undefined && (
-                        <Tooltip title={`Reward: ${task.token_value} tokens`} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
+                        <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
                           <Typography
                             component="span"
                             sx={{
@@ -244,6 +334,7 @@ const TabTasks: React.FC = () => {
                         </Tooltip>
                       )}
 
+                      {/* Task card */}
                       <Box
                         flex={1}
                         display="flex"
@@ -268,34 +359,39 @@ const TabTasks: React.FC = () => {
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {task.task_name || task.name}
+                          {task.task_name}
                         </Typography>
 
                         {(task.project_id || task.project) && (
                           <FolderIcon fontSize="small" sx={{ ml: 1, color: "#555" }} />
                         )}
 
-                        <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                        {/* Due date */}
+                        <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow>
+                          <DatePicker
+                            value={task.due_date ? dayjs(task.due_date) : null}
+                            onChange={(newDate) =>
+                              updateTask(taskId, {
+                                due_date: newDate?.format("YYYY-MM-DD"),
+                              })
+                            }
+                            slots={{ openPickerIcon: CalendarTodayIcon }}
+                            slotProps={{
+                              textField: { sx: { display: "none" } },
+                              openPickerButton: {
+                                sx: {
+                                  p: 0.5,
+                                  borderRadius: "50%",
+                                  color: "#555",
+                                  "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
+                                },
+                              },
                             }}
-                          >
-                            <DatePicker
-                              value={task.due_date ? dayjs(task.due_date) : null}
-                              onChange={(newDate) =>
-                                updateTask(taskId, {
-                                  due_date: newDate?.format("YYYY-MM-DD"),
-                                })
-                              }
-                              slots={{ openPickerIcon: CalendarTodayIcon }}
-                              slotProps={{ textField: { sx: { display: "none" } } }}
-                            />
-                          </IconButton>
+                          />
                         </Tooltip>
 
-                        <Tooltip title={normalizeStatus(task.status)} arrow slotProps={{ tooltip: { sx: { fontSize: '0.9rem' } } }}>
+                        {/* Status select */}
+                        <Tooltip title={normalizeStatus(task.status)} arrow>
                           <Select
                             size="small"
                             value={normalizeStatus(task.status)}
@@ -323,6 +419,7 @@ const TabTasks: React.FC = () => {
                             <MenuItem value="Todo">⚪</MenuItem>
                             <MenuItem value="In Progress">🟠</MenuItem>
                             <MenuItem value="Done">🟢</MenuItem>
+                            <MenuItem value="Pinned">🟣</MenuItem>
                           </Select>
                         </Tooltip>
                       </Box>
