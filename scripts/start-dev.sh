@@ -15,7 +15,7 @@ cd apps/frontend
 pnpm install
 
 echo "-> Starting frontend (Vite) on logs/frontend-ops.log"
-nohup pnpm run dev >> ../../logs/frontend-ops.log 2>&1 &
+nohup pnpm run dev >> ../../logs/frontend-ops.log 2>&1 & disown
 cd ../..
 
 # 2. Backend (always restart 8000, leave 5000 alone)
@@ -26,7 +26,7 @@ if [ -n "$PIDS" ]; then
   kill -9 $PIDS
 fi
 
-nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 &
+nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 & disown
 
 # 3. Log server (port 9000)
 echo "-> Starting frontend log server on port 9000"
@@ -35,6 +35,6 @@ if [ -n "$PIDS_LOG" ]; then
   echo "-> Killing old log server (PIDs: $PIDS_LOG)"
   kill -9 $PIDS_LOG
 fi
-nohup node scripts/log_server.js >> ./logs/frontend-console.log 2>&1 &
+nohup node scripts/log_server.js >> ./logs/frontend-console.log 2>&1 & disown
 
 echo "=== Holly Dev Environment Started ==="
