@@ -39,6 +39,6 @@ if [ -n "$PIDS_WATCH" ]; then
   kill -9 $PIDS_WATCH
 fi
 
-nohup uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --log-level debug --no-reload >> ./logs/backend-live.log 2>&1 &
+nohup python -m uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --log-level debug --no-reload >> ./logs/backend-live.log 2>&1 &
 
 echo "=== Holly Dev Environment Started ==="
