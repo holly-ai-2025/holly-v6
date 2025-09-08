@@ -22,7 +22,7 @@ cd ../..
 echo "-> Restarting backend on port 8000"
 PIDS=$(lsof -t -i:8000 -sTCP:LISTEN)
 if [ -n "$PIDS" ]; then
-  echo "-> Killing old Uvicorn process on port 8000 (PIDs: $PIDS)"
+  echo "-> Killing old process on port 8000 (PIDs: $PIDS)"
   kill -9 $PIDS
 fi
 
