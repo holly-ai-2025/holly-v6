@@ -8,7 +8,7 @@ const origError = console.error;
 const origWarn = console.warn;
 
 function sendLog(level: string, message: any, ...optionalParams: any[]) {
-  fetch("http://localhost:8000/log", {
+  fetch("http://localhost:9000/log", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -28,4 +28,13 @@ fi
 
 nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 &
 
+# 3. Log server (port 9000)
+echo "-> Starting frontend log server on port 9000"
+PIDS_LOG=$(lsof -t -i:9000 -sTCP:LISTEN)
+if [ -n "$PIDS_LOG" ]; then
+  echo "-> Killing old log server (PIDs: $PIDS_LOG)"
+  kill -9 $PIDS_LOG
+fi
+nohup node scripts/log_server.js >> ./logs/frontend-console.log 2>&1 &
+
 echo "=== Holly Dev Environment Started ==="
