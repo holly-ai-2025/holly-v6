@@ -43,7 +43,7 @@ def reset_db():
         models.Task(
             task_name="Fix leaking sink",
             description="Urgent plumbing issue in the kitchen",
-            due_date=(today - timedelta(days=2)).isoformat(),
+            due_date=(today - timedelta(days=2)),  # now a date object
             status="Pending",
             priority="High",
             project_id=1,
@@ -56,7 +56,7 @@ def reset_db():
         models.Task(
             task_name="Send overdue invoice",
             description="Client invoice #231 still pending",
-            due_date=(today - timedelta(days=1)).isoformat(),
+            due_date=(today - timedelta(days=1)),
             status="In Progress",
             priority="High",
             project_id=2,
@@ -71,7 +71,7 @@ def reset_db():
         models.Task(
             task_name="Weekly grocery shopping",
             description="Include healthy snacks",
-            due_date=today.isoformat(),
+            due_date=today,
             status="Pending",
             priority="Medium",
             project_id=1,
@@ -83,7 +83,7 @@ def reset_db():
         models.Task(
             task_name="Review project proposal",
             description="Review draft and send feedback",
-            due_date=today.isoformat(),
+            due_date=today,
             status="In Progress",
             priority="High",
             project_id=2,
@@ -97,7 +97,7 @@ def reset_db():
         models.Task(
             task_name="Doctor appointment",
             description="Annual checkup at 9am",
-            due_date=(today + timedelta(days=1)).isoformat(),
+            due_date=(today + timedelta(days=1)),
             status="Pending",
             priority="High",
             board_id=3,
@@ -111,7 +111,7 @@ def reset_db():
         models.Task(
             task_name="Prepare presentation slides",
             description="Slides for Friday’s meeting",
-            due_date=(today + timedelta(days=3)).isoformat(),
+            due_date=(today + timedelta(days=3)),
             status="Pending",
             priority="High",
             project_id=2,
