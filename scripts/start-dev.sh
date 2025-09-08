@@ -17,7 +17,11 @@ cd ../..
 
 # 2. Backend (always restart 8000, leave 5000 alone)
 echo "-> Restarting backend on port 8000"
-pkill -f "uvicorn.*8000" || true
+PIDS=$(lsof -t -i:8000 -sTCP:LISTEN)
+if [ -n "$PIDS" ]; then
+  echo "-> Killing old Uvicorn process on port 8000 (PIDs: $PIDS)"
+  kill -9 $PIDS
+fi
 nohup uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug >> ./logs/backend-live.log 2>&1 &
 
 echo "=== Holly Dev Environment Started ==="
