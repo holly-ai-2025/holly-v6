@@ -8,3 +8,7 @@
 ## Debugging
 - If updates fail with 500 errors, check that no server-managed fields are being patched.
 - Confirm backend is parsing ISO8601 dates correctly.
+
+## Common Gotcha
+- **Never leave placeholder markers** like `<UPDATED FILE CONTENT>` in source files. They break the build immediately.
+- Always ensure changes replace the entire file with valid code.
