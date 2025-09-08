@@ -8,8 +8,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 # --- Load .env file ---
-env_path = Path(__file__).parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv(override=True)
 
 app = FastAPI()
 
@@ -51,6 +50,13 @@ async def verify_ops_token(request: Request, call_next):
 
     return await call_next(request)
 
+# ---------- Utility ----------
+async def get_json_or_empty(request: Request):
+    """Safely parse JSON body, return {} if missing/invalid."""
+    try:
+        return await request.json()
+    except Exception:
+        return {}
 
 # =====================================================
 # ================ SQLITE DB INTEGRATION ===============
@@ -100,7 +106,7 @@ class Habit(Base):
 
 Base.metadata.create_all(bind=engine)
 
-@app.get("/db/tasks")
+@app.post("/db/tasks")
 async def get_tasks():
     session = SessionLocal()
     tasks = session.query(Task).all()
@@ -145,9 +151,9 @@ async def get_tasks():
 
     return grouped
 
-@app.post("/db/tasks")
+@app.post("/db/tasks/create")
 async def create_task(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     if not data.get("task_id") or not data.get("task_name"):
         raise HTTPException(status_code=400, detail="'task_id' and 'task_name' are required")
 
@@ -169,7 +175,7 @@ async def create_task(request: Request):
 
     return {"ok": True, "task": data}
 
-@app.get("/db/projects")
+@app.post("/db/projects")
 async def get_projects():
     session = SessionLocal()
     projects = session.query(Project).all()
@@ -180,7 +186,7 @@ async def get_projects():
         for p in projects
     ]
 
-@app.get("/db/habits")
+@app.post("/db/habits")
 async def get_habits():
     session = SessionLocal()
     habits = session.query(Habit).all()
@@ -201,14 +207,14 @@ async def get_habits():
 # =====================================================
 # ================ OPS ENDPOINTS ======================
 # =====================================================
-@app.get("/ops/status")
+@app.post("/ops/status")
 async def ops_status():
     uptime = time.time() - START_TIME
     return {"ok": True, "uptime_seconds": uptime, "root_path": ROOT_PATH}
 
 @app.post("/ops/shell")
 async def ops_shell(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     cmd = data.get("cmd")
     if not cmd:
         raise HTTPException(status_code=400, detail="'cmd' is required")
@@ -220,7 +226,7 @@ async def ops_shell(request: Request):
 
 @app.post("/ops/ls")
 async def ops_ls(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     path = data.get("path", ".")
     try:
         files = os.listdir(path)
@@ -230,7 +236,7 @@ async def ops_ls(request: Request):
 
 @app.post("/ops/cat")
 async def ops_cat(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     path = data.get("path")
     if not path:
         raise HTTPException(status_code=400, detail="'path' is required")
@@ -242,7 +248,7 @@ async def ops_cat(request: Request):
 
 @app.post("/ops/write")
 async def ops_write(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     path = data.get("path")
     content = data.get("content")
     if not path or content is None:
@@ -258,7 +264,7 @@ async def ops_write(request: Request):
 # =====================================================
 @app.post("/git/create-branch")
 async def git_create_branch(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     branch = data.get("branch")
     if not branch:
         raise HTTPException(status_code=400, detail="'branch' is required")
@@ -273,7 +279,7 @@ async def git_create_branch(request: Request):
 
 @app.post("/git/commit-multi")
 async def git_commit_multi(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     branch = data.get("branch")
     message = data.get("message")
     files = data.get("files", [])
@@ -298,7 +304,7 @@ async def git_commit_multi(request: Request):
 
 @app.post("/git/open-pr")
 async def git_open_pr(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     branch = data.get("branch")
     title = data.get("title")
     body = data.get("body", "")
@@ -318,7 +324,7 @@ async def git_open_pr(request: Request):
 
 @app.post("/git/close-pr")
 async def git_close_pr(request: Request):
-    data = await request.json()
+    data = await get_json_or_empty(request)
     pr_number = data.get("pr_number")
     if not pr_number:
         raise HTTPException(status_code=400, detail="'pr_number' is required")
@@ -332,3 +338,4 @@ async def git_close_pr(request: Request):
         return {"ok": resp.status_code == 200, "status_code": resp.status_code, "response": resp.json()}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
