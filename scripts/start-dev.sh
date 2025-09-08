@@ -30,6 +30,6 @@ if [ -n "$PIDS_RELOAD" ]; then
   kill -9 $PIDS_RELOAD
 fi
 
-nohup uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --log-level debug >> ./logs/backend-live.log 2>&1 &
+nohup uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --log-level debug --no-reload >> ./logs/backend-live.log 2>&1 &
 
 echo "=== Holly Dev Environment Started ==="
