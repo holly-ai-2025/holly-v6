@@ -167,8 +167,6 @@ const TabTasks: React.FC = () => {
 
   const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
     if (!taskId) return;
-
-    // Strip server-managed fields
     const { created_at, updated_at, ...payload } = updates;
 
     try {
@@ -181,7 +179,6 @@ const TabTasks: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to update task");
-
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
@@ -231,7 +228,76 @@ const TabTasks: React.FC = () => {
           + New Task
         </Button>
       </Box>
-      {/* Rendering groups omitted for brevity - unchanged */}
+
+      {Object.entries(tasks).map(([group, groupTasks]) => (
+        <Box key={group} mb={2}>
+          <Box display="flex" alignItems="center" onClick={() => handleToggle(group)} sx={{ cursor: "pointer" }}>
+            <IconButton size="small">{openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
+            <Typography variant="h6">{group}</Typography>
+          </Box>
+          <Collapse in={openGroups[group]}>
+            {groupTasks.map((task) => (
+              <Box
+                key={task.task_id}
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                p={1}
+                mb={1}
+                borderRadius={2}
+                sx={{ background: groupColors[group] || "#f0f0f0" }}
+              >
+                <Checkbox
+                  checked={normalizeStatus(task.status) === "Done"}
+                  onChange={() => updateTask(task.task_id, { status: "Done" })}
+                />
+                <Typography
+                  sx={{ flex: 1, cursor: "pointer" }}
+                  onClick={() => handleTaskClick(task)}
+                >
+                  {task.task_name}
+                </Typography>
+                {task.token_value ? (
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: getTokenGradient(task.token_value),
+                    }}
+                  />
+                ) : null}
+                {task.project_id ? (
+                  <Tooltip title="Linked to project">
+                    <FolderIcon fontSize="small" />
+                  </Tooltip>
+                ) : null}
+                <DatePicker
+                  value={task.due_date ? dayjs(task.due_date) : null}
+                  onChange={(newDate) =>
+                    updateTask(task.task_id, { due_date: newDate ? newDate.format("YYYY-MM-DD") : null })
+                  }
+                  slotProps={{ textField: { variant: "standard", size: "small" } }}
+                />
+                <Select
+                  value={normalizeStatus(task.status)}
+                  onChange={(e) => updateTask(task.task_id, { status: e.target.value })}
+                  size="small"
+                  sx={{ ml: 1, minWidth: 120, background: "white" }}
+                >
+                  {Object.keys(statusColors).map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+            ))}
+          </Collapse>
+          <Divider />
+        </Box>
+      ))}
+
       <TaskDialog
         open={dialogOpen}
         task={selectedTask}

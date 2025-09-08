@@ -9,6 +9,7 @@
 - If updates fail with 500 errors, check that no server-managed fields are being patched.
 - Confirm backend is parsing ISO8601 dates correctly.
 
-## Common Gotcha
+## Common Gotchas
 - **Never leave placeholder markers** like `<UPDATED FILE CONTENT>` in source files. They break the build immediately.
-- Always ensure changes replace the entire file with valid code.
+- **Never strip the rendering loop**. Without it, the Tasks tab will show a blank screen even if data is fetched.
+- Always verify that group rendering (expand/collapse, task list) is present when editing.
