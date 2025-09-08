@@ -75,13 +75,9 @@ const normalizeStatus = (status?: string) => {
   return "Todo";
 };
 
+// Backend expects PascalCase values, so we just pass through the normalized display string
 const toBackendStatus = (status?: string) => {
-  if (!status) return "todo";
-  const s = status.toLowerCase();
-  if (s === "done") return "done";
-  if (s === "in progress" || s === "in_progress") return "in_progress";
-  if (s === "pinned") return "pinned";
-  return "todo";
+  return normalizeStatus(status);
 };
 
 const statusColors: Record<string, string> = {
