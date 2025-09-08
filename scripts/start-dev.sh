@@ -22,6 +22,14 @@ if [ -n "$PIDS" ]; then
   echo "-> Killing old Uvicorn process on port 8000 (PIDs: $PIDS)"
   kill -9 $PIDS
 fi
+
+# Kill any stray reloaders
+PIDS_RELOAD=$(ps aux | grep "uvicorn.*--reload" | grep -v grep | awk '{print $2}')
+if [ -n "$PIDS_RELOAD" ]; then
+  echo "-> Killing stray reloaders (PIDs: $PIDS_RELOAD)"
+  kill -9 $PIDS_RELOAD
+fi
+
 nohup uvicorn apps.backend.main:app --host 0.0.0.0 --port 8000 --log-level debug >> ./logs/backend-live.log 2>&1 &
 
 echo "=== Holly Dev Environment Started ==="
