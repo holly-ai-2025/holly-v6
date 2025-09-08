@@ -1,100 +1,167 @@
-from apps.backend.database import engine, Base, SessionLocal
+from datetime import datetime, timedelta
 from apps.backend import models
-from apps.backend.seed_data import seed_boards, seed_projects, seed_phases, seed_tasks, seed_habits, seed_reflections
-from datetime import datetime
+from apps.backend.database import engine, Base, SessionLocal
 
-# Reset database
+
 def reset_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
 
-    # Boards
-    boards_map = {}
-    for b in seed_boards:
-        board = models.Board(
-            name=b["name"],
-            type=b.get("type"),
-            goal=b.get("goal"),
+    # --- Boards ---
+    boards = [
+        models.Board(name="Home", type="Personal", goal="Stay on top of household"),
+        models.Board(name="Work", type="Professional", goal="Deliver client projects"),
+        models.Board(name="Health", type="Wellbeing", goal="Stay consistent with health"),
+    ]
+    db.add_all(boards)
+    db.commit()
+
+    # --- Projects ---
+    projects = [
+        models.Project(name="Kitchen Renovation", board_id=1, goal="Finish by October"),
+        models.Project(name="Client Website", board_id=2, goal="Deliver MVP this month"),
+    ]
+    db.add_all(projects)
+    db.commit()
+
+    # --- Phases ---
+    phases = [
+        models.Phase(name="Planning", project_id=1),
+        models.Phase(name="Execution", project_id=1),
+        models.Phase(name="Research", project_id=2),
+        models.Phase(name="Development", project_id=2),
+    ]
+    db.add_all(phases)
+    db.commit()
+
+    # --- Tasks ---
+    today = datetime.utcnow().date()
+    tasks = [
+        # ✅ Overdue
+        models.Task(
+            task_name="Fix leaking sink",
+            description="Urgent plumbing issue in the kitchen",
+            due_date=(today - timedelta(days=2)).isoformat(),
+            status="Pending",
+            priority="High",
+            project_id=1,
+            phase_id=2,
+            token_value=10,
+            urgency_score=85,
+            effort_level=4,
+            created_at=datetime.utcnow() - timedelta(days=3),
+        ),
+        models.Task(
+            task_name="Send overdue invoice",
+            description="Client invoice #231 still pending",
+            due_date=(today - timedelta(days=1)).isoformat(),
+            status="In Progress",
+            priority="High",
+            project_id=2,
+            phase_id=3,
+            token_value=15,
+            urgency_score=95,
+            effort_level=2,
+            created_at=datetime.utcnow() - timedelta(days=5),
+        ),
+
+        # ✅ Today
+        models.Task(
+            task_name="Weekly grocery shopping",
+            description="Include healthy snacks",
+            due_date=today.isoformat(),
+            status="Pending",
+            priority="Medium",
+            project_id=1,
+            token_value=5,
+            urgency_score=70,
+            effort_level=2,
+            created_at=datetime.utcnow() - timedelta(days=1),
+        ),
+        models.Task(
+            task_name="Review project proposal",
+            description="Review draft and send feedback",
+            due_date=today.isoformat(),
+            status="In Progress",
+            priority="High",
+            project_id=2,
+            token_value=10,
+            urgency_score=60,
+            effort_level=3,
+            created_at=datetime.utcnow() - timedelta(days=2),
+        ),
+
+        # ✅ Tomorrow
+        models.Task(
+            task_name="Doctor appointment",
+            description="Annual checkup at 9am",
+            due_date=(today + timedelta(days=1)).isoformat(),
+            status="Pending",
+            priority="High",
+            board_id=3,
+            token_value=20,
+            urgency_score=80,
+            effort_level=1,
+            created_at=datetime.utcnow() - timedelta(days=1),
+        ),
+
+        # ✅ Later this week
+        models.Task(
+            task_name="Prepare presentation slides",
+            description="Slides for Friday’s meeting",
+            due_date=(today + timedelta(days=3)).isoformat(),
+            status="Pending",
+            priority="High",
+            project_id=2,
+            phase_id=4,
+            token_value=15,
+            urgency_score=75,
+            effort_level=5,
             created_at=datetime.utcnow(),
-        )
-        db.add(board)
-        db.commit()
-        db.refresh(board)
-        boards_map[b["name"]] = board.board_id
-    print(f"Seeded {len(boards_map)} boards")
+        ),
 
-    # Projects
-    projects_map = {}
-    for p in seed_projects:
-        project = models.Project(
-            name=p["name"],
-            board_id=boards_map[p["board_name"]],
-            notes=p.get("notes"),
-        )
-        db.add(project)
-        db.commit()
-        db.refresh(project)
-        projects_map[p["name"]] = project.project_id
-    print(f"Seeded {len(projects_map)} projects")
+        # ✅ Floating (Suggested pool)
+        models.Task(
+            task_name="Organize photo library",
+            description="Clean up duplicates and tag memories",
+            due_date=None,
+            status="Pending",
+            priority="Low",
+            token_value=5,
+            urgency_score=50,
+            effort_level=3,
+            created_at=datetime.utcnow() - timedelta(days=7),
+        ),
+        models.Task(
+            task_name="Brainstorm blog post ideas",
+            description="Think of at least 10 concepts",
+            due_date=None,
+            status="Pending",
+            priority="Medium",
+            token_value=5,
+            urgency_score=65,
+            effort_level=2,
+            created_at=datetime.utcnow() - timedelta(days=2),
+        ),
+        models.Task(
+            task_name="Read AI research paper",
+            description="Skim and take notes",
+            due_date=None,
+            status="Pending",
+            priority="Medium",
+            token_value=10,
+            urgency_score=85,
+            effort_level=4,
+            created_at=datetime.utcnow() - timedelta(days=1),
+        ),
+    ]
 
-    # Phases
-    phases_map = {}
-    for ph in seed_phases:
-        phase = models.Phase(
-            project_id=projects_map[ph["project_name"]],
-            name=ph["name"],
-            deadline=ph.get("deadline"),
-        )
-        db.add(phase)
-        db.commit()
-        db.refresh(phase)
-        phases_map[(ph["project_name"], ph["name"])] = phase.phase_id
-    print(f"Seeded {len(phases_map)} phases")
-
-    # Tasks
-    for t in seed_tasks:
-        task = models.Task(
-            task_name=t["task_name"],
-            board_id=boards_map[t["board_name"]],
-            project_id=projects_map.get(t["project_name"]),
-            phase_id=phases_map.get((t["project_name"], t["phase_name"])) if t.get("phase_name") else None,
-            due_date=t.get("due_date"),
-            status=t.get("status"),
-            priority=t.get("priority"),
-            effort_level=t.get("effort_level"),
-            notes=t.get("notes"),
-            created_at=datetime.utcnow(),
-        )
-        db.add(task)
+    db.add_all(tasks)
     db.commit()
-    print(f"Seeded {len(seed_tasks)} tasks")
+    print("✅ Seeded DB with boards, projects, phases, and tasks.")
 
-    # Habits
-    for h in seed_habits:
-        habit = models.Habit(
-            title=h["title"],
-            frequency=h["frequency"],
-            zone=h["zone"],
-            streak=h["streak"]
-        )
-        db.add(habit)
-    db.commit()
-    print(f"Seeded {len(seed_habits)} habits")
-
-    # Reflections
-    for r in seed_reflections:
-        reflection = models.Reflection(
-            content=r["content"],
-            mood=r["mood"]
-        )
-        db.add(reflection)
-    db.commit()
-    print(f"Seeded {len(seed_reflections)} reflections")
-
-    db.close()
 
 if __name__ == "__main__":
     reset_db()
-    print("Database reset and seeded with realistic demo data.")
