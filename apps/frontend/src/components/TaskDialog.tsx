@@ -27,8 +27,9 @@ interface TaskDialogProps {
   onSave: (updates: Partial<any>) => void;
 }
 
-const statuses = ["Todo", "In Progress", "Done"];
-const effortLevels = ["Tiny", "Small", "Medium", "Big"];
+// Valid backend enums
+const statuses = ["Todo", "In Progress", "Done", "Pinned"];
+const priorities = ["Tiny", "Small", "Medium", "Big"];
 
 export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
   const [form, setForm] = useState<Partial<any>>({});
@@ -74,12 +75,23 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
   };
 
   const handleSave = () => {
-    onSave(form);
+    // Ensure only valid enums are sent
+    const cleanedForm = { ...form };
+
+    if (!statuses.includes(cleanedForm.status)) {
+      cleanedForm.status = "Todo";
+    }
+
+    if (!priorities.includes(cleanedForm.priority)) {
+      cleanedForm.priority = "Small";
+    }
+
+    onSave(cleanedForm);
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
+      <DialogTitle>{task && task.task_id ? "Edit Task" : "New Task"}</DialogTitle>
       <DialogContent dividers sx={{ maxHeight: "80vh", overflowY: "auto" }}>
         <Box display="flex" flexDirection="column" gap={3}>
           {/* --- Core Details --- */}
@@ -92,6 +104,7 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
               fullWidth
               size="medium"
               sx={{ mb: 2 }}
+              disabled={task && task.task_id} // disable editing task_name when updating
             />
             <TextField
               label="Description"
@@ -124,7 +137,7 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
                 <FormControl fullWidth size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
-                    value={form.status || "Todo"}
+                    value={form.status && statuses.includes(form.status) ? form.status : "Todo"}
                     onChange={(e) => handleChange("status", e.target.value)}
                   >
                     {statuses.map((s) => (
@@ -135,12 +148,12 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
               </Grid>
               <Grid item xs={4}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>Effort Level</InputLabel>
+                  <InputLabel>Priority</InputLabel>
                   <Select
-                    value={form.effort_level || ""}
-                    onChange={(e) => handleChange("effort_level", e.target.value)}
+                    value={form.priority && priorities.includes(form.priority) ? form.priority : "Small"}
+                    onChange={(e) => handleChange("priority", e.target.value)}
                   >
-                    {effortLevels.map((lvl) => (
+                    {priorities.map((lvl) => (
                       <MenuItem key={lvl} value={lvl}>{lvl}</MenuItem>
                     ))}
                   </Select>

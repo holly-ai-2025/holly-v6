@@ -2,10 +2,8 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from apps.backend.database import SessionLocal
-from apps.backend import models
-from pydantic import BaseModel
-from typing import Optional
-from datetime import date, datetime
+from apps.backend import models, schemas
+from datetime import datetime
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -13,15 +11,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# CORS setup - allow all origins for debug
-def custom_allow_origin(origin: str) -> bool:
-    logger.info(f"[CORS] Checking origin: {origin}")
-    return True
-
+# CORS setup - allow all origins for dev (no credentials)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -43,23 +36,6 @@ def get_db():
     finally:
         db.close()
 
-# --- SCHEMAS ---
-class TaskUpdate(BaseModel):
-    task_name: Optional[str]
-    description: Optional[str]
-    due_date: Optional[date]
-    status: Optional[str]
-    priority: Optional[str]
-    category: Optional[str]
-    project_id: Optional[int]
-    phase_id: Optional[int]
-    parent_task_id: Optional[int]
-    token_value: Optional[int]
-    notes: Optional[str]
-    urgency_score: Optional[int]
-    effort_level: Optional[str]
-    board_id: Optional[int]
-
 # --- TASK ROUTES ---
 @app.get("/db/tasks")
 def get_tasks(db: Session = Depends(get_db)):
@@ -67,7 +43,7 @@ def get_tasks(db: Session = Depends(get_db)):
     return db.query(models.Task).all()
 
 @app.patch("/db/tasks/{task_id}")
-def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(get_db)):
+def update_task(task_id: int, updates: schemas.TaskUpdate, db: Session = Depends(get_db)):
     logger.info(f"[Route] PATCH /db/tasks/{task_id} with updates={updates.dict(exclude_unset=True)}")
     task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not task:
@@ -83,21 +59,19 @@ def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(task)
 
-    # Log activity
+    # Log activity (basic, no user_id or details)
     activity = models.TaskActivity(
         task_id=task_id,
-        user_id="system",
-        action="update",
-        details=str(update_data)
+        action="update"
     )
     db.add(activity)
     db.commit()
     return task
 
 @app.post("/db/tasks")
-def create_task(task: dict, db: Session = Depends(get_db)):
-    logger.info(f"[Route] POST /db/tasks with task={task}")
-    new_task = models.Task(**task)
+def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+    logger.info(f"[Route] POST /db/tasks with task={task.dict()}")
+    new_task = models.Task(**task.dict())
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
