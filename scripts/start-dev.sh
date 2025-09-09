@@ -26,7 +26,7 @@ if [ -n "$PIDS" ]; then
   kill -9 $PIDS
 fi
 
-nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 & disown
+PYTHONPATH=$(pwd) nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 & disown
 
 # 3. Log server (port 9000)
 echo "-> Starting frontend log server on port 9000"
