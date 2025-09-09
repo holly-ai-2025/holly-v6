@@ -1,24 +1,19 @@
 .fc-event.event-completed {
   background-color: #e0e0e0 !important;
   color: #777 !important;
-  opacity: 0.6 !important;
-  border: none !important;
 }
 
 .fc-event.event-todo {
   background-color: #42a5f5 !important; /* blue */
   color: white !important;
-  border: none !important;
 }
 
 .fc-event.event-inprogress {
   background-color: #fb8c00 !important; /* orange */
   color: white !important;
-  border: none !important;
 }
 
 .fc-event.event-pinned {
   background-color: #8e24aa !important; /* purple */
   color: white !important;
-  border: none !important;
 }
