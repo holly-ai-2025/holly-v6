@@ -3,13 +3,60 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Button, ButtonGroup, Typography, Stack, Card } from "@mui/material";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import dayjs from "dayjs";
+import TaskDialog from "../components/TaskDialog";
 import "../styles/CalendarStyles.css";
+
+interface Task {
+  task_id?: number;
+  task_name?: string;
+  description?: string;
+  due_date?: string | null;
+  status?: string;
+  priority?: string;
+  category?: string;
+  project_id?: number;
+  notes?: string;
+  token_value?: number;
+  urgency_score?: number;
+  effort_level?: string;
+  board_id?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const allowedPatchFields = new Set([
+  "status",
+  "priority",
+  "due_date",
+  "project_id",
+  "phase_id",
+  "notes",
+  "description",
+  "token_value",
+  "urgency_score",
+  "effort_level",
+  "category",
+  "task_name",
+]);
+
+const toBackendStatus = (status?: string) => {
+  if (!status) return "Todo";
+  const s = status.toLowerCase();
+  if (s === "done") return "Done";
+  if (s === "in progress" || s === "in_progress") return "In Progress";
+  if (s === "pinned") return "Pinned";
+  return "Todo";
+};
 
 export default function TabCalendar() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [currentView, setCurrentView] = useState("dayGridMonth");
   const [title, setTitle] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const updateTitle = () => {
     const api = calendarRef.current?.getApi();
@@ -39,6 +86,97 @@ export default function TabCalendar() {
     calendarRef.current?.getApi().next();
     updateTitle();
   };
+
+  const fetchTasks = () => {
+    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setTasks(data);
+        }
+      })
+      .catch((err) => console.error("[TabCalendar] Failed to fetch tasks", err));
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const buildPayload = (updates: Partial<Task>): Record<string, any> => {
+    const payload: Record<string, any> = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      if (allowedPatchFields.has(key) && value !== null && value !== "") {
+        if (key === "status") {
+          payload[key] = toBackendStatus(value as string);
+        } else if (key === "due_date") {
+          payload[key] = dayjs(value).format("YYYY-MM-DD");
+        } else {
+          payload[key] = value;
+        }
+      }
+    });
+    return payload;
+  };
+
+  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
+    if (!taskId) return;
+    const payload = buildPayload(updates);
+    if (Object.keys(payload).length === 0) return;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabCalendar] Failed to update task", err);
+    }
+  };
+
+  const handleEventClick = (clickInfo: any) => {
+    const task = tasks.find((t) => String(t.task_id) === clickInfo.event.id);
+    if (task) {
+      setSelectedTask(task);
+      setDialogOpen(true);
+    }
+  };
+
+  const handleEventDrop = (dropInfo: any) => {
+    const taskId = parseInt(dropInfo.event.id, 10);
+    const newDate = dropInfo.event.start;
+    if (taskId && newDate) {
+      updateTask(taskId, { due_date: newDate.toISOString() });
+    }
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleDialogSave = async (updates: Partial<Task>) => {
+    if (selectedTask && selectedTask.task_id) {
+      await updateTask(selectedTask.task_id, updates);
+    }
+    handleDialogClose();
+  };
+
+  const events = tasks
+    .filter((t) => t.due_date)
+    .map((t) => ({
+      id: String(t.task_id),
+      title: t.task_name || "Untitled",
+      start: t.due_date || undefined,
+      allDay: true,
+    }));
 
   return (
     <Box p={3} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -97,11 +235,20 @@ export default function TabCalendar() {
             editable={true}
             droppable={true}
             slotMinTime="06:00:00"
-            events={[]}
+            events={events}
             datesSet={updateTitle}
+            eventClick={handleEventClick}
+            eventDrop={handleEventDrop}
           />
         </Box>
       </Card>
+
+      <TaskDialog
+        open={dialogOpen}
+        task={selectedTask}
+        onClose={handleDialogClose}
+        onSave={handleDialogSave}
+      />
     </Box>
   );
 }
