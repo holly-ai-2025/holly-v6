@@ -1,11 +1,32 @@
-# Backend Notes
+# Backend (FastAPI)
 
-## Task Updates
-- Use `PATCH /db/tasks/{id}` to update tasks.
-- Frontend must **not** send `created_at` or `updated_at`.
-- Dates should be sent as ISO8601 strings (e.g. `2025-09-08`). Backend automatically parses them.
-- `updated_at` is always set server-side.
+This backend is built with FastAPI and SQLite.
 
-## Common Pitfalls
-- Sending raw strings for `due_date`, `created_at`, or `updated_at` without schema parsing will cause SQLite errors. This is now fixed by using a Pydantic schema.
-- `created_at` should never be overwritten once set.
+## Endpoints
+
+- `GET /db/tasks` → Fetch all tasks.
+- `POST /db/tasks` → Create a new task.
+- `PATCH /db/tasks/{id}` → Update a task. Supported fields: `status`, `priority`, `due_date`, `project_id`, `phase_id`, `notes`, `description`, `token_value`, `urgency_score`.
+
+## Suggested Tasks Logic
+
+Tasks with **no `due_date`** are considered *suggested* by the frontend. They are categorized using `urgency_score`:
+- Higher urgency scores (≥ 5) → grouped under **Today → Suggested**.
+- Lower urgency scores → grouped under **Tomorrow → Suggested**.
+
+The backend simply returns raw tasks; categorization is done client-side.
+
+## Logs
+
+Backend logs are stored in:
+- `logs/backend-live.log` (from `scripts/start-dev.sh`)
+- `logs/backend-hypercorn.log` (manual runs with Hypercorn)
+
+## Development
+
+Start backend with:
+
+```bash
+cd apps/backend
+uvicorn main:app --reload --port 8000
+```
