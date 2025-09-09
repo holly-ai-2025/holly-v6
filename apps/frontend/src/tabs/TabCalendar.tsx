@@ -41,8 +41,8 @@ export default function TabCalendar() {
   };
 
   return (
-    <Box p={3}>
-      <Card sx={{ borderRadius: 4, boxShadow: 2, p: 2 }}>
+    <Box p={3} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <Card sx={{ borderRadius: 4, boxShadow: 2, p: 2, flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Custom Toolbar */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
           <Typography variant="h6" fontWeight="bold">
@@ -76,19 +76,21 @@ export default function TabCalendar() {
         </Stack>
 
         {/* FullCalendar */}
-        <FullCalendar
-          ref={calendarRef}
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          height="auto"
-          contentHeight="auto"
-          nowIndicator={true}
-          editable={true}
-          droppable={true}
-          slotMinTime="06:00:00"
-          events={[]}
-          datesSet={updateTitle}
-        />
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            height="100%"
+            contentHeight="100%"
+            nowIndicator={true}
+            editable={true}
+            droppable={true}
+            slotMinTime="06:00:00"
+            events={[]}
+            datesSet={updateTitle}
+          />
+        </Box>
       </Card>
     </Box>
   );
