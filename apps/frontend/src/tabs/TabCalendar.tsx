@@ -2,7 +2,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { Box, Button, ButtonGroup, Typography, Stack, Card } from "@mui/material";
+import { Box, Button, ButtonGroup, Typography, Stack, Card, Tooltip } from "@mui/material";
 import { useRef, useState, useEffect } from "react";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
@@ -60,6 +60,7 @@ export default function TabCalendar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
+  const [defaultDate, setDefaultDate] = useState<string | null>(null);
 
   const updateTitle = () => {
     const api = calendarRef.current?.getApi();
@@ -180,15 +181,23 @@ export default function TabCalendar() {
     }
   };
 
+  const handleDateSelect = (selectInfo: any) => {
+    setIsNewTask(true);
+    setDefaultDate(selectInfo.startStr);
+    setDialogOpen(true);
+  };
+
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
     setIsNewTask(false);
+    setDefaultDate(null);
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
     if (isNewTask) {
-      await createTask(updates);
+      const taskWithDate = { ...updates, due_date: updates.due_date || defaultDate };
+      await createTask(taskWithDate);
     } else if (selectedTask && selectedTask.task_id) {
       await updateTask(selectedTask.task_id, updates);
     }
@@ -213,11 +222,15 @@ export default function TabCalendar() {
     return ["event-todo"];
   };
 
-  const eventDidMount = (info: any) => {
-    const { title } = info.event;
-    const description = info.event.extendedProps.description || "No description";
-    const dueDate = info.event.start ? dayjs(info.event.start).format("MMM D, YYYY") : "";
-    info.el.setAttribute("title", `${title}\n${description}\nDue: ${dueDate}`);
+  const eventContent = (arg: any) => {
+    const { title, extendedProps } = arg.event;
+    const description = extendedProps.description || "No description";
+    const dueDate = arg.event.start ? dayjs(arg.event.start).format("MMM D, YYYY") : "";
+    return (
+      <Tooltip title={<><b>{title}</b><br />{description}<br />Due: {dueDate}</>} arrow>
+        <span>{title}</span>
+      </Tooltip>
+    );
   };
 
   return (
@@ -279,20 +292,23 @@ export default function TabCalendar() {
             nowIndicator={true}
             editable={true}
             droppable={true}
+            selectable={true}
+            selectMirror={true}
+            select={handleDateSelect}
             slotMinTime="06:00:00"
             events={events}
             datesSet={updateTitle}
             eventClick={handleEventClick}
             eventDrop={handleEventDrop}
             eventClassNames={eventClassNames}
-            eventDidMount={eventDidMount}
+            eventContent={eventContent}
           />
         </Box>
       </Card>
 
       <TaskDialog
         open={dialogOpen}
-        task={isNewTask ? null : selectedTask}
+        task={isNewTask ? { due_date: defaultDate || undefined } as Task : selectedTask}
         onClose={handleDialogClose}
         onSave={handleDialogSave}
       />
