@@ -41,7 +41,7 @@ export default function TabCalendar() {
   };
 
   return (
-    <Box p={3} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box p={3} pb={6} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <Card sx={{ borderRadius: 4, boxShadow: 2, p: 2, flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Custom Toolbar */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
