@@ -5,6 +5,7 @@
   font-family: var(--mui-font-family, 'Roboto', sans-serif);
   font-size: 14px;
   color: #333;
+  height: 100% !important; /* stretch calendar fully */
 }
 
 /* Hide default FullCalendar header */
@@ -17,8 +18,15 @@
   border: 1px solid #f0f0f0 !important;
 }
 
+/* Today highlight */
 .fc-day-today {
   background-color: #f5faff !important;
+}
+
+/* Remove blue background in Day view */
+.fc-timegrid.fc-day-today,
+.fc-timegrid-day.fc-day-today {
+  background-color: transparent !important;
 }
 
 /* Events (future task styling) */
@@ -35,4 +43,9 @@
 /* Week/Day view slot borders */
 .fc-timegrid-slot {
   border-color: #f0f0f0 !important;
+}
+
+/* Expand month cells */
+.fc-daygrid-body {
+  min-height: 100% !important;
 }
