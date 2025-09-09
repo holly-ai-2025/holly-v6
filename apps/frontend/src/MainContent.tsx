@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Box, Tabs, Tab, TextField } from "@mui/material";
 import TabDashboard from "./tabs/TabDashboard";
-import TabTasks from "./tabs/TabTasks";
-import TabProjects from "./tabs/TabProjects";
+import TabWorkspace from "./tabs/TabWorkspace";
 import TabHabits from "./tabs/TabHabits";
-import TabCalendar from "./tabs/TabCalendar";
 import TabRewards from "./tabs/TabRewards";
 
 export default function MainContent() {
@@ -21,11 +19,9 @@ export default function MainContent() {
           TabIndicatorProps={{ style: { display: "none" } }}
         >
           <Tab label="Dashboard" sx={{ color: activeTab === 0 ? "primary.main" : "#333", fontWeight: activeTab === 0 ? 700 : 500 }} />
-          <Tab label="Tasks" sx={{ color: activeTab === 1 ? "primary.main" : "#333", fontWeight: activeTab === 1 ? 700 : 500 }} />
-          <Tab label="Projects" sx={{ color: activeTab === 2 ? "primary.main" : "#333", fontWeight: activeTab === 2 ? 700 : 500 }} />
-          <Tab label="Habits" sx={{ color: activeTab === 3 ? "primary.main" : "#333", fontWeight: activeTab === 3 ? 700 : 500 }} />
-          <Tab label="Calendar" sx={{ color: activeTab === 4 ? "primary.main" : "#333", fontWeight: activeTab === 4 ? 700 : 500 }} />
-          <Tab label="Rewards" sx={{ color: activeTab === 5 ? "primary.main" : "#333", fontWeight: activeTab === 5 ? 700 : 500 }} />
+          <Tab label="Workspace" sx={{ color: activeTab === 1 ? "primary.main" : "#333", fontWeight: activeTab === 1 ? 700 : 500 }} />
+          <Tab label="Habits" sx={{ color: activeTab === 2 ? "primary.main" : "#333", fontWeight: activeTab === 2 ? 700 : 500 }} />
+          <Tab label="Rewards" sx={{ color: activeTab === 3 ? "primary.main" : "#333", fontWeight: activeTab === 3 ? 700 : 500 }} />
         </Tabs>
         <TextField
           size="small"
@@ -41,11 +37,9 @@ export default function MainContent() {
       {/* Tab Content */}
       <Box sx={{ flex: 1, p: 2 }}>
         {activeTab === 0 && <TabDashboard />}
-        {activeTab === 1 && <TabTasks />}
-        {activeTab === 2 && <TabProjects />}
-        {activeTab === 3 && <TabHabits />}
-        {activeTab === 4 && <TabCalendar />}
-        {activeTab === 5 && <TabRewards />}
+        {activeTab === 1 && <TabWorkspace />}
+        {activeTab === 2 && <TabHabits />}
+        {activeTab === 3 && <TabRewards />}
       </Box>
     </Box>
   );

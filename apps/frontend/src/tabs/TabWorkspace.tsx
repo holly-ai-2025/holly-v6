@@ -1,35 +1,37 @@
-import { useState } from "react";
-import { Box, Typography, MenuItem, Select } from "@mui/material";
-import {
-  FlowboardTab,
-  TaskListTab,
-  BoardsTab,
-  CalendarTab,
-} from "./index";
+import React, { useState } from "react";
+import { Box, Tabs, Tab } from "@mui/material";
+import TabFlowboard from "./workspace/TabFlowboard";
+import TabTasks from "./TabTasks";
+import TabProjects from "./TabProjects";
+import TabCalendar from "./TabCalendar";
 
-const VIEWS = {
-  "Flowboard": <FlowboardTab />,
-  "Task List": <TaskListTab />,
-  "Boards": <BoardsTab />,
-  "Calendar": <CalendarTab />,
-};
-
-const TabWorkspace = () => {
-  const [view, setView] = useState<keyof typeof VIEWS>("Flowboard");
+export default function TabWorkspace() {
+  const [activeSubTab, setActiveSubTab] = useState(0);
 
   return (
-    <Box p={2}>
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Select value={view} onChange={(e) => setView(e.target.value as keyof typeof VIEWS)}>
-          {Object.keys(VIEWS).map((key) => (
-            <MenuItem key={key} value={key}>{key}</MenuItem>
-          ))}
-        </Select>
-        <Typography variant="h6">Workspace</Typography>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      {/* Submenu Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}>
+        <Tabs
+          value={activeSubTab}
+          onChange={(_, val) => setActiveSubTab(val)}
+          textColor="primary"
+          indicatorColor="primary"
+        >
+          <Tab label="Flowboard" />
+          <Tab label="Tasks" />
+          <Tab label="Boards" />
+          <Tab label="Calendar" />
+        </Tabs>
       </Box>
-      <Box mt={2}>{VIEWS[view]}</Box>
+
+      {/* Submenu Content */}
+      <Box sx={{ flex: 1, p: 2 }}>
+        {activeSubTab === 0 && <TabFlowboard />}
+        {activeSubTab === 1 && <TabTasks />}
+        {activeSubTab === 2 && <TabProjects />}
+        {activeSubTab === 3 && <TabCalendar />}
+      </Box>
     </Box>
   );
-};
-
-export default TabWorkspace;
+}
