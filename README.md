@@ -1,21 +1,34 @@
 # Holly v6
 
-This is the starting repo scaffold for Holly AI v6.
+This is the main monorepo for Holly v6, containing both frontend and backend applications.
 
-## Development Setup
+## Getting Started
 
-### Pre-commit hooks
-This repo uses [pre-commit](https://pre-commit.com/) to enforce code hygiene and prevent committing ignored files.
-
-To set up locally:
+Run the development stack (frontend, backend, and log server) with:
 
 ```bash
-pip install pre-commit
-pre-commit install
+scripts/start-dev.sh
 ```
 
-Now hooks will run automatically on `git commit`. To manually run on all files:
+This will:
+- Start the backend (FastAPI + SQLite)
+- Start the frontend (React + Vite + MUI)
+- Start the log server on port `9000` to capture browser console output into `logs/frontend-console.log`
 
-```bash
-pre-commit run --all-files
-```
+## Workspace Menu
+
+The **Workspace** menu consolidates `Tasks`, `Projects`, and `Calendar` into a single tab, with sub-tabs:
+- **Flowboard** (placeholder for future work)
+- **Tasks** (TabTasks.tsx)
+- **Boards** (previously Projects)
+- **Calendar**
+
+## Logs
+
+Logs are always written to the `logs/` directory:
+- Backend logs: `logs/backend-live.log` (startup script) and `logs/backend-hypercorn.log` (manual Hypercorn runs).
+- Frontend logs: `logs/frontend-console.log` (browser console forwarded via log server).
+
+## Pre-commit
+
+Pre-commit hooks are configured and enforced across the repo.
