@@ -18,6 +18,7 @@ class Project(Base):
     project_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String, nullable=False)
     notes = Column(Text, nullable=True)
+    goal = Column(Text, nullable=True)  # <-- Added back goal field
     board_id = Column(Integer, ForeignKey("boards.board_id"))
     created_at = Column(DateTime, default=datetime.utcnow)
     board = relationship("Board", back_populates="projects")

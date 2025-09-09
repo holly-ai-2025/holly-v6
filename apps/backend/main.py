@@ -187,3 +187,20 @@ def create_link(link: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_link)
     return new_link
+
+# --- FRONTEND LOG CAPTURE ---
+@app.post("/log")
+async def capture_log(request: Request):
+    payload = await request.json()
+    level = payload.get("level", "info")
+    message = payload.get("message", "")
+    data = payload.get("data")
+
+    if level == "error":
+        logger.error(f"[Frontend] {message} | {data}")
+    elif level == "warn":
+        logger.warning(f"[Frontend] {message} | {data}")
+    else:
+        logger.info(f"[Frontend] {message} | {data}")
+
+    return {"status": "ok"}
