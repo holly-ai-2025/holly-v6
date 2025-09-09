@@ -92,7 +92,7 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{task && task.task_id ? "Edit Task" : "New Task"}</DialogTitle>
-      <DialogContent dividers sx={{ maxHeight: "80vh", overflowY: "auto" }}>
+      <DialogContent dividers sx={{ maxHeight: "80dvh", overflowY: "auto" }}>
         <Box display="flex" flexDirection="column" gap={3}>
           {/* --- Core Details --- */}
           <Box>

@@ -9,7 +9,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 function App() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box display="flex" flexDirection="row" height="100vh">
+      <Box display="flex" flexDirection="row" height="100dvh">
         <LeftPanel />
         <MainContent />
         <RightPanel />
