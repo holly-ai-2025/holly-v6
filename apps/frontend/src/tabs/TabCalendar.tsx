@@ -4,6 +4,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Button, ButtonGroup, Typography, Stack } from "@mui/material";
 import { useRef, useState } from "react";
+import "../styles/CalendarStyles.css";
 
 export default function TabCalendar() {
   const calendarRef = useRef<FullCalendar | null>(null);

@@ -1,0 +1,38 @@
+/* CalendarStyles.css */
+
+/* General font + layout */
+.fc {
+  font-family: var(--mui-font-family, 'Roboto', sans-serif);
+  font-size: 14px;
+  color: #333;
+}
+
+/* Hide default FullCalendar header */
+.fc-header-toolbar {
+  display: none !important;
+}
+
+/* Day cells */
+.fc-daygrid-day, .fc-timegrid-slot {
+  border: 1px solid #f0f0f0 !important;
+}
+
+.fc-day-today {
+  background-color: #f5faff !important;
+}
+
+/* Events (future task styling) */
+.fc-event {
+  border-radius: 12px !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  font-size: 13px;
+  background-color: #e3f2fd !important; /* light blue for now */
+  color: #1976d2 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Week/Day view slot borders */
+.fc-timegrid-slot {
+  border-color: #f0f0f0 !important;
+}
