@@ -5,7 +5,7 @@
   font-family: var(--mui-font-family, 'Roboto', sans-serif);
   font-size: 14px;
   color: #333;
-  height: 100% !important; /* stretch calendar fully */
+  height: 100% !important;
 }
 
 /* Hide default FullCalendar header */
@@ -18,14 +18,13 @@
   border: 1px solid #f0f0f0 !important;
 }
 
-/* Today highlight */
+/* Today highlight (week/month only) */
 .fc-day-today {
   background-color: #f5faff !important;
 }
 
-/* Remove blue background in Day view */
-.fc-timegrid.fc-day-today,
-.fc-timegrid-day.fc-day-today {
+/* Remove blue background in Day view specifically */
+.fc-timeGridDay-view .fc-day-today {
   background-color: transparent !important;
 }
 
@@ -35,7 +34,7 @@
   border: none !important;
   padding: 4px 8px !important;
   font-size: 13px;
-  background-color: #e3f2fd !important; /* light blue for now */
+  background-color: #e3f2fd !important;
   color: #1976d2 !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -45,7 +44,11 @@
   border-color: #f0f0f0 !important;
 }
 
-/* Expand month cells */
-.fc-daygrid-body {
+/* Expand month view fully */
+.fc-view-harness,
+.fc-scroller,
+.fc-daygrid-body,
+.fc-daygrid-body table {
+  height: 100% !important;
   min-height: 100% !important;
 }
