@@ -12,6 +12,10 @@ export default function TasksTab() {
 
   const handleUpdate = async (id: string, updates: Partial<any>) => {
     try {
+      // Always pass ISO here; API layer will normalize
+      if (updates.due_date instanceof Date) {
+        updates.due_date = updates.due_date.toISOString().slice(0, 10);
+      }
       const updated = await updateTask(id, updates);
       setTasks(tasks.map((t) => (t.id === id ? updated : t)));
     } catch (err) {
