@@ -209,15 +209,14 @@ export default function TabCalendar() {
 
   const handleDateSelect = (selectInfo: any) => {
     setIsNewTask(true);
-    setDefaultDate(selectInfo.startStr);
+    setDefaultDate(null); // no default date
     setSelectedTask({
-      due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
-      start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
-      end_date: selectInfo.end
-        ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
-        : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
+      due_date: null,
+      start_date: null,
+      end_date: null,
     } as Task);
     setDialogOpen(true);
+    selectInfo.view.calendar.unselect(); // prevent duplicate event
   };
 
   const handleDialogClose = () => {
