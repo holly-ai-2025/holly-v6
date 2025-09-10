@@ -9,6 +9,7 @@ import {
   Grid,
 } from "@mui/material";
 import dayjs from "dayjs";
+import { normalizeTaskForApi } from "../utils/taskUtils";
 
 function toInputDate(ddmmyyyy: string): string {
   if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
@@ -54,7 +55,8 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
     };
 
     if (task?.task_id) payload.task_id = task.task_id;
-    onSave(payload);
+
+    onSave(normalizeTaskForApi(payload));
   };
 
   return (

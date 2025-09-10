@@ -5,16 +5,11 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useTaskStore } from "../store/useTaskStore";
 import TaskDialog from "./TaskDialog";
+import { normalizeTaskForApi } from "../utils/taskUtils";
 
 function toISO(ddmmyyyy: string): string {
   if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
   return `${ddmmyyyy.slice(4, 8)}-${ddmmyyyy.slice(2, 4)}-${ddmmyyyy.slice(0, 2)}`;
-}
-
-function toDDMMYYYY(iso: string): string {
-  if (!iso || iso.length < 10) return "";
-  const [year, month, day] = iso.split("-");
-  return `${day}${month}${year}`;
 }
 
 const CalendarView: React.FC = () => {
@@ -37,17 +32,15 @@ const CalendarView: React.FC = () => {
 
   const handleEventDrop = (info: any) => {
     const { id, start, end } = info.event;
+    const updated = normalizeTaskForApi({
+      id,
+      due_date: start.toISOString().slice(0, 10),
+      start_date: start.toISOString().slice(0, 10),
+      end_date: end ? end.toISOString().slice(0, 10) : start.toISOString().slice(0, 10),
+    });
+
     setTasks(
-      tasks.map((t) =>
-        String(t.id) === id
-          ? {
-              ...t,
-              due_date: toDDMMYYYY(start.toISOString().slice(0, 10)),
-              start_date: start.toISOString().slice(0, 10),
-              end_date: end ? end.toISOString().slice(0, 10) : start.toISOString().slice(0, 10),
-            }
-          : t
-      )
+      tasks.map((t) => (String(t.id) === id ? { ...t, ...updated } : t))
     );
   };
 
@@ -70,12 +63,13 @@ const CalendarView: React.FC = () => {
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onSave={(task) => {
+          const normalized = normalizeTaskForApi(task);
           setTasks([
             ...tasks,
             {
-              ...task,
+              ...normalized,
               id: Date.now().toString(),
-              due_date: toDDMMYYYY(selectedDate || new Date().toISOString().slice(0, 10)),
+              due_date: normalized.due_date || selectedDate?.replace(/-/g, "") || "",
             },
           ]);
           setDialogOpen(false);
