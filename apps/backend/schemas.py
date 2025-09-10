@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # --- ENUMS ---
 class StatusEnum(str, Enum):
@@ -31,9 +31,15 @@ class TaskBase(BaseModel):
     token_value: Optional[int] = 0
     urgency_score: Optional[int] = 0
     effort_level: Optional[str] = None
-    due_date: Optional[str] = None  # DDMMYYYY format
+    due_date: Optional[str] = None  # Exposed as DDMMYYYY
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+
+    @field_validator("due_date", mode="before")
+    def format_due_date(cls, v):
+        if isinstance(v, date):
+            return v.strftime("%d%m%Y")  # Convert DB ISO -> DDMMYYYY
+        return v
 
 class TaskCreate(TaskBase):
     task_name: str

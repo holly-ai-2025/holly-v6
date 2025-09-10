@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 import logging
 
 from apps.backend import models, schemas
@@ -36,7 +37,10 @@ def get_db():
 # --- TASK ROUTES ---
 @app.post("/db/tasks", response_model=schemas.Task)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    db_task = models.Task(**task.dict())
+    db_task = models.Task(**task.dict(exclude_unset=True))
+    # Convert due_date back to ISO before storing
+    if task.due_date:
+        db_task.due_date = datetime.strptime(task.due_date, "%d%m%Y").date()
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
@@ -59,6 +63,8 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     if db_task is None:
         raise HTTPException(status_code=404, detail="Task not found")
     task_data = task.dict(exclude_unset=True)
+    if "due_date" in task_data and task_data["due_date"]:
+        task_data["due_date"] = datetime.strptime(task_data["due_date"], "%d%m%Y").date()
     for key, value in task_data.items():
         setattr(db_task, key, value)
     db.commit()
