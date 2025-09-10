@@ -1,7 +1,7 @@
 export function toDDMMYYYY(iso: string): string {
   if (!iso || iso.length < 10) return "";
   const [year, month, day] = iso.split("-");
-  return `${day}${month}${year}`;
+  return `${day}${month}${year}`; // YYYY-MM-DD → DDMMYYYY
 }
 
 export function normalizeTaskForApi(task: any) {
