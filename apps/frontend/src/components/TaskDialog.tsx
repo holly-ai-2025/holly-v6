@@ -10,6 +10,17 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 
+function toInputDate(ddmmyyyy: string): string {
+  if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
+  return `${ddmmyyyy.slice(4, 8)}-${ddmmyyyy.slice(2, 4)}-${ddmmyyyy.slice(0, 2)}`;
+}
+
+function toDDMMYYYY(iso: string): string {
+  if (!iso || iso.length !== 10) return "";
+  const [year, month, day] = iso.split("-");
+  return `${day}${month}${year}`;
+}
+
 interface TaskDialogProps {
   open: boolean;
   onClose: () => void;
@@ -26,7 +37,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
   useEffect(() => {
     if (task) {
       setTaskName(task.task_name || "");
-      setDueDate(task.due_date || null);
+      setDueDate(task.due_date ? toInputDate(task.due_date) : null);
       setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm:ss") : null);
       setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm:ss") : null);
     }
@@ -37,7 +48,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
 
     const payload: any = {
       task_name: taskName,
-      due_date: dueDate || null,
+      due_date: dueDate ? toDDMMYYYY(dueDate) : null,
       start_date: startTime && dueDate ? dayjs(`${dueDate}T${startTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
       end_date: endTime && dueDate ? dayjs(`${dueDate}T${endTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
     };
