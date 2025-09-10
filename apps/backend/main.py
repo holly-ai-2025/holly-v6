@@ -37,11 +37,9 @@ def parse_due_date(value: str):
     if not value:
         return None
     try:
-        # Legacy DDMMYYYY
         return datetime.strptime(value, "%d%m%Y").date()
     except ValueError:
         try:
-            # ISO YYYY-MM-DD
             return datetime.strptime(value[:10], "%Y-%m-%d").date()
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid date format: {value}")
@@ -51,6 +49,17 @@ def parse_due_date(value: str):
 def read_tasks(db: Session = Depends(get_db)):
     return db.query(models.Task).all()
 
+@app.post("/db/tasks", response_model=schemas.Task)
+def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+    task_data = task.dict()
+    if task_data.get("due_date"):
+        task_data["due_date"] = parse_due_date(task_data["due_date"])
+    db_task = models.Task(**task_data)
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
+
 @app.patch("/db/tasks/{task_id}", response_model=schemas.Task)
 def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Depends(get_db)):
     db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
@@ -58,7 +67,6 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
         raise HTTPException(status_code=404, detail="Task not found")
 
     task_data = task_update.dict(exclude_unset=True)
-
     if "due_date" in task_data and task_data["due_date"]:
         task_data["due_date"] = parse_due_date(task_data["due_date"])
 

@@ -7,6 +7,7 @@ import {
   TextField,
   Button,
   Grid,
+  MenuItem,
 } from "@mui/material";
 import dayjs from "dayjs";
 import { createTask, updateTask } from "../api/tasks";
@@ -17,8 +18,8 @@ function toInputDate(ddmmyyyy: string): string {
 }
 
 function toDDMMYYYY(iso: string): string {
-  if (!iso || iso.length !== 10) return "";
-  const [year, month, day] = iso.split("-");
+  if (!iso || iso.length < 10) return "";
+  const [year, month, day] = iso.slice(0, 10).split("-");
   return `${day}${month}${year}`;
 }
 
@@ -31,16 +32,22 @@ interface TaskDialogProps {
 
 export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogProps) {
   const [taskName, setTaskName] = useState("");
+  const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
+  const [priority, setPriority] = useState("Medium");
+  const [status, setStatus] = useState("Todo");
 
   useEffect(() => {
     if (task) {
       setTaskName(task.task_name || "");
+      setDescription(task.description || "");
       setDueDate(task.due_date ? toInputDate(task.due_date) : null);
-      setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm:ss") : null);
-      setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm:ss") : null);
+      setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm") : null);
+      setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm") : null);
+      setPriority(task.priority || "Medium");
+      setStatus(task.status || "Todo");
     }
   }, [task]);
 
@@ -49,9 +56,12 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
 
     const payload: any = {
       task_name: taskName,
+      description,
       due_date: dueDate ? toDDMMYYYY(dueDate) : null,
       start_date: startTime && dueDate ? dayjs(`${dueDate}T${startTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
       end_date: endTime && dueDate ? dayjs(`${dueDate}T${endTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
+      priority,
+      status,
     };
 
     try {
@@ -67,7 +77,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
@@ -82,6 +92,16 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
           </Grid>
           <Grid item xs={12}>
             <TextField
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              fullWidth
+              multiline
+              minRows={3}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
               label="Due Date"
               type="date"
               value={dueDate || ""}
@@ -90,7 +110,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={6} sm={3}>
             <TextField
               label="Start Time"
               type="time"
@@ -101,7 +121,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
               inputProps={{ step: 300 }}
             />
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={6} sm={3}>
             <TextField
               label="End Time"
               type="time"
@@ -112,11 +132,39 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
               inputProps={{ step: 300 }}
             />
           </Grid>
+          <Grid item xs={6} sm={6}>
+            <TextField
+              select
+              label="Priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="Tiny">Tiny</MenuItem>
+              <MenuItem value="Small">Small</MenuItem>
+              <MenuItem value="Medium">Medium</MenuItem>
+              <MenuItem value="Big">Big</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={6} sm={6}>
+            <TextField
+              select
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="Todo">Todo</MenuItem>
+              <MenuItem value="In Progress">In Progress</MenuItem>
+              <MenuItem value="Done">Done</MenuItem>
+              <MenuItem value="Pinned">Pinned</MenuItem>
+            </TextField>
+          </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained">
+        <Button onClick={handleSave} variant="contained" color="primary">
           Save
         </Button>
       </DialogActions>
