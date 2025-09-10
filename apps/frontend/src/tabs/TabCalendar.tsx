@@ -64,7 +64,6 @@ export default function TabCalendar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  const [defaultDate, setDefaultDate] = useState<string | null>(null);
 
   const updateTitle = () => {
     const api = calendarRef.current?.getApi();
@@ -209,13 +208,15 @@ export default function TabCalendar() {
 
   const handleDateSelect = (selectInfo: any) => {
     setIsNewTask(true);
-    setDefaultDate(dayjs(selectInfo.start).format("YYYY-MM-DD"));
     setSelectedTask({
+      task_name: "",
+      description: "",
       due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
       start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
       end_date: selectInfo.end
         ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
         : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
+      status: "Todo",
     } as Task);
     setDialogOpen(true);
     selectInfo.view.calendar.unselect(); // prevent ghost event
@@ -225,20 +226,17 @@ export default function TabCalendar() {
     setDialogOpen(false);
     setSelectedTask(null);
     setIsNewTask(false);
-    setDefaultDate(null);
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
     if (isNewTask) {
-      const taskWithDate = { ...updates, due_date: updates.due_date || defaultDate };
-      await createTask(taskWithDate);
-    } else if (!isNewTask && selectedTask && selectedTask.task_id) {
+      await createTask(updates);
+    } else if (selectedTask?.task_id) {
       await updateTask(selectedTask.task_id, updates);
     }
     handleDialogClose();
   };
 
-  // Build FullCalendar events
   const events = tasks
     .filter((t) => t.due_date || t.start_date)
     .sort((a, b) => {
@@ -298,7 +296,6 @@ export default function TabCalendar() {
           height: "calc(90vh - 64px)",
         }}
       >
-        {/* Custom Toolbar */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
           <Typography variant="h6" fontWeight="bold">
             {title}
@@ -327,13 +324,16 @@ export default function TabCalendar() {
             <Button onClick={handleToday}>Today</Button>
             <Button onClick={handlePrev}>{"<"}</Button>
             <Button onClick={handleNext}>{">"}</Button>
-            <Button variant="contained" onClick={() => { setIsNewTask(true); setSelectedTask({ due_date: null, start_date: null, end_date: null } as Task); setDialogOpen(true); }}>
+            <Button variant="contained" onClick={() => {
+              setIsNewTask(true);
+              setSelectedTask({ task_name: "", description: "", due_date: null, start_date: null, end_date: null, status: "Todo" } as Task);
+              setDialogOpen(true);
+            }}>
               + New Task
             </Button>
           </Stack>
         </Stack>
 
-        {/* FullCalendar */}
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <FullCalendar
             ref={calendarRef}
@@ -362,7 +362,7 @@ export default function TabCalendar() {
 
       <TaskDialog
         open={dialogOpen}
-        task={isNewTask ? (selectedTask as Task) : selectedTask}
+        task={selectedTask || undefined}
         onClose={handleDialogClose}
         onSave={handleDialogSave}
       />
