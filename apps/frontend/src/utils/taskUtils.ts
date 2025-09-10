@@ -1,37 +1,26 @@
-export function toDDMMYYYY(iso: string): string {
-  if (!iso) return "";
-  const clean = iso.slice(0, 10); // strip time if present
-  const [year, month, day] = clean.split("-");
-  return `${day}${month}${year}`; // YYYY-MM-DD → DDMMYYYY
+import dayjs from "dayjs";
+
+export function parseToISO(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  // Handle DDMMYYYY (legacy)
+  if (/^\d{8}$/.test(dateStr)) {
+    const day = dateStr.slice(0, 2);
+    const month = dateStr.slice(2, 4);
+    const year = dateStr.slice(4, 8);
+    return `${year}-${month}-${day}`;
+  }
+  // Assume already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    return dateStr.slice(0, 10);
+  }
+  return null;
 }
 
-export function normalizeTaskForApi(task: any) {
-  const copy = { ...task };
+export function parseToDate(dateStr: string | null): Date | null {
+  const iso = parseToISO(dateStr);
+  return iso ? new Date(iso) : null;
+}
 
-  // Fix due_date
-  if (copy.due_date && copy.due_date.includes("-")) {
-    copy.due_date = toDDMMYYYY(copy.due_date);
-  }
-
-  // Normalize enums
-  if (copy.status) {
-    const statusMap: Record<string, string> = {
-      "todo": "Todo",
-      "in-progress": "In Progress",
-      "done": "Done",
-      "pinned": "Pinned",
-    };
-    copy.status = statusMap[copy.status.toLowerCase()] || copy.status;
-  }
-
-  if (copy.priority) {
-    const priorityMap: Record<string, string> = {
-      "low": "Tiny",
-      "medium": "Small",
-      "high": "Big",
-    };
-    copy.priority = priorityMap[copy.priority.toLowerCase()] || copy.priority;
-  }
-
-  return copy;
+export function todayISO(): string {
+  return dayjs().format("YYYY-MM-DD");
 }
