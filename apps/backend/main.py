@@ -9,10 +9,15 @@ from . import models, schemas, database
 app = FastAPI()
 
 # --- CORS ---
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ✅ Allow all during development
-    allow_credentials=False,  # ✅ must be False when allow_origins=["*"]
+    allow_origins=origins,  # ✅ explicit instead of "*"
+    allow_credentials=True,  # ✅ safe with explicit origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
