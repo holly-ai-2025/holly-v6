@@ -209,14 +209,16 @@ export default function TabCalendar() {
 
   const handleDateSelect = (selectInfo: any) => {
     setIsNewTask(true);
-    setDefaultDate(null); // no default date
+    setDefaultDate(dayjs(selectInfo.start).format("YYYY-MM-DD"));
     setSelectedTask({
-      due_date: null,
-      start_date: null,
-      end_date: null,
+      due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
+      start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
+      end_date: selectInfo.end
+        ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
+        : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
     } as Task);
     setDialogOpen(true);
-    selectInfo.view.calendar.unselect(); // prevent duplicate event
+    selectInfo.view.calendar.unselect(); // prevent ghost event
   };
 
   const handleDialogClose = () => {
@@ -325,7 +327,7 @@ export default function TabCalendar() {
             <Button onClick={handleToday}>Today</Button>
             <Button onClick={handlePrev}>{"<"}</Button>
             <Button onClick={handleNext}>{">"}</Button>
-            <Button variant="contained" onClick={() => { setIsNewTask(true); setDialogOpen(true); }}>
+            <Button variant="contained" onClick={() => { setIsNewTask(true); setSelectedTask({ due_date: null, start_date: null, end_date: null } as Task); setDialogOpen(true); }}>
               + New Task
             </Button>
           </Stack>
