@@ -6,237 +6,99 @@ import {
   DialogActions,
   TextField,
   Button,
-  MenuItem,
-  Box,
-  Typography,
   Grid,
-  Select,
-  FormControl,
-  InputLabel,
-  Divider,
 } from "@mui/material";
-import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import dayjs from "dayjs";
 
 interface TaskDialogProps {
   open: boolean;
-  task?: any | null;
   onClose: () => void;
-  onSave: (updates: Partial<any>) => void;
+  onSave: (task: any) => void;
+  task?: any;
 }
 
-// Valid backend enums
-const statuses = ["Todo", "In Progress", "Done", "Pinned"];
-const priorities = ["Tiny", "Small", "Medium", "Big"];
-
-export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
-  const [form, setForm] = useState<Partial<any>>({});
-  const [projects, setProjects] = useState<any[]>([]);
-  const [boards, setBoards] = useState<any[]>([]);
-  const [phases, setPhases] = useState<any[]>([]);
+export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogProps) {
+  const [taskName, setTaskName] = useState("");
+  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string | null>(null);
 
   useEffect(() => {
-    setForm(task || {});
+    if (task) {
+      setTaskName(task.task_name || "");
+      setDueDate(task.due_date || null);
+      setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm:ss") : null);
+      setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm:ss") : null);
+    }
   }, [task]);
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/projects`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setProjects(data))
-      .catch((err) => console.error("[TaskDialog] Failed to fetch projects", err));
-
-    fetch(`${import.meta.env.VITE_API_URL}/db/boards`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setBoards(data))
-      .catch((err) => console.error("[TaskDialog] Failed to fetch boards", err));
-  }, []);
-
-  useEffect(() => {
-    if (form.project_id) {
-      fetch(`${import.meta.env.VITE_API_URL}/db/projects/${form.project_id}/phases`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-      })
-        .then((res) => res.json())
-        .then((data) => setPhases(data))
-        .catch((err) => console.error("[TaskDialog] Failed to fetch phases", err));
-    } else {
-      setPhases([]);
-    }
-  }, [form.project_id]);
-
-  const handleChange = (field: string, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleSave = () => {
-    const cleanedForm = { ...form };
+    if (!taskName.trim()) return;
 
-    if (!statuses.includes(cleanedForm.status)) {
-      cleanedForm.status = "Todo";
-    }
-    if (!priorities.includes(cleanedForm.priority)) {
-      cleanedForm.priority = "Small";
-    }
+    const payload: any = {
+      task_name: taskName,
+      due_date: dueDate || null,
+      start_date: startTime && dueDate ? dayjs(`${dueDate}T${startTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
+      end_date: endTime && dueDate ? dayjs(`${dueDate}T${endTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
+    };
 
-    // Ensure correct datetime formatting
-    if (cleanedForm.start_date) {
-      cleanedForm.start_date = dayjs(cleanedForm.start_date).format("YYYY-MM-DDTHH:mm:ss");
-    }
-    if (cleanedForm.end_date) {
-      cleanedForm.end_date = dayjs(cleanedForm.end_date).format("YYYY-MM-DDTHH:mm:ss");
-    }
-    if (cleanedForm.due_date) {
-      cleanedForm.due_date = dayjs(cleanedForm.due_date).format("YYYY-MM-DD");
-    }
-
-    // Auto-fill end_date if only start_date set
-    if (cleanedForm.start_date && !cleanedForm.end_date) {
-      cleanedForm.end_date = dayjs(cleanedForm.start_date).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss");
-    }
-
-    onSave(cleanedForm);
+    if (task?.task_id) payload.task_id = task.task_id;
+    onSave(payload);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{task && task.task_id ? "Edit Task" : "New Task"}</DialogTitle>
-      <DialogContent dividers sx={{ maxHeight: "80dvh", overflowY: "auto" }}>
-        <Box display="flex" flexDirection="column" gap={3}>
-          {/* --- Core Details --- */}
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>Details</Typography>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
             <TextField
               label="Task Name"
-              value={form.task_name || ""}
-              onChange={(e) => handleChange("task_name", e.target.value)}
+              value={taskName}
+              onChange={(e) => setTaskName(e.target.value)}
               fullWidth
-              size="medium"
-              sx={{ mb: 2 }}
-              disabled={task && task.task_id}
+              required
             />
+          </Grid>
+          <Grid item xs={12}>
             <TextField
-              label="Description"
-              value={form.description || ""}
-              onChange={(e) => handleChange("description", e.target.value)}
+              label="Due Date"
+              type="date"
+              value={dueDate || ""}
+              onChange={(e) => setDueDate(e.target.value)}
               fullWidth
-              multiline
-              rows={2}
-              size="small"
+              InputLabelProps={{ shrink: true }}
             />
-          </Box>
-
-          <Divider />
-
-          {/* --- Scheduling --- */}
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>Scheduling</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={4}>
-                <DatePicker
-                  label="Due Date"
-                  value={form.due_date ? dayjs(form.due_date) : null}
-                  onChange={(date: Dayjs | null) =>
-                    handleChange("due_date", date ? date.toDate() : null)
-                  }
-                  slotProps={{ textField: { size: "small", fullWidth: true } }}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <DateTimePicker
-                  label="Start Time"
-                  value={form.start_date ? dayjs(form.start_date) : null}
-                  onChange={(date: Dayjs | null) =>
-                    handleChange("start_date", date ? date.toDate() : null)
-                  }
-                  slotProps={{ textField: { size: "small", fullWidth: true } }}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <DateTimePicker
-                  label="End Time"
-                  value={form.end_date ? dayjs(form.end_date) : null}
-                  onChange={(date: Dayjs | null) =>
-                    handleChange("end_date", date ? date.toDate() : null)
-                  }
-                  slotProps={{ textField: { size: "small", fullWidth: true } }}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-
-          <Divider />
-
-          {/* --- Urgency --- */}
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>Urgency</Typography>
+          </Grid>
+          <Grid item xs={6}>
             <TextField
-              label="Urgency Score"
-              value={form.urgency_score || 0}
-              onChange={(e) => handleChange("urgency_score", Number(e.target.value))}
+              label="Start Time"
+              type="time"
+              value={startTime || ""}
+              onChange={(e) => setStartTime(e.target.value)}
               fullWidth
-              size="small"
-              type="number"
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 300 }}
             />
-          </Box>
-
-          <Divider />
-
-          {/* --- Notes --- */}
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>Notes</Typography>
-            <ReactQuill
-              theme="snow"
-              value={form.notes || ""}
-              onChange={(value) => handleChange("notes", value)}
-              style={{ height: "200px", borderRadius: "8px" }}
+          </Grid>
+          <Grid item xs={6}>
+            <TextField
+              label="End Time"
+              type="time"
+              value={endTime || ""}
+              onChange={(e) => setEndTime(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ step: 300 }}
             />
-          </Box>
-
-          <Divider />
-
-          {/* --- Assignment --- */}
-          <Box>
-            <Typography variant="subtitle1" gutterBottom>Assignment</Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Board</InputLabel>
-                  <Select
-                    value={form.board_id || ""}
-                    onChange={(e) => handleChange("board_id", e.target.value)}
-                  >
-                    {boards.map((b) => (
-                      <MenuItem key={b.board_id} value={b.board_id}>{b.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={6}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Project</InputLabel>
-                  <Select
-                    value={form.project_id || ""}
-                    onChange={(e) => handleChange("project_id", e.target.value)}
-                  >
-                    {projects.map((p) => (
-                      <MenuItem key={p.project_id} value={p.project_id}>{p.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Box>
-        </Box>
+          </Grid>
+        </Grid>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="secondary">Cancel</Button>
-        <Button onClick={handleSave} variant="contained" color="primary">Save</Button>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} variant="contained">
+          Save
+        </Button>
       </DialogActions>
     </Dialog>
   );

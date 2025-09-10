@@ -8,4 +8,5 @@ if __name__ == "__main__":
     config.bind = ["127.0.0.1:8000"]
     config.workers = 1
     config.loglevel = "debug"
+    config.use_reloader = False  # Disable autoreloader completely
     asyncio.run(serve(app, config))
