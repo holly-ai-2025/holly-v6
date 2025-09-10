@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import { createTask, updateTask } from "../api/tasks";
+import { parseToISO, todayISO } from "../utils/taskUtils";
 
 interface TaskDialogProps {
   open: boolean;
@@ -23,7 +24,7 @@ interface TaskDialogProps {
 export default function TaskDialog({ open, onClose, onSave, task, onDelete }: TaskDialogProps) {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState<string>(todayISO());
   const [startTime, setStartTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string | null>(null);
   const [priority, setPriority] = useState("Medium");
@@ -33,13 +34,21 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
     if (task) {
       setTaskName(task.task_name || "");
       setDescription(task.description || "");
-      setDueDate(task.due_date ? dayjs(task.due_date, ["DDMMYYYY", "YYYY-MM-DD"]).format("YYYY-MM-DD") : null);
+      setDueDate(parseToISO(task.due_date) || todayISO());
       setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm") : null);
       setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm") : null);
       setPriority(task.priority || "Medium");
       setStatus(task.status || "Todo");
+    } else {
+      setTaskName("");
+      setDescription("");
+      setDueDate(todayISO());
+      setStartTime(null);
+      setEndTime(null);
+      setPriority("Medium");
+      setStatus("Todo");
     }
-  }, [task]);
+  }, [task, open]);
 
   const handleSave = async () => {
     if (!taskName.trim()) return;

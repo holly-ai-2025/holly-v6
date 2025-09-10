@@ -1,21 +1,13 @@
 import React from "react";
 import { useTaskStore } from "../store/useTaskStore";
 import { updateTask } from "../api/tasks";
-import { toDDMMYYYY } from "../utils/taskUtils";
-
-function parseTaskDate(ddmmyyyy: string): Date | null {
-  if (!ddmmyyyy || ddmmyyyy.length !== 8) return null;
-  return new Date(`${ddmmyyyy.slice(4, 8)}-${ddmmyyyy.slice(2, 4)}-${ddmmyyyy.slice(0, 2)}`);
-}
+import { parseToDate } from "../utils/taskUtils";
 
 export default function TasksTab() {
   const { tasks, setTasks } = useTaskStore();
 
   const handleUpdate = async (id: string, updates: Partial<any>) => {
     try {
-      if (updates.due_date instanceof Date) {
-        updates.due_date = updates.due_date.toISOString().slice(0, 10);
-      }
       const updated = await updateTask(id, updates);
       setTasks(tasks.map((t) => (t.task_id === id ? updated : t)));
     } catch (err) {
@@ -25,15 +17,15 @@ export default function TasksTab() {
 
   const today = new Date();
   const overdue = tasks.filter((t) => {
-    const d = parseTaskDate(t.due_date);
+    const d = parseToDate(t.due_date);
     return d && d < today;
   });
   const todayTasks = tasks.filter((t) => {
-    const d = parseTaskDate(t.due_date);
+    const d = parseToDate(t.due_date);
     return d && d.toDateString() === today.toDateString();
   });
   const later = tasks.filter((t) => {
-    const d = parseTaskDate(t.due_date);
+    const d = parseToDate(t.due_date);
     return d && d > today;
   });
 
