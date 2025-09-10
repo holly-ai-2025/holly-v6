@@ -9,6 +9,7 @@ __pycache__
 .env
 
 # SQLite database (binary file should not be committed)
+holly.db
 infra/data/holly.db
 
 # Logs

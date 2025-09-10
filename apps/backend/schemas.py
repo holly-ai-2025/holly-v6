@@ -31,7 +31,7 @@ class TaskBase(BaseModel):
     token_value: Optional[int] = 0
     urgency_score: Optional[int] = 0
     effort_level: Optional[str] = None
-    due_date: Optional[date] = None
+    due_date: Optional[str] = None  # DDMMYYYY format
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -53,6 +53,10 @@ class Task(TaskBase):
 class Project(BaseModel):
     project_id: int
     name: str
+    notes: Optional[str]
+    goal: Optional[str]
+    board_id: Optional[int]
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -61,6 +65,19 @@ class Project(BaseModel):
 class Board(BaseModel):
     board_id: int
     name: str
+    type: Optional[str]
+    goal: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- PHASES ---
+class Phase(BaseModel):
+    phase_id: int
+    project_id: int
+    name: str
+    deadline: Optional[datetime]
 
     class Config:
         from_attributes = True
@@ -77,6 +94,7 @@ class Tag(BaseModel):
 class Reflection(BaseModel):
     reflection_id: int
     content: str
+    mood: Optional[str]
     created_at: datetime
 
     class Config:
@@ -85,8 +103,9 @@ class Reflection(BaseModel):
 # --- ATTACHMENTS ---
 class Attachment(BaseModel):
     attachment_id: int
-    file_name: str
-    url: str
+    task_id: int
+    file_path: str
+    uploaded_at: datetime
 
     class Config:
         from_attributes = True
@@ -96,6 +115,16 @@ class Link(BaseModel):
     link_id: int
     url: str
     description: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+# --- TASK ACTIVITY ---
+class TaskActivity(BaseModel):
+    activity_id: int
+    task_id: int
+    action: str
+    timestamp: datetime
 
     class Config:
         from_attributes = True

@@ -47,7 +47,7 @@ class Task(Base):
     task_id = Column(Integer, primary_key=True, index=True)
     task_name = Column(String, nullable=False)
     description = Column(Text)
-    due_date = Column(Date)  # store as YYYY-MM-DD, display as DDMMYYYY
+    due_date = Column(Date)  # store as YYYY-MM-DD in DB, expose as DDMMYYYY
     start_date = Column(DateTime)
     end_date = Column(DateTime)
     status = Column(String)
