@@ -47,7 +47,7 @@ class Task(TaskBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- PROJECTS ---
 class Project(BaseModel):
@@ -55,7 +55,7 @@ class Project(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- BOARDS ---
 class Board(BaseModel):
@@ -63,7 +63,7 @@ class Board(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- TAGS ---
 class Tag(BaseModel):
@@ -71,7 +71,7 @@ class Tag(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- REFLECTIONS ---
 class Reflection(BaseModel):
@@ -80,7 +80,7 @@ class Reflection(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- ATTACHMENTS ---
 class Attachment(BaseModel):
@@ -89,7 +89,7 @@ class Attachment(BaseModel):
     url: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- LINKS ---
 class Link(BaseModel):
@@ -98,4 +98,4 @@ class Link(BaseModel):
     description: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

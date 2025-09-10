@@ -6,12 +6,13 @@ from datetime import datetime
 import logging
 
 from apps.backend import models, schemas
-from apps.backend.database import SessionLocal
+from apps.backend.database import SessionLocal, engine
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Ensure DB is initialized
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()

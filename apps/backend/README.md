@@ -1,43 +1,49 @@
 # Backend (Holly AI v6)
 
 ## Overview
-The backend now supports **time-based task scheduling**, with full handling of `start_date` and `end_date`.
+The backend provides a **FastAPI service** with task, project, board, tag, reflection, attachment, and link management, fully integrated with a SQLite database.
 
 ---
 
-## 🔧 Database Changes
-- Added `start_date` (`DATETIME`) column to `tasks`.
-- Added `end_date` (`DATETIME`) column to `tasks`.
-- Changed `due_date` to **DATE only**.
+## 🔧 Database
+- `tasks` now support:
+  - `start_date` (`DATETIME`)
+  - `end_date` (`DATETIME`)
+  - `due_date` (`DATE` only)
 
 ---
 
 ## 📦 Schemas
-- Updated `TaskBase`, `TaskCreate`, `TaskUpdate`:
-  - `start_date: Optional[datetime]`
-  - `end_date: Optional[datetime]`
-  - `due_date: Optional[date]`
-- Validation formats:
+- All Pydantic models updated to Pydantic v2 style:
+  - Use `from_attributes = True` instead of `orm_mode = True`.
+- Includes:
+  - Task, Project, Board, Tag, Reflection, Attachment, Link.
+- Enums:
+  - `StatusEnum` (`Todo`, `In Progress`, `Done`, `Pinned`).
+  - `PriorityEnum` (`Tiny`, `Small`, `Medium`, `Big`).
+
+---
+
+## 🔌 Endpoints
+- `/db/tasks` → create, read, update, delete tasks.
+- `/db/projects` → read, update projects.
+- `/db/boards` → read boards.
+- `/db/tags` → create, read tags.
+- `/db/reflections` → create, read reflections.
+- `/db/attachments` → create attachments.
+- `/db/links` → create links.
+- `/log` → capture frontend logs.
+
+---
+
+## ⚠️ Notes
+- All routes depend on `get_db()` which uses `SessionLocal` from `apps.backend.database`.
+- `models.Base.metadata.create_all(bind=engine)` ensures DB is initialized.
+- Date/time serialization must follow:
   - `due_date` → `YYYY-MM-DD`
   - `start_date`, `end_date` → `YYYY-MM-DDTHH:mm:ss`
 
 ---
 
-## 🔌 Endpoints
-- `POST /db/tasks`
-  - Accepts `task_name`, `due_date`, `start_date`, `end_date`, plus other fields.
-- `PATCH /db/tasks/{id}`
-  - Accepts updates for `start_date` and `end_date`.
-- **Validation fixes**:
-  - Replaced `.toISOString()` with `dayjs().format("YYYY-MM-DDTHH:mm:ss")` to avoid 422 errors.
-
----
-
-## ⚠️ Problems & Fixes
-- **422 Unprocessable Entity**: Caused by ISO timestamps ending in `Z`. Fixed by enforcing format `YYYY-MM-DDTHH:mm:ss`.
-- **Missing end times**: Certain views failed without `end_date`. Fixed by assigning default `end_date = start_date + 1h` if not provided.
-
----
-
 ## 📝 Summary
-The backend now fully supports **time-based task scheduling**, with proper validation, formatting, and database fields aligned with frontend requirements.
+Backend now supports **time-based task scheduling** and full CRUD across related entities, with updated Pydantic v2 schemas and clean imports.
