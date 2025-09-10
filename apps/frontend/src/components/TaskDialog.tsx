@@ -63,6 +63,8 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
       status,
     };
 
+    console.log("[TaskDialog] Submitting payload", payload);
+
     try {
       let saved;
       if (task?.task_id) {
@@ -70,6 +72,7 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
       } else {
         saved = await createTask(payload);
       }
+      console.log("[TaskDialog] API response", saved);
       onSave(saved);
     } catch (err) {
       console.error("[TaskDialog] Failed to save task", err);
