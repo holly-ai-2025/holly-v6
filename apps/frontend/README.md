@@ -1,62 +1,56 @@
-# Frontend (React + Vite + MUI)
+# Frontend (Holly AI v6)
 
-The frontend app is built with React, Vite, and MUI (Material UI).
+## Overview
+The frontend now supports **time-based tasks** integrated into both the task list and calendar views.
 
-## Workspace
+---
 
-The header menu includes a **Workspace** section combining three areas:
-- **Flowboard** → placeholder tab (to be implemented).
-- **Tasks** → handled by `TabTasks.tsx`.
-- **Boards** → uses `TabProjects.tsx` logic.
-- **Calendar** → uses `TabCalendar.tsx`.
+## 🎨 TaskDialog.tsx
+- Added **Start Date, Start Time, and End Time** pickers.
+- Serializes dates/times correctly for backend:
+  - `due_date` → `YYYY-MM-DD`
+  - `start_date` / `end_date` → `YYYY-MM-DDTHH:mm:ss`
+- Ensures task name is required.
 
-## TabTasks
+---
 
-Tasks are grouped by due date:
-- **Overdue** (muted red background)
-- **Today** (includes *Suggested* tasks if `due_date` is null and urgency is high)
-- **Tomorrow** (includes *Suggested* tasks if `due_date` is null and urgency is low)
-- **This Week**
-- **Later**
-- **Completed** (collapsed by default, grey background/text)
+## 📋 TabTasks.tsx
+- Shows times inline with task title in grey font (e.g. `Doctor appointment 16:00 – 17:30`).
+- Payload builder strips null/empty fields.
+- Debug logs added for PATCH/POST payloads.
 
-Suggested tasks appear inside a **Paper container box** within the Today/Tomorrow groups. The container has darker grey to stand out visually.
+---
 
-### Styling Notes
-- Token value badges are slimmed down for readability.
-- Left padding on task cards adjusted so text does not touch card edge.
-- Project icons remain inside task cards (right-aligned).
-- Right-hand dropdown indicators for task status were removed.
+## 📅 TabCalendar.tsx
+- Full integration with FullCalendar:
+  - **Day/Week views**: timed tasks placed in correct slots.
+  - **Month view**: tasks ordered by time, untimed at top as all-day.
+  - **Drag-to-create**: passes selected times into TaskDialog.
+  - **Drag all-day → timed slot**: assigns proper `start_date`/`end_date`.
+  - **Drag/resize**: updates DB correctly.
+- Tooltip fix: `<span>` wrapper avoids MUI ref error.
+- Event coloring based on task status.
 
-### Editing Tasks
-- Clicking a task card opens the **TaskDialog** popup for editing.
-- Updates and new tasks are sent via **PATCH /db/tasks/{id}** or **POST /db/tasks**.
-- Only changed values are sent (backend now supports partial updates).
+---
 
-### Known Pitfalls
-- **Enums must match backend values**:
-  - Status: `Todo | In Progress | Done | Pinned`
-  - Priority: `Tiny | Small | Medium | Big`
-- Invalid values will throw warnings and break save requests.
-- Do not assume all fields are required — backend now accepts partial updates.
+## 🎨 CalendarStyles.css
+- Custom styles for FullCalendar events based on task status:
+  - `Todo`
+  - `In Progress`
+  - `Done`
+  - `Pinned`
 
-## Environment Variables
-- `VITE_API_URL` → Backend API base URL.
-- `VITE_OPS_TOKEN` → Bearer token for API authentication.
+---
 
-## Development
+## ⚠️ Problems & Fixes
+- `.toISOString()` rejected by backend → fixed with `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
+- Missing end times in Day/Week views → fixed with fallback `end_date = start_date + 1h`.
+- Drag-to-create not setting times → fixed by passing times into TaskDialog.
+- Dragging all-day tasks not updating → fixed by enforcing `start_date`/`end_date` in `eventDrop`.
+- Resize support added via `eventResizableFromStart` + `eventResize` handler.
+- Tooltip ref errors fixed with `<span>` wrapper.
 
-Run the full dev stack with:
+---
 
-```bash
-scripts/start-dev.sh
-```
-
-This launches frontend, backend, and log server (port 9000). Browser console logs stream into `logs/frontend-console.log`.
-
-For frontend-only:
-
-```bash
-cd apps/frontend
-pnpm dev
-```
+## 📝 Summary
+The frontend now provides **seamless drag, drop, and resize task scheduling** across tasks and calendar views, synchronized with backend.
