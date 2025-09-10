@@ -1,33 +1,23 @@
-import dayjs from "dayjs";
+import { parseDateSafe, formatForApi, formatDateTimeForApi } from "./dateUtils";
 
 export function parseToISO(dateStr: string | null): string | null {
-  if (!dateStr) return null;
-  if (/^\d{8}$/.test(dateStr)) {
-    const day = dateStr.slice(0, 2);
-    const month = dateStr.slice(2, 4);
-    const year = dateStr.slice(4, 8);
-    return `${year}-${month}-${day}`;
-  }
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-    return dateStr.slice(0, 10);
-  }
-  return null;
+  return dateStr ? formatForApi(parseDateSafe(dateStr)) : null;
 }
 
 export function parseToDate(dateStr: string | null): Date | null {
-  const iso = parseToISO(dateStr);
-  return iso ? new Date(iso) : null;
+  const parsed = parseDateSafe(dateStr);
+  return parsed.isValid() ? parsed.toDate() : null;
 }
 
 export function todayISO(): string {
-  return dayjs().format("YYYY-MM-DD");
+  return formatForApi(new Date())!;
 }
 
 export function normalizeTaskForApi(task: any): any {
   return {
     ...task,
-    due_date: parseToISO(task.due_date),
-    start_date: task.start_date ? dayjs(task.start_date).format("YYYY-MM-DDTHH:mm:ss") : null,
-    end_date: task.end_date ? dayjs(task.end_date).format("YYYY-MM-DDTHH:mm:ss") : null,
+    due_date: task.due_date ? formatForApi(task.due_date) : null,
+    start_date: task.start_date ? formatDateTimeForApi(task.start_date) : null,
+    end_date: task.end_date ? formatDateTimeForApi(task.end_date) : null,
   };
 }

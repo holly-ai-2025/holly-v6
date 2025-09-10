@@ -1,43 +1,43 @@
-# Frontend README – Holly v6
+# Holly v6 Frontend
 
-## Current State
-- Frontend rebuilt to sync with backend changes.
-- UI framework: MUI Core + Joy UI.
-- Startup: run `./scripts/dev.sh` (starts backend, frontend, logs).
+## Task & Calendar System
 
-## Tasks Integration
-- Tasks load from `/db/tasks`.
-- Create/update via TaskDialog → uses `createTask`, `updateTask`.
-- Delete supported via DELETE route.
+### Date Handling
+We use **Day.js** with strict parsing for all date/time operations. 
+Custom helpers live in `src/utils/dateUtils.ts`:
+- `parseDateSafe(dateStr)` → safely parses API or UI date strings, defaults to today if invalid.
+- `formatForApi(date)` → converts a date to ISO `YYYY-MM-DD`.
+- `formatDateTimeForApi(date)` → converts a datetime to `YYYY-MM-DDTHH:mm:ss`.
 
-## Date Handling
-- All dates handled as ISO (`YYYY-MM-DD`).
-- Utilities in `src/utils/taskUtils.ts`:
-  - `parseToISO` → normalize DDMMYYYY or ISO to ISO.
-  - `parseToDate` → get JS Date from string.
-  - `todayISO` → get today in ISO.
-  - `normalizeTaskForApi` → prepares task payload for backend.
+### Task Normalization
+Located in `src/utils/taskUtils.ts`:
+- `normalizeTaskForApi(task)` ensures all tasks are serialized consistently before API calls.
+- Dates are always sent as ISO (for `due_date`) or ISO datetime (for `start_date` / `end_date`).
+- The frontend **never** generates random years — invalid or missing dates are replaced with today.
 
-## Components
-- **TaskDialog**
-  - Fields: name, description, due_date, start/end time, priority, status.
-  - New tasks default due_date = today.
-  - Delete button shown for existing tasks.
-- **TasksTab**
-  - Groups tasks into Overdue, Today, Later.
-  - Uses `parseToDate` to align with ISO.
-  - Comparison is date-only (ignores time) to prevent mis-grouping.
-- **TabCalendar (ACTIVE)**
-  - Main calendar implementation.
-  - Located at `src/tabs/TabCalendar.tsx`.
-  - Handles task fetch, event mapping, drag/drop, and editing.
-  - Uses ISO dates consistently via `parseToISO`.
-  - Legacy files `CalendarView.tsx` and `CalendarTab.tsx` have been removed.
+### Known Fixes
+- Fixed bug where tasks were showing with years like `1008` or `2508` due to loose parsing.
+- Normalization layer enforces correct formats.
+- Calendar and Task views now share the same utils for consistency.
 
-## Development Notes
-- Always use ISO for new features.
-- If adding fields to Task:
-  1. Update API calls in `src/api/tasks.ts`.
-  2. Update TaskDialog to include inputs.
-  3. Ensure `normalizeTaskForApi` prepares new fields properly.
-- Use logs at `logs/frontend-console.log` to debug.
+### Debugging
+- To debug date issues: `console.log(task, normalizeTaskForApi(task))` before API call.
+- If tasks do not appear in **Calendar**, confirm `due_date` is valid ISO `YYYY-MM-DD`.
+
+### Adding New Task Fields
+When extending tasks (e.g., adding priority, tags, etc.):
+1. Update **backend**:
+   - `models.py` → Add DB field.
+   - `schemas.py` → Add field in `TaskBase` + validators if needed.
+   - `main.py` → Ensure field is included in POST/PATCH routes.
+2. Update **frontend**:
+   - `src/api/tasks.ts` → Ensure payload includes new field.
+   - `src/utils/taskUtils.ts` → Normalize new field if it’s a date or structured type.
+   - `TaskDialog.tsx` → Add input field.
+   - `TabTasks.tsx` / `TabCalendar.tsx` → Display field where relevant.
+
+### Logs
+Frontend logs are captured in `logs/frontend-console.log` via `scripts/log_server.js`. Always tail logs when testing changes:
+```bash
+tail -f logs/frontend-console.log
+```

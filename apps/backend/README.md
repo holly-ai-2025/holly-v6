@@ -1,49 +1,58 @@
-# Backend README – Holly v6
+# Holly v6 Backend
 
-## Current State
-- Backend rebuilt (apps/backend/) after previous code loss.
-- Database is SQLite (`holly.db`), ignored in Git.
-- Backend runs with FastAPI + SQLAlchemy.
-- Startup handled by `scripts/dev.sh` (runs backend, frontend, log server).
-- Logs:
-  - Backend: `logs/backend-live.log`
-  - Frontend: `logs/frontend-console.log`
-  - Log server: `logs/log-server.log`
+## Database & Task API
 
-## Routes
-### Tasks
-- `GET /db/tasks` → list all tasks.
-- `POST /db/tasks` → create a new task.
-- `PATCH /db/tasks/{task_id}` → update an existing task.
-- `DELETE /db/tasks/{task_id}` → delete a task.
+### Database Setup
+- SQLite DB: `holly.db`
+- ORM: SQLAlchemy models in `apps/backend/models.py`
+- Pydantic schemas in `apps/backend/schemas.py`
 
-## Date Handling
-- DB stores dates as ISO `YYYY-MM-DD`.
-- API exposes `due_date` tolerant to both ISO and DDMMYYYY (legacy).
-- **Frontend unified on ISO only**.
-- Conversion helpers live in `apps/frontend/src/utils/taskUtils.ts`.
+### Routes
+- `GET /db/tasks` → Fetch all tasks.
+- `POST /db/tasks` → Create a new task.
+- `PATCH /db/tasks/{id}` → Update a task.
+- `DELETE /db/tasks/{id}` → Delete a task.
 
-## Known Issues & Fixes
-- **Problem**: Tasks disappeared from repo (backend not in Git).
-  - **Fix**: Backend code restored into Git. `.gitignore` updated (only `holly.db` ignored).
-- **Problem**: Date mismatches between DB and frontend.
-  - **Fix**: Conversion layer + unified ISO handling.
-- **Problem**: Wrong primary key used (`id` instead of `task_id`).
-  - **Fix**: All backend queries updated to use `task_id`.
-- **Problem**: TaskDialog duplicate task creation.
-  - **Fix**: TaskDialog now only updates via API response.
-- **Problem**: Tasks not deletable.
-  - **Fix**: Added DELETE route and Delete button in TaskDialog.
+### Date Handling
+- DB stores dates as **ISO** `YYYY-MM-DD`.
+- API exposes `due_date` as `DDMMYYYY` for backwards compatibility.
+- Conversion:
+  - On **read** → DB `YYYY-MM-DD` → API `DDMMYYYY`.
+  - On **write** → API `DDMMYYYY` → DB `YYYY-MM-DD`.
+- This prevents old DB rows from crashing serialization.
 
-## Adding Fields / Tables
-When adding a new field to `Task` or creating a new table:
-1. **Update models** (`apps/backend/models.py`).
-2. **Update schemas** (`apps/backend/schemas.py`).
-3. **Update routes** (`apps/backend/main.py`).
-4. **Update frontend** (API + components).
-5. Always use ISO dates in frontend.
+### Key Schema Example
+```python
+class TaskBase(BaseModel):
+    task_name: str
+    description: Optional[str] = None
+    due_date: Optional[str] = None  # Exposed as DDMMYYYY
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
 
-## Development Notes
-- Always run `./scripts/dev.sh` to start backend+frontend+logs.
-- Debug with `tail -f logs/backend-live.log logs/frontend-console.log`.
-- Central rule: Frontend always uses ISO. Backend accepts ISO or DDMMYYYY for backwards compatibility.
+    @field_validator("due_date", mode="before")
+    def format_due_date(cls, v):
+        if isinstance(v, date):
+            return v.strftime("%d%m%Y")
+        return v
+```
+
+### Problems & Fixes
+- **Disappearing backend code** → Fixed by moving backend into `apps/backend/` and correcting `.gitignore`.
+- **Date mismatch (year 1008/2508 issue)** → Fixed by introducing strict parsing in frontend (`dateUtils.ts`).
+- **PATCH not working** → Updated backend routes to accept partial updates and validate fields.
+
+### Adding New Fields
+When adding new DB fields:
+1. **`models.py`** → Add SQLAlchemy column.
+2. **`schemas.py`** → Add to Pydantic models (`TaskBase`, `TaskCreate`, `TaskUpdate`).
+3. **`main.py`** → Ensure routes include field.
+4. **Migrations** → For SQLite, update schema manually if needed (currently auto-drop + recreate in dev).
+
+### Logs
+Backend logs live in `logs/backend-live.log`. Tail them with:
+```bash
+tail -f logs/backend-live.log
+```
