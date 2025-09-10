@@ -9,7 +9,7 @@ import {
   Grid,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { normalizeTaskForApi } from "../utils/taskUtils";
+import { createTask, updateTask } from "../api/tasks";
 
 function toInputDate(ddmmyyyy: string): string {
   if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
@@ -44,7 +44,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
     }
   }, [task]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!taskName.trim()) return;
 
     const payload: any = {
@@ -54,9 +54,16 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
       end_date: endTime && dueDate ? dayjs(`${dueDate}T${endTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
     };
 
-    if (task?.task_id) payload.task_id = task.task_id;
-
-    onSave(normalizeTaskForApi(payload));
+    try {
+      if (task?.task_id) {
+        await updateTask(task.task_id, payload);
+      } else {
+        await createTask(payload);
+      }
+      onSave(payload);
+    } catch (err) {
+      console.error("[TaskDialog] Failed to save task", err);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import React from "react";
 import { useTaskStore } from "../store/useTaskStore";
+import { updateTask } from "../api/tasks";
 
 function toDate(ddmmyyyy: string): Date | null {
   if (!ddmmyyyy || ddmmyyyy.length !== 8) return null;
@@ -9,8 +10,13 @@ function toDate(ddmmyyyy: string): Date | null {
 export default function TasksTab() {
   const { tasks, setTasks } = useTaskStore();
 
-  const updateTask = (id: string, updates: Partial<any>) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  const handleUpdate = async (id: string, updates: Partial<any>) => {
+    try {
+      const updated = await updateTask(id, updates);
+      setTasks(tasks.map((t) => (t.id === id ? updated : t)));
+    } catch (err) {
+      console.error("[TasksTab] Failed to update task", err);
+    }
   };
 
   const today = new Date();

@@ -5,7 +5,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useTaskStore } from "../store/useTaskStore";
 import TaskDialog from "./TaskDialog";
-import { normalizeTaskForApi } from "../utils/taskUtils";
+import { updateTask, createTask } from "../api/tasks";
 
 function toISO(ddmmyyyy: string): string {
   if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
@@ -30,18 +30,31 @@ const CalendarView: React.FC = () => {
     setDialogOpen(true);
   };
 
-  const handleEventDrop = (info: any) => {
+  const handleEventDrop = async (info: any) => {
     const { id, start, end } = info.event;
-    const updated = normalizeTaskForApi({
-      id,
-      due_date: start.toISOString().slice(0, 10),
-      start_date: start.toISOString().slice(0, 10),
-      end_date: end ? end.toISOString().slice(0, 10) : start.toISOString().slice(0, 10),
-    });
+    try {
+      const updated = await updateTask(id, {
+        due_date: start.toISOString().slice(0, 10),
+        start_date: start.toISOString().slice(0, 10),
+        end_date: end ? end.toISOString().slice(0, 10) : start.toISOString().slice(0, 10),
+      });
+      setTasks(tasks.map((t) => (String(t.id) === id ? updated : t)));
+    } catch (err) {
+      console.error("[Calendar] Failed to update task", err);
+    }
+  };
 
-    setTasks(
-      tasks.map((t) => (String(t.id) === id ? { ...t, ...updated } : t))
-    );
+  const handleCreateTask = async (task: any) => {
+    try {
+      const newTask = await createTask({
+        ...task,
+        due_date: selectedDate || new Date().toISOString().slice(0, 10),
+      });
+      setTasks([...tasks, newTask]);
+    } catch (err) {
+      console.error("[Calendar] Failed to create task", err);
+    }
+    setDialogOpen(false);
   };
 
   return (
@@ -62,18 +75,7 @@ const CalendarView: React.FC = () => {
       <TaskDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onSave={(task) => {
-          const normalized = normalizeTaskForApi(task);
-          setTasks([
-            ...tasks,
-            {
-              ...normalized,
-              id: Date.now().toString(),
-              due_date: normalized.due_date || selectedDate?.replace(/-/g, "") || "",
-            },
-          ]);
-          setDialogOpen(false);
-        }}
+        onSave={handleCreateTask}
       />
     </div>
   );
