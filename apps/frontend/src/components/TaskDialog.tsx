@@ -9,9 +9,9 @@ import {
   Grid,
   MenuItem,
 } from "@mui/material";
-import dayjs from "dayjs";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import dayjs, { Dayjs } from "dayjs";
 import { createTask, updateTask } from "../api/tasks";
-import { parseToISO, todayISO } from "../utils/taskUtils";
 
 interface TaskDialogProps {
   open: boolean;
@@ -24,9 +24,9 @@ interface TaskDialogProps {
 export default function TaskDialog({ open, onClose, onSave, task, onDelete }: TaskDialogProps) {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState<string>(todayISO());
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [endTime, setEndTime] = useState<string | null>(null);
+  const [dueDate, setDueDate] = useState<Dayjs | null>(dayjs());
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [priority, setPriority] = useState("Medium");
   const [status, setStatus] = useState("Todo");
 
@@ -34,15 +34,15 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
     if (task) {
       setTaskName(task.task_name || "");
       setDescription(task.description || "");
-      setDueDate(parseToISO(task.due_date) || todayISO());
-      setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm") : null);
-      setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm") : null);
+      setDueDate(task.due_date ? dayjs(task.due_date) : dayjs());
+      setStartTime(task.start_date ? dayjs(task.start_date) : null);
+      setEndTime(task.end_date ? dayjs(task.end_date) : null);
       setPriority(task.priority || "Medium");
       setStatus(task.status || "Todo");
     } else {
       setTaskName("");
       setDescription("");
-      setDueDate(todayISO());
+      setDueDate(dayjs());
       setStartTime(null);
       setEndTime(null);
       setPriority("Medium");
@@ -50,15 +50,21 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
     }
   }, [task, open]);
 
+  const toISODate = (d: Dayjs | null) => (d ? d.format("YYYY-MM-DD") : null);
+  const toISODateTime = (date: Dayjs | null, time: Dayjs | null) => {
+    if (!date || !time) return null;
+    return date.hour(time.hour()).minute(time.minute()).second(0).format();
+  };
+
   const handleSave = async () => {
     if (!taskName.trim()) return;
 
     const payload: any = {
       task_name: taskName,
       description,
-      due_date: dueDate || null,
-      start_date: startTime && dueDate ? `${dueDate}T${startTime}:00` : null,
-      end_date: endTime && dueDate ? `${dueDate}T${endTime}:00` : null,
+      due_date: toISODate(dueDate),
+      start_date: toISODateTime(dueDate, startTime),
+      end_date: toISODateTime(dueDate, endTime),
       priority,
       status,
     };
@@ -119,35 +125,27 @@ export default function TaskDialog({ open, onClose, onSave, task, onDelete }: Ta
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
+            <DatePicker
               label="Due Date"
-              type="date"
-              value={dueDate || ""}
-              onChange={(e) => setDueDate(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
+              value={dueDate}
+              onChange={(newDate) => setDueDate(newDate)}
+              slotProps={{ textField: { fullWidth: true } }}
             />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <TextField
+            <TimePicker
               label="Start Time"
-              type="time"
-              value={startTime || ""}
-              onChange={(e) => setStartTime(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
+              value={startTime}
+              onChange={(newTime) => setStartTime(newTime)}
+              slotProps={{ textField: { fullWidth: true } }}
             />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <TextField
+            <TimePicker
               label="End Time"
-              type="time"
-              value={endTime || ""}
-              onChange={(e) => setEndTime(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
+              value={endTime}
+              onChange={(newTime) => setEndTime(newTime)}
+              slotProps={{ textField: { fullWidth: true } }}
             />
           </Grid>
           <Grid item xs={6} sm={6}>
