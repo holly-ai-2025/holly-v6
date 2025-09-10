@@ -35,6 +35,19 @@ def get_db():
 def ping():
     return {"ok": True, "time": datetime.utcnow().isoformat()}
 
+# --- HELPERS ---
+def normalize_dates(payload: dict) -> dict:
+    if payload.get("due_date"):
+        if isinstance(payload["due_date"], str):
+            payload["due_date"] = date.fromisoformat(payload["due_date"])
+    if payload.get("start_date"):
+        if isinstance(payload["start_date"], str):
+            payload["start_date"] = datetime.fromisoformat(payload["start_date"])
+    if payload.get("end_date"):
+        if isinstance(payload["end_date"], str):
+            payload["end_date"] = datetime.fromisoformat(payload["end_date"])
+    return payload
+
 # --- TASKS ---
 @app.get("/db/tasks", response_model=List[schemas.Task])
 def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -43,16 +56,7 @@ def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @app.post("/db/tasks", response_model=schemas.Task)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    payload = task.dict()
-
-    # Normalize dates to proper Python objects for SQLAlchemy
-    if payload.get("due_date") and isinstance(payload["due_date"], str):
-        payload["due_date"] = date.fromisoformat(payload["due_date"])
-    if payload.get("start_date") and isinstance(payload["start_date"], str):
-        payload["start_date"] = datetime.fromisoformat(payload["start_date"])
-    if payload.get("end_date") and isinstance(payload["end_date"], str):
-        payload["end_date"] = datetime.fromisoformat(payload["end_date"])
-
+    payload = normalize_dates(task.dict())
     db_task = models.Task(**payload)
     db.add(db_task)
     db.commit()
@@ -65,15 +69,7 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    updates = task.dict(exclude_unset=True)
-
-    if updates.get("due_date") and isinstance(updates["due_date"], str):
-        updates["due_date"] = date.fromisoformat(updates["due_date"])
-    if updates.get("start_date") and isinstance(updates["start_date"], str):
-        updates["start_date"] = datetime.fromisoformat(updates["start_date"])
-    if updates.get("end_date") and isinstance(updates["end_date"], str):
-        updates["end_date"] = datetime.fromisoformat(updates["end_date"])
-
+    updates = normalize_dates(task.dict(exclude_unset=True))
     for key, value in updates.items():
         setattr(db_task, key, value)
 
