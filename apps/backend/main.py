@@ -4,17 +4,18 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
-import models, schemas
-from database import SessionLocal, engine
+from apps.backend import models, schemas
+from apps.backend.database import SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Dev-safe CORS: allow all origins, no credentials
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
