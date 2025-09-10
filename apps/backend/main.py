@@ -53,7 +53,7 @@ def read_tasks(db: Session = Depends(get_db)):
 
 @app.patch("/db/tasks/{task_id}", response_model=schemas.Task)
 def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Depends(get_db)):
-    db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
