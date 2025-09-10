@@ -101,7 +101,11 @@ export default function TabCalendar() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setTasks(data);
+          setTasks(
+            data.filter(
+              (v, i, a) => a.findIndex((t) => t.task_id === v.task_id) === i
+            )
+          );
         }
       })
       .catch((err) => console.error("[TabCalendar] Failed to fetch tasks", err));
@@ -219,7 +223,7 @@ export default function TabCalendar() {
       status: "Todo",
     } as Task);
     setDialogOpen(true);
-    selectInfo.view.calendar.unselect(); // prevent ghost event
+    selectInfo.view.calendar.unselect(); // prevent ghost highlight
   };
 
   const handleDialogClose = () => {
@@ -348,6 +352,7 @@ export default function TabCalendar() {
             selectMirror={true}
             eventResizableFromStart={true}
             select={handleDateSelect}
+            selectAllow={() => false}
             slotMinTime="06:00:00"
             events={events}
             datesSet={updateTitle}
