@@ -28,7 +28,7 @@
   background-color: transparent !important;
 }
 
-/* Events (future task styling) */
+/* Events (task styling) */
 .fc-event {
   border-radius: 12px !important;
   border: none !important;
@@ -37,6 +37,27 @@
   background-color: #e3f2fd !important;
   color: #1976d2 !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Status overrides */
+.fc-event.event-completed {
+  background-color: #e0e0e0 !important;
+  color: #777 !important;
+}
+
+.fc-event.event-todo {
+  background-color: #42a5f5 !important; /* blue */
+  color: white !important;
+}
+
+.fc-event.event-inprogress {
+  background-color: #fb8c00 !important; /* orange */
+  color: white !important;
+}
+
+.fc-event.event-pinned {
+  background-color: #8e24aa !important; /* purple */
+  color: white !important;
 }
 
 /* Week/Day view slot borders */

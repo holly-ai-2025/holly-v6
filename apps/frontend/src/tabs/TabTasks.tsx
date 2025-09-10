@@ -23,6 +23,8 @@ interface Task {
   task_name?: string;
   description?: string;
   due_date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
   status?: string;
   priority?: string;
   category?: string;
@@ -41,12 +43,12 @@ interface Task {
 type TaskGroups = Record<string, Task[]>;
 
 const groupColors: Record<string, string> = {
-  Overdue: "#f8d7da", // pale red/pink
+  Overdue: "#f8d7da",
   Today: "#e6f0fa",
   Tomorrow: "#d6e9f8",
   "This Week": "#c5e0f6",
   Later: "#b5d7f3",
-  Completed: "#f2f2f2", // light grey
+  Completed: "#f2f2f2",
 };
 
 const getTokenGradient = (value?: number) => {
@@ -86,6 +88,8 @@ const allowedPatchFields = new Set([
   "status",
   "priority",
   "due_date",
+  "start_date",
+  "end_date",
   "project_id",
   "phase_id",
   "notes",
@@ -197,6 +201,8 @@ const TabTasks: React.FC = () => {
           payload[key] = toBackendStatus(value as string);
         } else if (key === "due_date") {
           payload[key] = dayjs(value).format("YYYY-MM-DD");
+        } else if (key === "start_date" || key === "end_date") {
+          payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
         } else if (key === "priority") {
           const map: Record<string, string> = {
             "1": "Tiny",
@@ -347,7 +353,6 @@ const TabTasks: React.FC = () => {
           <Typography
             variant="body2"
             sx={{
-              flex: 1,
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -355,6 +360,16 @@ const TabTasks: React.FC = () => {
             }}
           >
             {task.task_name}
+            {task.start_date && task.end_date && (
+              <Typography
+                component="span"
+                variant="body2"
+                color="text.secondary"
+                sx={{ ml: 0.5 }}
+              >
+                {dayjs(task.start_date).format("HH:mm")} – {dayjs(task.end_date).format("HH:mm")}
+              </Typography>
+            )}
           </Typography>
 
           {(task.project_id || task.project) && (

@@ -19,15 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Middleware for logging requests
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    origin = request.headers.get("origin")
-    logger.info(f"[Request] {request.method} {request.url} from origin={origin}")
-    response = await call_next(request)
-    logger.info(f"[Response] status={response.status_code} for {request.method} {request.url}")
-    return response
-
 # Dependency
 def get_db():
     db = SessionLocal()
@@ -43,7 +34,19 @@ def get_tasks(db: Session = Depends(get_db)):
     return db.query(models.Task).all()
 
 @app.patch("/db/tasks/{task_id}")
-def update_task(task_id: int, updates: schemas.TaskUpdate, db: Session = Depends(get_db)):
+async def update_task(task_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        raw_body = await request.body()
+        logger.info(f"[Debug] Raw PATCH body: {raw_body.decode('utf-8')}")
+    except Exception as e:
+        logger.warning(f"[Debug] Failed to read raw body: {e}")
+
+    try:
+        updates = schemas.TaskUpdate(**await request.json())
+    except Exception as e:
+        logger.error(f"[Error] Pydantic validation failed: {e}")
+        raise HTTPException(status_code=422, detail=str(e))
+
     logger.info(f"[Route] PATCH /db/tasks/{task_id} with updates={updates.dict(exclude_unset=True)}")
     task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not task:
@@ -59,7 +62,6 @@ def update_task(task_id: int, updates: schemas.TaskUpdate, db: Session = Depends
     db.commit()
     db.refresh(task)
 
-    # Log activity (basic, no user_id or details)
     activity = models.TaskActivity(
         task_id=task_id,
         action="update"
