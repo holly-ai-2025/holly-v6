@@ -12,25 +12,15 @@ import {
 import dayjs from "dayjs";
 import { createTask, updateTask } from "../api/tasks";
 
-function toInputDate(ddmmyyyy: string): string {
-  if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
-  return `${ddmmyyyy.slice(4, 8)}-${ddmmyyyy.slice(2, 4)}-${ddmmyyyy.slice(0, 2)}`;
-}
-
-function toDDMMYYYY(iso: string): string {
-  if (!iso || iso.length < 10) return "";
-  const [year, month, day] = iso.slice(0, 10).split("-");
-  return `${day}${month}${year}`;
-}
-
 interface TaskDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (task: any) => void;
   task?: any;
+  onDelete?: (taskId: string) => void;
 }
 
-export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogProps) {
+export default function TaskDialog({ open, onClose, onSave, task, onDelete }: TaskDialogProps) {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(null);
@@ -43,7 +33,7 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
     if (task) {
       setTaskName(task.task_name || "");
       setDescription(task.description || "");
-      setDueDate(task.due_date ? toInputDate(task.due_date) : null);
+      setDueDate(task.due_date ? dayjs(task.due_date, ["DDMMYYYY", "YYYY-MM-DD"]).format("YYYY-MM-DD") : null);
       setStartTime(task.start_date ? dayjs(task.start_date).format("HH:mm") : null);
       setEndTime(task.end_date ? dayjs(task.end_date).format("HH:mm") : null);
       setPriority(task.priority || "Medium");
@@ -57,22 +47,38 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
     const payload: any = {
       task_name: taskName,
       description,
-      due_date: dueDate ? toDDMMYYYY(dueDate) : null,
-      start_date: startTime && dueDate ? dayjs(`${dueDate}T${startTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
-      end_date: endTime && dueDate ? dayjs(`${dueDate}T${endTime}`).format("YYYY-MM-DDTHH:mm:ss") : null,
+      due_date: dueDate || null,
+      start_date: startTime && dueDate ? `${dueDate}T${startTime}:00` : null,
+      end_date: endTime && dueDate ? `${dueDate}T${endTime}:00` : null,
       priority,
       status,
     };
 
     try {
+      let saved;
       if (task?.task_id) {
-        await updateTask(task.task_id, payload);
+        saved = await updateTask(task.task_id, payload);
       } else {
-        await createTask(payload);
+        saved = await createTask(payload);
       }
-      onSave(payload);
+      onSave(saved);
     } catch (err) {
       console.error("[TaskDialog] Failed to save task", err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!task?.task_id) return;
+    try {
+      const res = await fetch(`http://localhost:8000/db/tasks/${task.task_id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        if (onDelete) onDelete(task.task_id);
+        onClose();
+      }
+    } catch (err) {
+      console.error("[TaskDialog] Failed to delete task", err);
     }
   };
 
@@ -163,6 +169,11 @@ export default function TaskDialog({ open, onClose, onSave, task }: TaskDialogPr
         </Grid>
       </DialogContent>
       <DialogActions>
+        {task?.task_id && (
+          <Button onClick={handleDelete} color="error">
+            Delete
+          </Button>
+        )}
         <Button onClick={onClose}>Cancel</Button>
         <Button onClick={handleSave} variant="contained" color="primary">
           Save
