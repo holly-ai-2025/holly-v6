@@ -1,6 +1,7 @@
 export function toDDMMYYYY(iso: string): string {
-  if (!iso || iso.length < 10) return "";
-  const [year, month, day] = iso.split("-");
+  if (!iso) return "";
+  const clean = iso.slice(0, 10); // strip time if present
+  const [year, month, day] = clean.split("-");
   return `${day}${month}${year}`; // YYYY-MM-DD → DDMMYYYY
 }
 
