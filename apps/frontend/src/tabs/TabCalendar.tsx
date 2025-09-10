@@ -223,7 +223,7 @@ export default function TabCalendar() {
       status: "Todo",
     } as Task);
     setDialogOpen(true);
-    selectInfo.view.calendar.unselect(); // prevent ghost highlight
+    selectInfo.view.calendar.unselect(); // remove highlight, prevent ghost event
   };
 
   const handleDialogClose = () => {
@@ -352,7 +352,6 @@ export default function TabCalendar() {
             selectMirror={true}
             eventResizableFromStart={true}
             select={handleDateSelect}
-            selectAllow={() => false}
             slotMinTime="06:00:00"
             events={events}
             datesSet={updateTitle}
