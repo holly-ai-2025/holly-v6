@@ -7,11 +7,11 @@ Holly AI v6 integrates **task management with calendar scheduling**, supporting 
 
 ## 🔧 Backend
 - FastAPI backend with SQLite database.
-- Entities: Task, Project, Board, Tag, Reflection, Attachment, Link.
+- Entities: Task, Project, Board, Tag, Reflection, Attachment, Link, Phase, TaskActivity.
 - Database:
-  - `start_date` (`DATETIME`)
-  - `end_date` (`DATETIME`)
-  - `due_date` (`DATE`)
+  - `due_date` (`DATE`, formatted as **DDMMYYYY**)
+  - `start_date` (`DATETIME`, `YYYY-MM-DDTHH:mm:ss`)
+  - `end_date` (`DATETIME`, `YYYY-MM-DDTHH:mm:ss`)
 - Schemas:
   - Updated for Pydantic v2 (`from_attributes = True`).
 - Endpoints:
@@ -38,7 +38,9 @@ Holly AI v6 integrates **task management with calendar scheduling**, supporting 
 ---
 
 ## ⚠️ Known Fixes
-- Date formatting requires `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
+- Date formatting requires:
+  - `due_date` = `DDMMYYYY`
+  - `start_date`, `end_date` = `YYYY-MM-DDTHH:mm:ss`
 - Tasks without `end_date` default to +1h.
 - Tooltip ref errors fixed with `<span>` wrapper.
 

@@ -15,7 +15,7 @@ The frontend is built with **React + MUI** and integrates task management with *
 
 ## 🔌 Backend Integration
 - Correctly serializes dates/times for backend:
-  - `due_date` → `YYYY-MM-DD`
+  - `due_date` → `DDMMYYYY`
   - `start_date`, `end_date` → `YYYY-MM-DDTHH:mm:ss`
 - Uses fetch API with proper PATCH/POST payloads.
 - Captures console logs and forwards them to backend `/log` endpoint.
