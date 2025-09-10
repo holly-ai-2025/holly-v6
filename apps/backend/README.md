@@ -15,38 +15,35 @@
 - `GET /db/tasks` → list all tasks.
 - `POST /db/tasks` → create a new task.
 - `PATCH /db/tasks/{task_id}` → update an existing task.
+- `DELETE /db/tasks/{task_id}` → delete a task.
 
 ## Date Handling
 - DB stores dates as ISO `YYYY-MM-DD`.
-- API exposes `due_date` as `DDMMYYYY` (legacy), but now tolerant:
-  - Accepts both `DDMMYYYY` and `YYYY-MM-DD`.
-  - Always normalizes to ISO before saving.
+- API exposes `due_date` tolerant to both ISO and DDMMYYYY (legacy).
+- **Frontend unified on ISO only**.
+- Conversion helpers live in `apps/frontend/src/utils/taskUtils.ts`.
 
 ## Known Issues & Fixes
 - **Problem**: Tasks disappeared from repo (backend not in Git).
   - **Fix**: Backend code restored into Git. `.gitignore` updated (only `holly.db` ignored).
 - **Problem**: Date mismatches between DB and frontend.
-  - **Fix**: Conversion layer in schemas + tolerant parsing in backend.
+  - **Fix**: Conversion layer + unified ISO handling.
 - **Problem**: Wrong primary key used (`id` instead of `task_id`).
   - **Fix**: All backend queries updated to use `task_id`.
+- **Problem**: TaskDialog duplicate task creation.
+  - **Fix**: TaskDialog now only updates via API response.
+- **Problem**: Tasks not deletable.
+  - **Fix**: Added DELETE route and Delete button in TaskDialog.
 
 ## Adding Fields / Tables
 When adding a new field to `Task` or creating a new table:
 1. **Update models** (`apps/backend/models.py`).
-   - Define new column(s).
 2. **Update schemas** (`apps/backend/schemas.py`).
-   - Add field(s) to Pydantic models.
-   - Ensure proper serialization (e.g. enums, dates).
-3. **Update main routes** (`apps/backend/main.py`).
-   - Handle new fields in create/update routes.
-   - Add validators if needed.
-4. **Update frontend**:
-   - Update API layer (`apps/frontend/src/api/tasks.ts`).
-   - Update components (e.g. TaskDialog) to collect and send new fields.
-5. **Run migrations** (if switching from SQLite, consider Alembic for versioned migrations).
+3. **Update routes** (`apps/backend/main.py`).
+4. **Update frontend** (API + components).
+5. Always use ISO dates in frontend.
 
 ## Development Notes
 - Always run `./scripts/dev.sh` to start backend+frontend+logs.
-- Use logs to debug (`tail -f logs/backend-live.log`).
-- When debugging date or serialization issues, confirm both frontend payload and backend parse.
-- Central rule: Frontend can send ISO dates. Backend must accept both ISO and DDMMYYYY.
+- Debug with `tail -f logs/backend-live.log logs/frontend-console.log`.
+- Central rule: Frontend always uses ISO. Backend accepts ISO or DDMMYYYY for backwards compatibility.

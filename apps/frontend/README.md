@@ -1,34 +1,38 @@
-# Frontend (Holly AI v6)
+# Frontend README – Holly v6
 
-## Overview
-The frontend is built with **React + MUI** and integrates task management with **calendar scheduling**.
+## Current State
+- Frontend rebuilt to sync with backend changes.
+- UI framework: MUI Core + Joy UI.
+- Startup: run `./scripts/dev.sh` (starts backend, frontend, logs).
 
----
+## Tasks Integration
+- Tasks load from `/db/tasks`.
+- Create/update via TaskDialog → uses `createTask`, `updateTask`.
+- Delete supported via DELETE route.
 
-## 🎨 Features
-- TaskDialog with Start Date, Start Time, End Time pickers.
-- TabTasks with inline task time display.
-- TabCalendar with drag, drop, and resize support.
-- CalendarStyles.css with custom styles for task statuses.
+## Date Handling
+- All dates handled as ISO (`YYYY-MM-DD`).
+- Utilities in `src/utils/taskUtils.ts`:
+  - `parseToISO` → normalize DDMMYYYY or ISO to ISO.
+  - `parseToDate` → get JS Date from string.
+  - `todayISO` → get today in ISO.
+  - `normalizeTaskForApi` → prepares task payload for backend.
 
----
+## Components
+- **TaskDialog**
+  - Fields: name, description, due_date, start/end time, priority, status.
+  - New tasks default due_date = today.
+  - Delete button shown for existing tasks.
+- **TasksTab**
+  - Groups tasks into Overdue, Today, Later.
+  - Uses `parseToDate` to align with ISO.
+- **Calendar**
+  - Drag/drop and editing wired into same API routes.
 
-## 🔌 Backend Integration
-- Correctly serializes dates/times for backend:
-  - `due_date` → `DDMMYYYY`
-  - `start_date`, `end_date` → `YYYY-MM-DDTHH:mm:ss`
-- Uses fetch API with proper PATCH/POST payloads.
-- Captures console logs and forwards them to backend `/log` endpoint.
-
----
-
-## ⚠️ Problems & Fixes
-- Fixed `.toISOString()` errors by switching to `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
-- Fixed missing end times by defaulting `end_date = start_date + 1h`.
-- Fixed drag-to-create not setting times.
-- Fixed tooltip ref errors with `<span>` wrapper.
-
----
-
-## 📝 Summary
-The frontend now provides **seamless scheduling** of tasks across list and calendar views, fully synchronized with backend.
+## Development Notes
+- Always use ISO for new features.
+- If adding fields to Task:
+  1. Update API calls in `src/api/tasks.ts`.
+  2. Update TaskDialog to include inputs.
+  3. Ensure `normalizeTaskForApi` prepares new fields properly.
+- Use logs at `logs/frontend-console.log` to debug.
