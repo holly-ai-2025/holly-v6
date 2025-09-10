@@ -16,8 +16,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # ✅ explicit instead of "*"
-    allow_credentials=True,  # ✅ safe with explicit origins
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -29,6 +29,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# --- HEALTHCHECK ---
+@app.get("/ping")
+def ping():
+    return {"ok": True, "time": datetime.utcnow().isoformat()}
 
 # --- TASKS ---
 @app.get("/db/tasks", response_model=List[schemas.Task])
