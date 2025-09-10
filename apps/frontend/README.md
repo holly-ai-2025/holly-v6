@@ -26,8 +26,13 @@
 - **TasksTab**
   - Groups tasks into Overdue, Today, Later.
   - Uses `parseToDate` to align with ISO.
-- **Calendar**
-  - Drag/drop and editing wired into same API routes.
+  - Comparison is date-only (ignores time) to prevent mis-grouping.
+- **TabCalendar (ACTIVE)**
+  - Main calendar implementation.
+  - Located at `src/tabs/TabCalendar.tsx`.
+  - Handles task fetch, event mapping, drag/drop, and editing.
+  - Uses ISO dates consistently via `parseToISO`.
+  - Legacy files `CalendarView.tsx` and `CalendarTab.tsx` have been removed.
 
 ## Development Notes
 - Always use ISO for new features.
