@@ -231,7 +231,7 @@ export default function TabCalendar() {
     if (isNewTask) {
       const taskWithDate = { ...updates, due_date: updates.due_date || defaultDate };
       await createTask(taskWithDate);
-    } else if (selectedTask && selectedTask.task_id) {
+    } else if (!isNewTask && selectedTask && selectedTask.task_id) {
       await updateTask(selectedTask.task_id, updates);
     }
     handleDialogClose();
