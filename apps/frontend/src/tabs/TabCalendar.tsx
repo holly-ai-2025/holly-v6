@@ -13,6 +13,8 @@ interface Task {
   task_name?: string;
   description?: string;
   due_date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
   status?: string;
   priority?: string;
   category?: string;
@@ -30,6 +32,8 @@ const allowedPatchFields = new Set([
   "status",
   "priority",
   "due_date",
+  "start_date",
+  "end_date",
   "project_id",
   "phase_id",
   "notes",
@@ -117,6 +121,8 @@ export default function TabCalendar() {
           payload[key] = toBackendStatus(value as string);
         } else if (key === "due_date") {
           payload[key] = dayjs(value).format("YYYY-MM-DD");
+        } else if (key === "start_date" || key === "end_date") {
+          payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
         } else {
           payload[key] = value;
         }
@@ -175,15 +181,42 @@ export default function TabCalendar() {
 
   const handleEventDrop = (dropInfo: any) => {
     const taskId = parseInt(dropInfo.event.id, 10);
-    const newDate = dropInfo.event.start;
-    if (taskId && newDate) {
-      updateTask(taskId, { due_date: newDate.toISOString() });
+    const newStart = dropInfo.event.start;
+    const newEnd = dropInfo.event.end;
+    if (taskId && newStart) {
+      updateTask(taskId, {
+        start_date: dayjs(newStart).format("YYYY-MM-DDTHH:mm:ss"),
+        end_date: newEnd
+          ? dayjs(newEnd).format("YYYY-MM-DDTHH:mm:ss")
+          : dayjs(newStart).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
+        due_date: dayjs(newStart).format("YYYY-MM-DD"),
+      });
+    }
+  };
+
+  const handleEventResize = (resizeInfo: any) => {
+    const taskId = parseInt(resizeInfo.event.id, 10);
+    const newStart = resizeInfo.event.start;
+    const newEnd = resizeInfo.event.end;
+    if (taskId && newStart && newEnd) {
+      updateTask(taskId, {
+        start_date: dayjs(newStart).format("YYYY-MM-DDTHH:mm:ss"),
+        end_date: dayjs(newEnd).format("YYYY-MM-DDTHH:mm:ss"),
+        due_date: dayjs(newStart).format("YYYY-MM-DD"),
+      });
     }
   };
 
   const handleDateSelect = (selectInfo: any) => {
     setIsNewTask(true);
     setDefaultDate(selectInfo.startStr);
+    setSelectedTask({
+      due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
+      start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
+      end_date: selectInfo.end
+        ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
+        : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
+    } as Task);
     setDialogOpen(true);
   };
 
@@ -204,15 +237,34 @@ export default function TabCalendar() {
     handleDialogClose();
   };
 
+  // Build FullCalendar events
   const events = tasks
-    .filter((t) => t.due_date)
-    .map((t) => ({
-      id: String(t.task_id),
-      title: t.task_name || "Untitled",
-      start: t.due_date || undefined,
-      allDay: true,
-      extendedProps: { status: t.status, description: t.description },
-    }));
+    .filter((t) => t.due_date || t.start_date)
+    .sort((a, b) => {
+      const aTime = a.start_date ? dayjs(a.start_date).valueOf() : 0;
+      const bTime = b.start_date ? dayjs(b.start_date).valueOf() : 0;
+      return aTime - bTime;
+    })
+    .map((t) => {
+      if (t.start_date && t.end_date) {
+        return {
+          id: String(t.task_id),
+          title: t.task_name || "Untitled",
+          start: t.start_date,
+          end: t.end_date,
+          allDay: false,
+          extendedProps: { status: t.status, description: t.description },
+        };
+      } else {
+        return {
+          id: String(t.task_id),
+          title: t.task_name || "Untitled",
+          start: t.due_date || undefined,
+          allDay: true,
+          extendedProps: { status: t.status, description: t.description },
+        };
+      }
+    });
 
   const eventClassNames = (arg: any) => {
     const status = arg.event.extendedProps.status;
@@ -223,12 +275,11 @@ export default function TabCalendar() {
   };
 
   const eventContent = (arg: any) => {
-    const { title, extendedProps } = arg.event;
-    const description = extendedProps.description || "No description";
-    const dueDate = arg.event.start ? dayjs(arg.event.start).format("MMM D, YYYY") : "";
+    const { title, start, end } = arg.event;
+    const timeRange = start && end ? `${dayjs(start).format("HH:mm")} – ${dayjs(end).format("HH:mm")}` : "";
     return (
-      <Tooltip title={<><b>{title}</b><br />{description}<br />Due: {dueDate}</>} arrow>
-        <span>{title}</span>
+      <Tooltip title={<><b>{title}</b>{timeRange && <><br />{timeRange}</>}<br />{arg.event.extendedProps.description || "No description"}</>} arrow>
+        <span>{title}{timeRange ? ` ${timeRange}` : ""}</span>
       </Tooltip>
     );
   };
@@ -294,12 +345,14 @@ export default function TabCalendar() {
             droppable={true}
             selectable={true}
             selectMirror={true}
+            eventResizableFromStart={true}
             select={handleDateSelect}
             slotMinTime="06:00:00"
             events={events}
             datesSet={updateTitle}
             eventClick={handleEventClick}
             eventDrop={handleEventDrop}
+            eventResize={handleEventResize}
             eventClassNames={eventClassNames}
             eventContent={eventContent}
           />
@@ -308,7 +361,7 @@ export default function TabCalendar() {
 
       <TaskDialog
         open={dialogOpen}
-        task={isNewTask ? { due_date: defaultDate || undefined } as Task : selectedTask}
+        task={isNewTask ? (selectedTask as Task) : selectedTask}
         onClose={handleDialogClose}
         onSave={handleDialogSave}
       />

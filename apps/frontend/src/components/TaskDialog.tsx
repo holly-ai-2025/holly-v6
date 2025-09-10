@@ -15,7 +15,7 @@ import {
   InputLabel,
   Divider,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -75,15 +75,29 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
   };
 
   const handleSave = () => {
-    // Ensure only valid enums are sent
     const cleanedForm = { ...form };
 
     if (!statuses.includes(cleanedForm.status)) {
       cleanedForm.status = "Todo";
     }
-
     if (!priorities.includes(cleanedForm.priority)) {
       cleanedForm.priority = "Small";
+    }
+
+    // Ensure correct datetime formatting
+    if (cleanedForm.start_date) {
+      cleanedForm.start_date = dayjs(cleanedForm.start_date).format("YYYY-MM-DDTHH:mm:ss");
+    }
+    if (cleanedForm.end_date) {
+      cleanedForm.end_date = dayjs(cleanedForm.end_date).format("YYYY-MM-DDTHH:mm:ss");
+    }
+    if (cleanedForm.due_date) {
+      cleanedForm.due_date = dayjs(cleanedForm.due_date).format("YYYY-MM-DD");
+    }
+
+    // Auto-fill end_date if only start_date set
+    if (cleanedForm.start_date && !cleanedForm.end_date) {
+      cleanedForm.end_date = dayjs(cleanedForm.start_date).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss");
     }
 
     onSave(cleanedForm);
@@ -104,7 +118,7 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
               fullWidth
               size="medium"
               sx={{ mb: 2 }}
-              disabled={task && task.task_id} // disable editing task_name when updating
+              disabled={task && task.task_id}
             />
             <TextField
               label="Description"
@@ -128,36 +142,30 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
                   label="Due Date"
                   value={form.due_date ? dayjs(form.due_date) : null}
                   onChange={(date: Dayjs | null) =>
-                    handleChange("due_date", date ? date.format("YYYY-MM-DD") : null)
+                    handleChange("due_date", date ? date.toDate() : null)
                   }
                   slotProps={{ textField: { size: "small", fullWidth: true } }}
                 />
               </Grid>
               <Grid item xs={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={form.status && statuses.includes(form.status) ? form.status : "Todo"}
-                    onChange={(e) => handleChange("status", e.target.value)}
-                  >
-                    {statuses.map((s) => (
-                      <MenuItem key={s} value={s}>{s}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <DateTimePicker
+                  label="Start Time"
+                  value={form.start_date ? dayjs(form.start_date) : null}
+                  onChange={(date: Dayjs | null) =>
+                    handleChange("start_date", date ? date.toDate() : null)
+                  }
+                  slotProps={{ textField: { size: "small", fullWidth: true } }}
+                />
               </Grid>
               <Grid item xs={4}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Priority</InputLabel>
-                  <Select
-                    value={form.priority && priorities.includes(form.priority) ? form.priority : "Small"}
-                    onChange={(e) => handleChange("priority", e.target.value)}
-                  >
-                    {priorities.map((lvl) => (
-                      <MenuItem key={lvl} value={lvl}>{lvl}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <DateTimePicker
+                  label="End Time"
+                  value={form.end_date ? dayjs(form.end_date) : null}
+                  onChange={(date: Dayjs | null) =>
+                    handleChange("end_date", date ? date.toDate() : null)
+                  }
+                  slotProps={{ textField: { size: "small", fullWidth: true } }}
+                />
               </Grid>
             </Grid>
           </Box>

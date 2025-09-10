@@ -1,45 +1,75 @@
-# Holly v6
+# Holly AI v6
 
-This is the main monorepo for Holly v6, containing both frontend and backend applications.
+## Overview
+Holly AI v6 integrates task management with calendar-based scheduling. Tasks can now include start and end times, enabling full day/week calendar visualization and drag-and-drop scheduling.
 
-## Getting Started
+---
 
-Run the development stack (frontend, backend, and log server) with:
+## 🔧 Backend Changes
 
-```bash
-scripts/start-dev.sh
-```
+### Database
+- Added new fields to **tasks** table:
+  - `start_date` (`DATETIME`)
+  - `end_date` (`DATETIME`)
+- Changed `due_date` to **DATE only** (no time component).
 
-This will:
-- Start the backend (FastAPI + SQLite)
-- Start the frontend (React + Vite + MUI)
-- Start the log server on port `9000` to capture browser console output into `logs/frontend-console.log`
+### Schemas
+- Updated `TaskBase`, `TaskCreate`, and `TaskUpdate` to include:
+  - `start_date: Optional[datetime]`
+  - `end_date: Optional[datetime]`
+- Serialization rules:
+  - `due_date` → `YYYY-MM-DD`
+  - `start_date`, `end_date` → `YYYY-MM-DDTHH:mm:ss`
 
-## Workspace Menu
+### API Endpoints
+- `POST /db/tasks` and `PATCH /db/tasks/{id}` now accept `start_date` and `end_date`.
+- Fixed **422 errors** caused by `.toISOString()` (with `Z` suffix). Backend requires `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
 
-The **Workspace** menu consolidates `Tasks`, `Projects`, and `Calendar` into a single tab, with sub-tabs:
-- **Flowboard** (placeholder for future work)
-- **Tasks** (TabTasks.tsx)
-- **Boards** (previously Projects)
-- **Calendar**
+---
 
-## Logs
+## 🎨 Frontend Changes
 
-Logs are always written to the `logs/` directory:
-- Backend logs: `logs/backend-live.log` (startup script) and `logs/backend-hypercorn.log` (manual Hypercorn runs).
-- Frontend logs: `logs/frontend-console.log` (browser console forwarded via log server).
+### TaskDialog.tsx
+- Added Start Date, Start Time, End Time fields.
+- Handles serialization to correct backend formats.
+- Validation: task name required.
 
-## Development Workflow
-- **Never edit `main` directly.** Always create a feature branch and open a PR for review.
-- Use `scripts/start-dev.sh` to ensure logs are captured consistently.
-- All debugging must be done with live log monitoring.
+### TabTasks.tsx
+- Displays task times inline with title.
+- Times shown as `HH:mm – HH:mm` in grey font.
+- Introduced `buildPayload` function to strip null/empty values.
+- Debug logging for PATCH/POST payloads.
 
-## Known Pitfalls & Fixes
-- **Task updates**: `PATCH /db/tasks/{id}` now supports partial updates using `schemas.TaskUpdate` with `exclude_unset=True`. Only changed fields are required.
-- **CORS**: During development, `allow_origins=["*"]` is enabled (no credentials). Do not combine `allow_credentials=True` with `*` — this causes invalid CORS behavior.
-- **TaskActivity**: Only logs `task_id` and `action`. Fields like `user_id` and `details` are not implemented yet. Adding them without updating the model will cause crashes.
-- **Enums**: Task `status` must be one of `Todo | In Progress | Done | Pinned`. Priority must be `Tiny | Small | Medium | Big`. Invalid values will throw errors.
+### TabCalendar.tsx
+- Integrated with FullCalendar:
+  - **Day/Week Views**: tasks with times render in correct slots.
+  - **Month View**: tasks ordered by time within each day; untimed tasks appear as all-day at top.
+  - **Drag-to-create**: fills TaskDialog with selected start/end.
+  - **Drag all-day → timed slot**: assigns proper `start_date`/`end_date`.
+  - **Drag/resize**: updates DB with correct time format.
+- Tooltip fix: wrapped `<span>` inside `<Tooltip>` to prevent ref errors.
 
-## Pre-commit
+### CalendarStyles.css
+- Defines event colors for task statuses (`Todo`, `In Progress`, `Done`, `Pinned`).
 
-Pre-commit hooks are configured and enforced across the repo.
+---
+
+## ⚠️ Problems & Fixes
+- **422 validation errors** → caused by `.toISOString()` → fixed by enforcing `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
+- **Tasks missing in Day/Week views** → no `end_date` → fixed with fallback `end_date = start_date + 1h`.
+- **Drag-to-create not saving times** → fixed by passing `start_date` and `end_date` into TaskDialog.
+- **Dragging all-day tasks into timed slots not updating** → fixed by forcing assignment of times in `eventDrop`.
+- **Resizing tasks unsupported** → enabled `eventResizableFromStart` and added `eventResize` handler.
+- **Tooltip ref errors** → fixed with `<span>` wrapper.
+- **Placeholder overwrites** during development → rolled back and carefully rewrote full files.
+
+---
+
+## 📝 Summary
+The system now supports **time-based scheduling for tasks**, integrated across:
+- Database
+- Backend API
+- Frontend task list (TabTasks)
+- Frontend calendar views (TabCalendar)
+
+This enables full drag/drop and resize task management with correct synchronization to the database.
