@@ -5,12 +5,8 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useTaskStore } from "../store/useTaskStore";
 import TaskDialog from "./TaskDialog";
-import { updateTask, createTask } from "../api/tasks";
-
-function toISO(ddmmyyyy: string): string {
-  if (!ddmmyyyy || ddmmyyyy.length !== 8) return "";
-  return `${ddmmyyyy.slice(4, 8)}-${ddmmyyyy.slice(2, 4)}-${ddmmyyyy.slice(0, 2)}`;
-}
+import { updateTask } from "../api/tasks";
+import { parseToISO } from "../utils/taskUtils";
 
 const CalendarView: React.FC = () => {
   const { tasks, setTasks } = useTaskStore();
@@ -18,10 +14,10 @@ const CalendarView: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const events = tasks.map((t) => ({
-    id: String(t.id),
-    title: t.name,
-    start: t.start_date ? t.start_date : toISO(t.due_date),
-    end: t.end_date ? t.end_date : toISO(t.due_date),
+    id: String(t.task_id),
+    title: t.task_name,
+    start: t.start_date ? t.start_date : parseToISO(t.due_date),
+    end: t.end_date ? t.end_date : parseToISO(t.due_date),
     allDay: true,
   }));
 
@@ -38,23 +34,10 @@ const CalendarView: React.FC = () => {
         start_date: start.toISOString().slice(0, 10),
         end_date: end ? end.toISOString().slice(0, 10) : start.toISOString().slice(0, 10),
       });
-      setTasks(tasks.map((t) => (String(t.id) === id ? updated : t)));
+      setTasks(tasks.map((t) => (String(t.task_id) === id ? updated : t)));
     } catch (err) {
       console.error("[Calendar] Failed to update task", err);
     }
-  };
-
-  const handleCreateTask = async (task: any) => {
-    try {
-      const newTask = await createTask({
-        ...task,
-        due_date: selectedDate || new Date().toISOString().slice(0, 10),
-      });
-      setTasks([...tasks, newTask]);
-    } catch (err) {
-      console.error("[Calendar] Failed to create task", err);
-    }
-    setDialogOpen(false);
   };
 
   return (
@@ -75,7 +58,7 @@ const CalendarView: React.FC = () => {
       <TaskDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onSave={handleCreateTask}
+        onSave={(t) => setTasks([...tasks, t])}
       />
     </div>
   );
