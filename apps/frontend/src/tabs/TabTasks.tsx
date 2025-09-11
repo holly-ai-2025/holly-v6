@@ -121,10 +121,11 @@ const TabTasks: React.FC = () => {
   const fetchTasks = async () => {
     try {
       const data = await getTasks();
-      setTasks(groupTasksByDate(data));
+      if (Array.isArray(data)) {
+        setTasks(groupTasksByDate(data));
+      }
     } catch (err) {
       console.error("[TabTasks] Failed to fetch tasks", err);
-      setTasks(groupTasksByDate([]));
     }
   };
 
