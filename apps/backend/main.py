@@ -1,12 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, date
+import logging
 
 from . import models, schemas, database
 
 app = FastAPI()
+
+# --- Logging setup ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("holly-backend")
 
 # --- CORS ---
 origins = [
@@ -44,6 +49,15 @@ def normalize_dates(payload: dict) -> dict:
     if payload.get("end_date") and isinstance(payload["end_date"], str):
         payload["end_date"] = datetime.fromisoformat(payload["end_date"])
     return payload
+
+# --- Middleware for logging ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    if request.url.path.startswith("/db/tasks") and request.method == "POST":
+        body = await request.body()
+        logger.info(f"[BACKEND] POST /db/tasks received: {body.decode()}")
+    response = await call_next(request)
+    return response
 
 # --- TASKS ---
 @app.get("/db/tasks", response_model=List[schemas.Task], response_model_exclude_none=True)
