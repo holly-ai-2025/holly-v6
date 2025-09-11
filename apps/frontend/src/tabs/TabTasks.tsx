@@ -1,3 +1,4 @@
+// Full TabTasks.tsx with corrected logic: only TaskDialog handles POST
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -172,10 +173,14 @@ const TabTasks: React.FC = () => {
         if (Array.isArray(data)) {
           setTasks(groupTasksByDate(data));
         } else {
-          setTasks(data);
+          console.warn("[TabTasks] Unexpected response shape, defaulting to []", data);
+          setTasks(groupTasksByDate([]));
         }
       })
-      .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
+      .catch((err) => {
+        console.error("[TabTasks] Failed to fetch tasks", err);
+        setTasks(groupTasksByDate([]));
+      });
   };
 
   useEffect(() => {
@@ -239,14 +244,20 @@ const TabTasks: React.FC = () => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
-    fetchTasks(); // ✅ Just refetch tasks after dialog closes
+    fetchTasks();
   };
 
-  const handleDialogSave = async (updates: Partial<Task>) => {
-    if (selectedTask && selectedTask.task_id) {
-      await updateTask(selectedTask.task_id, updates);
+  const handleDialogSave = async (payload: Partial<Task>) => {
+    try {
+      if (selectedTask && selectedTask.task_id) {
+        await updateTask(selectedTask.task_id, payload);
+      }
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabTasks] Failed to save task", err);
+    } finally {
+      handleDialogClose();
     }
-    handleDialogClose();
   };
 
   const renderTaskRow = (task: Task) => {
@@ -379,12 +390,12 @@ const TabTasks: React.FC = () => {
       {Object.keys(tasks || {}).map((group) => {
         if (group === "SuggestedToday" || group === "SuggestedTomorrow") return null;
 
-        const groupTasks = tasks[group] || [];
+        const groupTasks = Array.isArray(tasks[group]) ? tasks[group] : [];
         const suggestedTasks =
           group === "Today"
-            ? tasks.SuggestedToday || []
+            ? Array.isArray(tasks.SuggestedToday) ? tasks.SuggestedToday : []
             : group === "Tomorrow"
-            ? tasks.SuggestedTomorrow || []
+            ? Array.isArray(tasks.SuggestedTomorrow) ? tasks.SuggestedTomorrow : []
             : [];
 
         return (
@@ -410,8 +421,14 @@ const TabTasks: React.FC = () => {
 
             <Collapse in={openGroups[group]}>
               <Box mt={0.5}>
-                {groupTasks.map(renderTaskRow)}
-                {suggestedTasks.length > 0 && (
+                {Array.isArray(groupTasks) && groupTasks.length > 0 ? (
+                  groupTasks.map(renderTaskRow)
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No tasks available
+                  </Typography>
+                )}
+                {Array.isArray(suggestedTasks) && suggestedTasks.length > 0 && (
                   <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
                     <Typography variant="caption" fontWeight="bold" color="text.secondary">
                       Suggested

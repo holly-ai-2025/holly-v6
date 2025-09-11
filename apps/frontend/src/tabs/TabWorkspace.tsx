@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Tabs, Tab } from "@mui/material";
 import TabFlowboard from "./workspace/TabFlowboard";
 import TabTasks from "./TabTasks";
-import TabProjects from "./TabProjects";
+import TabBoards from "./TabBoards";
 import TabCalendar from "./TabCalendar";
 
 export default function TabWorkspace() {
@@ -29,7 +29,7 @@ export default function TabWorkspace() {
       <Box sx={{ flex: 1, p: 2 }}>
         {activeSubTab === 0 && <TabFlowboard />}
         {activeSubTab === 1 && <TabTasks />}
-        {activeSubTab === 2 && <TabProjects />}
+        {activeSubTab === 2 && <TabBoards />}
         {activeSubTab === 3 && <TabCalendar />}
       </Box>
     </Box>

@@ -1,106 +1,95 @@
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from apps.backend.database import Base
-
-class Board(Base):
-    __tablename__ = "boards"
-
-    board_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    type = Column(String)
-    goal = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    projects = relationship("Project", back_populates="board")
-    tasks = relationship("Task", back_populates="board")
-
-class Project(Base):
-    __tablename__ = "projects"
-
-    project_id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    notes = Column(Text)
-    goal = Column(Text)
-    board_id = Column(Integer, ForeignKey("boards.board_id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    board = relationship("Board", back_populates="projects")
-    phases = relationship("Phase", back_populates="project")
-    tasks = relationship("Task", back_populates="project")
-
-class Phase(Base):
-    __tablename__ = "phases"
-
-    phase_id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.project_id"))
-    name = Column(String, nullable=False)
-    deadline = Column(DateTime)
-
-    project = relationship("Project", back_populates="phases")
-    tasks = relationship("Task", back_populates="phase")
+from .database import Base
 
 class Task(Base):
     __tablename__ = "tasks"
 
     task_id = Column(Integer, primary_key=True, index=True)
     task_name = Column(String, nullable=False)
-    description = Column(Text)
-    due_date = Column(Date)  # store as YYYY-MM-DD in DB, expose as DDMMYYYY
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
-    status = Column(String)
-    priority = Column(String)
-    category = Column(String)
-    board_id = Column(Integer, ForeignKey("boards.board_id"))
-    project_id = Column(Integer, ForeignKey("projects.project_id"))
-    phase_id = Column(Integer, ForeignKey("phases.phase_id"))
-    parent_task_id = Column(Integer, ForeignKey("tasks.task_id"))
-    token_value = Column(Integer, default=0)
-    notes = Column(Text)
-    urgency_score = Column(Integer, default=0)
-    effort_level = Column(String)
+    description = Column(Text, nullable=True)
+    due_date = Column(Date, nullable=True)
+    start_date = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True)
+    status = Column(String, default="Todo")
+    priority = Column(String, default="Medium")
+    category = Column(String, nullable=True)
+
+    board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=True)
+    phase_id = Column(Integer, ForeignKey("phases.phase_id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("groups.group_id"), nullable=True)
+
+    parent_task_id = Column(Integer, ForeignKey("tasks.task_id"), nullable=True)
+    token_value = Column(Integer, nullable=True)
+    notes = Column(Text, nullable=True)
+    urgency_score = Column(Integer, nullable=True)
+    effort_level = Column(String, nullable=True)
+
+    archived = Column(Boolean, default=False)
+    pinned = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    board = relationship("Board", back_populates="tasks")
-    project = relationship("Project", back_populates="tasks")
-    phase = relationship("Phase", back_populates="tasks")
-    parent_task = relationship("Task", remote_side=[task_id])
-    attachments = relationship("Attachment", back_populates="task")
-    activities = relationship("TaskActivity", back_populates="task")
+# --- Boards ---
+class Board(Base):
+    __tablename__ = "boards"
 
-class Tag(Base):
-    __tablename__ = "tags"
-
-    tag_id = Column(Integer, primary_key=True, index=True)
+    board_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # 'project' or 'list'
+    category = Column(String, nullable=True)  # 'work', 'home', 'social'
+    color = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    pinned = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-class Reflection(Base):
-    __tablename__ = "reflections"
+# --- Groups ---
+class Group(Base):
+    __tablename__ = "groups"
 
-    reflection_id = Column(Integer, primary_key=True, index=True)
-    content = Column(Text, nullable=False)
-    mood = Column(String)
+    group_id = Column(Integer, primary_key=True, index=True)
+    board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=False)
+    name = Column(String, nullable=False)
+    sort_order = Column(Integer, default=0)
+
+# --- Items ---
+class Item(Base):
+    __tablename__ = "items"
+
+    item_id = Column(Integer, primary_key=True, index=True)
+    board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=False)
+    group_id = Column(Integer, ForeignKey("groups.group_id"), nullable=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=True)
+    category = Column(String, nullable=True)
+    pinned = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# --- Projects ---
+class Project(Base):
+    __tablename__ = "projects"
+
+    project_id = Column(Integer, primary_key=True, index=True)
+    board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=False)
+    name = Column(String, nullable=False)
+    goal = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    deadline = Column(Date, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-class Attachment(Base):
-    __tablename__ = "attachments"
+# --- Phases ---
+class Phase(Base):
+    __tablename__ = "phases"
 
-    attachment_id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.task_id"))
-    file_path = Column(String, nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
-
-    task = relationship("Task", back_populates="attachments")
-
-class TaskActivity(Base):
-    __tablename__ = "task_activity"
-
-    activity_id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("tasks.task_id"))
-    action = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-
-    task = relationship("Task", back_populates="activities")
+    phase_id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
+    name = Column(String, nullable=False)
+    deadline = Column(Date, nullable=True)
+    depends_on_previous = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
