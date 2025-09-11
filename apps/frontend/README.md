@@ -19,10 +19,15 @@ Located in `src/utils/taskUtils.ts`:
 - Fixed bug where tasks were showing with years like `1008` or `2508` due to loose parsing.
 - Normalization layer enforces correct formats.
 - Calendar and Task views now share the same utils for consistency.
+- **Duplicate tasks in Calendar**: originally caused by both Calendar and TaskDialog POSTing.
+  - Fixed by removing Calendar POSTs — only TaskDialog creates tasks.
+  - Added `submitting` guard to TaskDialog to block double submits.
 
 ### Debugging
 - To debug date issues: `console.log(task, normalizeTaskForApi(task))` before API call.
 - If tasks do not appear in **Calendar**, confirm `due_date` is valid ISO `YYYY-MM-DD`.
+- To debug duplicates: check frontend console for `[TaskDialog] POST payload` vs `[TabCalendar] POST payload`.
+- Backend logs also capture POST payloads for confirmation.
 
 ### Adding New Task Fields
 When extending tasks (e.g., adding priority, tags, etc.):
