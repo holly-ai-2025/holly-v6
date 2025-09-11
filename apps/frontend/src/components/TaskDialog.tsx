@@ -4,186 +4,149 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
-  Grid,
+  TextField,
   MenuItem,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
-import { createTask, updateTask } from "../api/tasks";
 
 interface TaskDialogProps {
   open: boolean;
+  task?: any;
   onClose: () => void;
   onSave: (task: any) => void;
-  task?: any;
-  onDelete?: (taskId: string) => void;
 }
 
-export default function TaskDialog({ open, onClose, onSave, task, onDelete }: TaskDialogProps) {
+const priorities = ["Low", "Medium", "High"];
+const statuses = ["Todo", "In Progress", "Done", "Pinned"];
+
+export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogProps) {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState<Dayjs | null>(dayjs());
-  const [startTime, setStartTime] = useState<Dayjs | null>(null);
-  const [endTime, setEndTime] = useState<Dayjs | null>(null);
+  const [dueDate, setDueDate] = useState<Dayjs | null>(null);
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [priority, setPriority] = useState("Medium");
   const [status, setStatus] = useState("Todo");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (task) {
       setTaskName(task.task_name || "");
       setDescription(task.description || "");
-      setDueDate(task.due_date ? dayjs(task.due_date) : dayjs());
-      setStartTime(task.start_date ? dayjs(task.start_date) : null);
-      setEndTime(task.end_date ? dayjs(task.end_date) : null);
+      setDueDate(task.due_date ? dayjs(task.due_date) : null);
+      setStartDate(task.start_date ? dayjs(task.start_date) : null);
+      setEndDate(task.end_date ? dayjs(task.end_date) : null);
       setPriority(task.priority || "Medium");
       setStatus(task.status || "Todo");
     } else {
       setTaskName("");
       setDescription("");
-      setDueDate(dayjs());
-      setStartTime(null);
-      setEndTime(null);
+      setDueDate(null);
+      setStartDate(null);
+      setEndDate(null);
       setPriority("Medium");
       setStatus("Todo");
     }
+    setSubmitting(false);
   }, [task, open]);
 
-  const toISODate = (d: Dayjs | null) => (d ? d.format("YYYY-MM-DD") : null);
-  const toISODateTime = (date: Dayjs | null, time: Dayjs | null) => {
-    if (!date || !time) return null;
-    return date.hour(time.hour()).minute(time.minute()).second(0).format();
-  };
-
   const handleSave = async () => {
-    if (!taskName.trim()) return;
+    if (submitting) {
+      console.warn("[TaskDialog] Prevented duplicate submit");
+      return;
+    }
+    setSubmitting(true);
 
     const payload: any = {
       task_name: taskName,
       description,
-      due_date: toISODate(dueDate),
-      start_date: toISODateTime(dueDate, startTime),
-      end_date: toISODateTime(dueDate, endTime),
+      due_date: dueDate ? dueDate.format("YYYY-MM-DD") : null,
+      start_date: startDate ? startDate.format("YYYY-MM-DDTHH:mm:ss") : null,
+      end_date: endDate ? endDate.format("YYYY-MM-DDTHH:mm:ss") : null,
       priority,
       status,
     };
 
-    console.log("[TaskDialog] Submitting payload", payload);
-
-    try {
-      let saved;
-      if (task?.task_id) {
-        saved = await updateTask(task.task_id, payload);
-      } else {
-        saved = await createTask(payload);
-      }
-      console.log("[TaskDialog] API response", saved);
-      onSave(saved);
-    } catch (err) {
-      console.error("[TaskDialog] Failed to save task", err);
+    if (task?.task_id) {
+      console.log("[TaskDialog] PATCH payload", payload);
+      onSave({ ...payload, task_id: task.task_id });
+    } else {
+      console.log("[TaskDialog] POST payload", payload);
+      onSave(payload);
     }
-  };
 
-  const handleDelete = async () => {
-    if (!task?.task_id) return;
-    try {
-      const res = await fetch(`http://localhost:8000/db/tasks/${task.task_id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        if (onDelete) onDelete(task.task_id);
-        onClose();
-      }
-    } catch (err) {
-      console.error("[TaskDialog] Failed to delete task", err);
-    }
+    setSubmitting(false);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
       <DialogContent>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              label="Task Name"
-              value={taskName}
-              onChange={(e) => setTaskName(e.target.value)}
-              fullWidth
-              required
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              fullWidth
-              multiline
-              minRows={3}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <DatePicker
-              label="Due Date"
-              value={dueDate}
-              onChange={(newDate) => setDueDate(newDate)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <TimePicker
-              label="Start Time"
-              value={startTime}
-              onChange={(newTime) => setStartTime(newTime)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-          <Grid item xs={6} sm={3}>
-            <TimePicker
-              label="End Time"
-              value={endTime}
-              onChange={(newTime) => setEndTime(newTime)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-          <Grid item xs={6} sm={6}>
-            <TextField
-              select
-              label="Priority"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="Tiny">Tiny</MenuItem>
-              <MenuItem value="Small">Small</MenuItem>
-              <MenuItem value="Medium">Medium</MenuItem>
-              <MenuItem value="Big">Big</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid item xs={6} sm={6}>
-            <TextField
-              select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="Todo">Todo</MenuItem>
-              <MenuItem value="In Progress">In Progress</MenuItem>
-              <MenuItem value="Done">Done</MenuItem>
-              <MenuItem value="Pinned">Pinned</MenuItem>
-            </TextField>
-          </Grid>
-        </Grid>
+        <TextField
+          margin="dense"
+          label="Task Name"
+          fullWidth
+          value={taskName}
+          onChange={(e) => setTaskName(e.target.value)}
+        />
+        <TextField
+          margin="dense"
+          label="Description"
+          fullWidth
+          multiline
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <DatePicker
+          label="Due Date"
+          value={dueDate}
+          onChange={(newValue) => setDueDate(newValue)}
+          slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
+        />
+        <TimePicker
+          label="Start Time"
+          value={startDate}
+          onChange={(newValue) => setStartDate(newValue)}
+          slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
+        />
+        <TimePicker
+          label="End Time"
+          value={endDate}
+          onChange={(newValue) => setEndDate(newValue)}
+          slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
+        />
+        <TextField
+          margin="dense"
+          label="Priority"
+          fullWidth
+          select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        >
+          {priorities.map((p) => (
+            <MenuItem key={p} value={p}>
+              {p}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          margin="dense"
+          label="Status"
+          fullWidth
+          select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          {statuses.map((s) => (
+            <MenuItem key={s} value={s}>
+              {s}
+            </MenuItem>
+          ))}
+        </TextField>
       </DialogContent>
       <DialogActions>
-        {task?.task_id && (
-          <Button onClick={handleDelete} color="error">
-            Delete
-          </Button>
-        )}
         <Button onClick={onClose}>Cancel</Button>
         <Button onClick={handleSave} variant="contained" color="primary">
           Save
