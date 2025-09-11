@@ -19,6 +19,7 @@ import {
   TextField,
 } from "@mui/material";
 import dayjs from "dayjs";
+import { getBoards, createBoard } from "../api/boards";
 
 interface Board {
   board_id: number;
@@ -41,19 +42,15 @@ const TabBoards: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBoard, setNewBoard] = useState<Partial<Board>>({ type: "project" });
 
-  const fetchBoards = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/boards`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setBoards(data);
-        else setBoards([]);
-      })
-      .catch((err) => {
-        console.error("[TabBoards] Failed to fetch boards", err);
-        setBoards([]);
-      });
+  const fetchBoards = async () => {
+    try {
+      const data = await getBoards();
+      if (Array.isArray(data)) setBoards(data);
+      else setBoards([]);
+    } catch (err) {
+      console.error("[TabBoards] Failed to fetch boards", err);
+      setBoards([]);
+    }
   };
 
   useEffect(() => {
@@ -63,15 +60,7 @@ const TabBoards: React.FC = () => {
   const handleCreateBoard = async () => {
     if (!newBoard.name || !newBoard.type) return;
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/boards`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(newBoard),
-      });
-      if (!res.ok) throw new Error("Failed to create board");
+      await createBoard(newBoard);
       setDialogOpen(false);
       setNewBoard({ type: "project" });
       fetchBoards();
