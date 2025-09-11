@@ -6,6 +6,7 @@ import { Box, Button, ButtonGroup, Typography, Stack, Card, Tooltip } from "@mui
 import { useRef, useState, useEffect } from "react";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
+import { getTasks, createTask, updateTask } from "../api/tasks";
 import "../styles/CalendarStyles.css";
 
 interface Task {
@@ -28,34 +29,6 @@ interface Task {
   updated_at?: string;
 }
 
-const allowedPatchFields = new Set([
-  "status",
-  "priority",
-  "due_date",
-  "start_date",
-  "end_date",
-  "project_id",
-  "phase_id",
-  "notes",
-  "description",
-  "token_value",
-  "urgency_score",
-  "effort_level",
-  "category",
-  "task_name",
-]);
-
-const allowedPostFields = new Set([...Array.from(allowedPatchFields)]);
-
-const toBackendStatus = (status?: string) => {
-  if (!status) return "Todo";
-  const s = status.toLowerCase();
-  if (s === "done") return "Done";
-  if (s === "in progress" || s === "in_progress") return "In Progress";
-  if (s === "pinned") return "Pinned";
-  return "Todo";
-};
-
 export default function TabCalendar() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [currentView, setCurrentView] = useState("dayGridMonth");
@@ -67,207 +40,51 @@ export default function TabCalendar() {
 
   const updateTitle = () => {
     const api = calendarRef.current?.getApi();
-    if (api) {
-      setTitle(api.view.title);
+    if (api) setTitle(api.view.title);
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const data = await getTasks();
+      setTasks(data);
+    } catch (err) {
+      console.error("[TabCalendar] Failed to fetch tasks", err);
     }
-  };
-
-  const handleViewChange = (view: string) => {
-    const api = calendarRef.current?.getApi();
-    api?.changeView(view);
-    setCurrentView(view);
-    updateTitle();
-  };
-
-  const handleToday = () => {
-    calendarRef.current?.getApi().today();
-    updateTitle();
-  };
-
-  const handlePrev = () => {
-    calendarRef.current?.getApi().prev();
-    updateTitle();
-  };
-
-  const handleNext = () => {
-    calendarRef.current?.getApi().next();
-    updateTitle();
-  };
-
-  const fetchTasks = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setTasks(
-            data.filter(
-              (v, i, a) => a.findIndex((t) => t.task_id === v.task_id) === i
-            )
-          );
-        }
-      })
-      .catch((err) => console.error("[TabCalendar] Failed to fetch tasks", err));
   };
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  const buildPayload = (updates: Partial<Task>, isNew = false): Record<string, any> => {
-    const allowed = isNew ? allowedPostFields : allowedPatchFields;
-    const payload: Record<string, any> = {};
-    Object.entries(updates).forEach(([key, value]) => {
-      if (allowed.has(key) && value !== null && value !== "") {
-        if (key === "status") {
-          payload[key] = toBackendStatus(value as string);
-        } else if (key === "due_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DD");
-        } else if (key === "start_date" || key === "end_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
-        } else {
-          payload[key] = value;
-        }
-      }
-    });
-    return payload;
-  };
-
-  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
-    if (!taskId) return;
-    const payload = buildPayload(updates);
-    if (Object.keys(payload).length === 0) return;
-
-    try {
-      console.log("[TabCalendar] PATCH payload", { taskId, payload });
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to update task");
-      fetchTasks();
-    } catch (err) {
-      console.error("[TabCalendar] Failed to update task", err);
-    }
-  };
-
-  const handleEventClick = (clickInfo: any) => {
-    const task = tasks.find((t) => String(t.task_id) === clickInfo.event.id);
-    if (task) {
-      setSelectedTask(task);
-      setIsNewTask(false);
-      setDialogOpen(true);
-    }
-  };
-
-  const handleEventDrop = (dropInfo: any) => {
-    const taskId = parseInt(dropInfo.event.id, 10);
-    const newStart = dropInfo.event.start;
-    const newEnd = dropInfo.event.end;
-    if (taskId && newStart) {
-      updateTask(taskId, {
-        start_date: dayjs(newStart).format("YYYY-MM-DDTHH:mm:ss"),
-        end_date: newEnd
-          ? dayjs(newEnd).format("YYYY-MM-DDTHH:mm:ss")
-          : dayjs(newStart).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
-        due_date: dayjs(newStart).format("YYYY-MM-DD"),
-      });
-    }
-  };
-
-  const handleEventResize = (resizeInfo: any) => {
-    const taskId = parseInt(resizeInfo.event.id, 10);
-    const newStart = resizeInfo.event.start;
-    const newEnd = resizeInfo.event.end;
-    if (taskId && newStart && newEnd) {
-      updateTask(taskId, {
-        start_date: dayjs(newStart).format("YYYY-MM-DDTHH:mm:ss"),
-        end_date: dayjs(newEnd).format("YYYY-MM-DDTHH:mm:ss"),
-        due_date: dayjs(newStart).format("YYYY-MM-DD"),
-      });
-    }
-  };
-
-  const handleDateSelect = (selectInfo: any) => {
-    setIsNewTask(true);
-    setSelectedTask({
-      task_name: "",
-      description: "",
-      due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
-      start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
-      end_date: selectInfo.end
-        ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
-        : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
-      status: "Todo",
-    } as Task);
-    setDialogOpen(true);
-    selectInfo.view.calendar.unselect(); // remove highlight, prevent ghost event
-  };
-
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
     setIsNewTask(false);
+    fetchTasks();
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
-    console.log("[TabCalendar] Dialog Save - isNewTask:", isNewTask, updates);
-    if (isNewTask) {
-      // TaskDialog handles POST, TabCalendar does not create directly
-      try {
-        const payload = buildPayload(updates, true);
-        console.log("[TabCalendar] POST payload", payload);
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-          },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error("Failed to create task");
-        fetchTasks();
-      } catch (err) {
-        console.error("[TabCalendar] Failed to create task", err);
+    try {
+      if (isNewTask) {
+        await createTask(updates);
+      } else if (selectedTask?.task_id) {
+        await updateTask(selectedTask.task_id, updates);
       }
-    } else if (selectedTask?.task_id) {
-      await updateTask(selectedTask.task_id, updates);
+    } catch (err) {
+      console.error("[TabCalendar] Failed to save task", err);
+    } finally {
+      handleDialogClose();
     }
-    handleDialogClose();
   };
 
-  const events = tasks
-    .filter((t) => t.due_date || t.start_date)
-    .sort((a, b) => {
-      const aTime = a.start_date ? dayjs(a.start_date).valueOf() : 0;
-      const bTime = b.start_date ? dayjs(b.start_date).valueOf() : 0;
-      return aTime - bTime;
-    })
-    .map((t) => {
-      if (t.start_date && t.end_date) {
-        return {
-          id: String(t.task_id),
-          title: t.task_name || "Untitled",
-          start: t.start_date,
-          end: t.end_date,
-          allDay: false,
-          extendedProps: { status: t.status, description: t.description },
-        };
-      } else {
-        return {
-          id: String(t.task_id),
-          title: t.task_name || "Untitled",
-          start: t.due_date || undefined,
-          allDay: true,
-          extendedProps: { status: t.status, description: t.description },
-        };
-      }
-    });
+  const events = tasks.map((t) => ({
+    id: String(t.task_id),
+    title: t.task_name || "Untitled",
+    start: t.start_date || t.due_date || undefined,
+    end: t.end_date || undefined,
+    allDay: !t.start_date,
+    extendedProps: { status: t.status, description: t.description },
+  }));
 
   const eventClassNames = (arg: any) => {
     const status = arg.event.extendedProps.status;
@@ -278,63 +95,29 @@ export default function TabCalendar() {
   };
 
   const eventContent = (arg: any) => {
-    const { title, start, end } = arg.event;
-    const timeRange = start && end ? `${dayjs(start).format("HH:mm")} – ${dayjs(end).format("HH:mm")}` : "";
+    const { title } = arg.event;
     return (
-      <Tooltip title={<><b>{title}</b>{timeRange && <><br />{timeRange}</>}<br />{arg.event.extendedProps.description || "No description"}</>} arrow>
-        <span>{title}{timeRange ? ` ${timeRange}` : ""}</span>
+      <Tooltip title={<><b>{title}</b><br />{arg.event.extendedProps.description || "No description"}</>} arrow>
+        <span>{title}</span>
       </Tooltip>
     );
   };
 
   return (
     <Box p={3} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <Card
-        sx={{
-          borderRadius: 4,
-          boxShadow: 2,
-          p: 2,
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          height: "calc(90vh - 64px)",
-        }}
-      >
+      <Card sx={{ borderRadius: 4, boxShadow: 2, p: 2, flex: 1, display: "flex", flexDirection: "column", height: "calc(90vh - 64px)" }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
-          <Typography variant="h6" fontWeight="bold">
-            {title}
-          </Typography>
+          <Typography variant="h6" fontWeight="bold">{title}</Typography>
           <Stack direction="row" spacing={2} alignItems="center">
             <ButtonGroup variant="outlined">
-              <Button
-                onClick={() => handleViewChange("timeGridDay")}
-                variant={currentView === "timeGridDay" ? "contained" : "outlined"}
-              >
-                Day
-              </Button>
-              <Button
-                onClick={() => handleViewChange("timeGridWeek")}
-                variant={currentView === "timeGridWeek" ? "contained" : "outlined"}
-              >
-                Week
-              </Button>
-              <Button
-                onClick={() => handleViewChange("dayGridMonth")}
-                variant={currentView === "dayGridMonth" ? "contained" : "outlined"}
-              >
-                Month
-              </Button>
+              <Button onClick={() => setCurrentView("timeGridDay")} variant={currentView === "timeGridDay" ? "contained" : "outlined"}>Day</Button>
+              <Button onClick={() => setCurrentView("timeGridWeek")} variant={currentView === "timeGridWeek" ? "contained" : "outlined"}>Week</Button>
+              <Button onClick={() => setCurrentView("dayGridMonth")} variant={currentView === "dayGridMonth" ? "contained" : "outlined"}>Month</Button>
             </ButtonGroup>
-            <Button onClick={handleToday}>Today</Button>
-            <Button onClick={handlePrev}>{"<"}</Button>
-            <Button onClick={handleNext}>{">"}</Button>
-            <Button variant="contained" onClick={() => {
-              setIsNewTask(true);
-              setSelectedTask({ task_name: "", description: "", due_date: null, start_date: null, end_date: null, status: "Todo" } as Task);
-              setDialogOpen(true);
-            }}>
-              + New Task
-            </Button>
+            <Button onClick={() => calendarRef.current?.getApi().today()}>Today</Button>
+            <Button onClick={() => calendarRef.current?.getApi().prev()}>{"<"}</Button>
+            <Button onClick={() => calendarRef.current?.getApi().next()}>{">"}</Button>
+            <Button variant="contained" onClick={() => { setIsNewTask(true); setSelectedTask({ task_name: "", status: "Todo" }); setDialogOpen(true); }}>+ New Task</Button>
           </Stack>
         </Stack>
 
@@ -351,13 +134,8 @@ export default function TabCalendar() {
             selectable={true}
             selectMirror={true}
             eventResizableFromStart={true}
-            select={handleDateSelect}
-            slotMinTime="06:00:00"
             events={events}
             datesSet={updateTitle}
-            eventClick={handleEventClick}
-            eventDrop={handleEventDrop}
-            eventResize={handleEventResize}
             eventClassNames={eventClassNames}
             eventContent={eventContent}
           />
