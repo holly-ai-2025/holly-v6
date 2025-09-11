@@ -29,6 +29,39 @@ interface Task {
   updated_at?: string;
 }
 
+const allowedPatchFields = new Set([
+  "status",
+  "priority",
+  "due_date",
+  "start_date",
+  "end_date",
+  "project_id",
+  "phase_id",
+  "notes",
+  "description",
+  "token_value",
+  "urgency_score",
+  "effort_level",
+  "category",
+  "task_name",
+]);
+
+const buildPayload = (updates: Partial<Task>): Record<string, any> => {
+  const payload: Record<string, any> = {};
+  Object.entries(updates).forEach(([key, value]) => {
+    if (allowedPatchFields.has(key) && value !== null && value !== "") {
+      if (key === "due_date") {
+        payload[key] = dayjs(value).format("YYYY-MM-DD");
+      } else if (key === "start_date" || key === "end_date") {
+        payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
+      } else {
+        payload[key] = value;
+      }
+    }
+  });
+  return payload;
+};
+
 export default function TabCalendar() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [currentView, setCurrentView] = useState("dayGridMonth");
@@ -68,12 +101,40 @@ export default function TabCalendar() {
       if (isNewTask) {
         await createTask(updates);
       } else if (selectedTask?.task_id) {
-        await updateTask(selectedTask.task_id, updates);
+        const payload = buildPayload(updates);
+        await updateTask(selectedTask.task_id, payload);
       }
     } catch (err) {
       console.error("[TabCalendar] Failed to save task", err);
     } finally {
       handleDialogClose();
+    }
+  };
+
+  const handleEventDrop = async (info: any) => {
+    const taskId = parseInt(info.event.id);
+    const updates: Partial<Task> = {
+      start_date: info.event.start ? dayjs(info.event.start).toISOString() : null,
+      end_date: info.event.end ? dayjs(info.event.end).toISOString() : null,
+    };
+    try {
+      await updateTask(taskId, buildPayload(updates));
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabCalendar] Failed to update task on drop", err);
+    }
+  };
+
+  const handleEventResize = async (info: any) => {
+    const taskId = parseInt(info.event.id);
+    const updates: Partial<Task> = {
+      end_date: info.event.end ? dayjs(info.event.end).toISOString() : null,
+    };
+    try {
+      await updateTask(taskId, buildPayload(updates));
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabCalendar] Failed to update task on resize", err);
     }
   };
 
@@ -103,6 +164,11 @@ export default function TabCalendar() {
     );
   };
 
+  const handleViewChange = (view: string) => {
+    setCurrentView(view);
+    calendarRef.current?.getApi().changeView(view);
+  };
+
   return (
     <Box p={3} sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <Card sx={{ borderRadius: 4, boxShadow: 2, p: 2, flex: 1, display: "flex", flexDirection: "column", height: "calc(90vh - 64px)" }}>
@@ -110,9 +176,9 @@ export default function TabCalendar() {
           <Typography variant="h6" fontWeight="bold">{title}</Typography>
           <Stack direction="row" spacing={2} alignItems="center">
             <ButtonGroup variant="outlined">
-              <Button onClick={() => setCurrentView("timeGridDay")} variant={currentView === "timeGridDay" ? "contained" : "outlined"}>Day</Button>
-              <Button onClick={() => setCurrentView("timeGridWeek")} variant={currentView === "timeGridWeek" ? "contained" : "outlined"}>Week</Button>
-              <Button onClick={() => setCurrentView("dayGridMonth")} variant={currentView === "dayGridMonth" ? "contained" : "outlined"}>Month</Button>
+              <Button onClick={() => handleViewChange("timeGridDay")} variant={currentView === "timeGridDay" ? "contained" : "outlined"}>Day</Button>
+              <Button onClick={() => handleViewChange("timeGridWeek")} variant={currentView === "timeGridWeek" ? "contained" : "outlined"}>Week</Button>
+              <Button onClick={() => handleViewChange("dayGridMonth")} variant={currentView === "dayGridMonth" ? "contained" : "outlined"}>Month</Button>
             </ButtonGroup>
             <Button onClick={() => calendarRef.current?.getApi().today()}>Today</Button>
             <Button onClick={() => calendarRef.current?.getApi().prev()}>{"<"}</Button>
@@ -138,6 +204,8 @@ export default function TabCalendar() {
             datesSet={updateTitle}
             eventClassNames={eventClassNames}
             eventContent={eventContent}
+            eventDrop={handleEventDrop}
+            eventResize={handleEventResize}
           />
         </Box>
       </Card>
