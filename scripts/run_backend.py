@@ -9,7 +9,7 @@ from apps.backend.main import app
 
 if __name__ == "__main__":
     config = Config()
-    config.bind = ["127.0.0.1:8000"]
+    config.bind = ["0.0.0.0:8000"]  # Bind to all network interfaces, not just localhost
     config.workers = 1
     config.loglevel = "debug"
     config.use_reloader = False  # Disable autoreloader completely
