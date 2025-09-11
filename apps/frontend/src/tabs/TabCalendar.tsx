@@ -140,6 +140,7 @@ export default function TabCalendar() {
     if (Object.keys(payload).length === 0) return;
 
     try {
+      console.log("[TabCalendar] PATCH payload", { taskId, payload });
       const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
         method: "PATCH",
         headers: {
@@ -152,24 +153,6 @@ export default function TabCalendar() {
       fetchTasks();
     } catch (err) {
       console.error("[TabCalendar] Failed to update task", err);
-    }
-  };
-
-  const createTask = async (newTask: Partial<Task>) => {
-    const payload = buildPayload(newTask, true);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create task");
-      fetchTasks();
-    } catch (err) {
-      console.error("[TabCalendar] Failed to create task", err);
     }
   };
 
@@ -233,8 +216,25 @@ export default function TabCalendar() {
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
+    console.log("[TabCalendar] Dialog Save - isNewTask:", isNewTask, updates);
     if (isNewTask) {
-      await createTask(updates);
+      // TaskDialog handles POST, TabCalendar does not create directly
+      try {
+        const payload = buildPayload(updates, true);
+        console.log("[TabCalendar] POST payload", payload);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Failed to create task");
+        fetchTasks();
+      } catch (err) {
+        console.error("[TabCalendar] Failed to create task", err);
+      }
     } else if (selectedTask?.task_id) {
       await updateTask(selectedTask.task_id, updates);
     }
