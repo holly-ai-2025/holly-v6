@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
+import { createTask, updateTask } from "../api/tasks";
 
 interface TaskDialogProps {
   open: boolean;
@@ -69,15 +70,22 @@ export default function TaskDialog({ open, task, onClose, onSave }: TaskDialogPr
       status,
     };
 
-    if (task?.task_id) {
-      console.log("[TaskDialog] PATCH payload", payload);
-      onSave({ ...payload, task_id: task.task_id });
-    } else {
-      console.log("[TaskDialog] POST payload", payload);
-      onSave(payload);
+    try {
+      if (task?.task_id) {
+        console.log("[TaskDialog] PATCH payload", payload);
+        await updateTask(task.task_id, payload);
+        onSave({ ...payload, task_id: task.task_id });
+      } else {
+        console.log("[TaskDialog] POST payload", payload);
+        const created = await createTask(payload);
+        onSave(created);
+      }
+    } catch (err) {
+      console.error("[TaskDialog] Failed to save task", err);
+    } finally {
+      setSubmitting(false);
+      onClose();
     }
-
-    setSubmitting(false);
   };
 
   return (
