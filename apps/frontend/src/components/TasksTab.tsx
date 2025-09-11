@@ -1,48 +1,66 @@
 import React from "react";
 import { useTaskStore } from "../store/useTaskStore";
+import { updateTask } from "../api/tasks";
+import { parseToDate } from "../utils/taskUtils";
 
 export default function TasksTab() {
-  const { groupedTasks, updateTask } = useTaskStore();
+  const { tasks, setTasks } = useTaskStore();
+
+  const handleUpdate = async (id: string, updates: Partial<any>) => {
+    try {
+      const updated = await updateTask(id, updates);
+      setTasks(tasks.map((t) => (t.task_id === id ? updated : t)));
+    } catch (err) {
+      console.error("[TasksTab] Failed to update task", err);
+    }
+  };
+
+  const today = new Date();
+  const overdue = tasks.filter((t) => {
+    const d = parseToDate(t.due_date);
+    return d && d < today;
+  });
+  const todayTasks = tasks.filter((t) => {
+    const d = parseToDate(t.due_date);
+    return d && d.toDateString() === today.toDateString();
+  });
+  const later = tasks.filter((t) => {
+    const d = parseToDate(t.due_date);
+    return d && d > today;
+  });
 
   return (
     <div className="space-y-6">
-      {Object.entries(groupedTasks).map(([group, tasks]) => (
-        <div key={group} className="space-y-2">
-          <div className="flex items-center space-x-2 font-semibold text-lg">
-            <span>{group}</span>
-            <button className="ml-2 text-gray-500">▾</button>
-          </div>
-          <div className="space-y-1">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-md shadow-sm ${
-                  task.color || "bg-white"
-                }`}
-              >
-                <span>{task.title}</span>
-                <div className="flex items-center space-x-2">
-                  <select
-                    value={task.status}
-                    onChange={(e) => updateTask(task.id, { status: e.target.value })}
-                    className="border rounded px-1 py-0.5 text-sm"
-                  >
-                    <option value="Todo">Todo</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                  </select>
-                  <input
-                    type="date"
-                    value={task.due}
-                    onChange={(e) => updateTask(task.id, { due: e.target.value })}
-                    className="border rounded px-1 py-0.5 text-sm"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+      {overdue.length > 0 && (
+        <div>
+          <h3 className="font-bold mb-2">Overdue</h3>
+          {overdue.map((task) => (
+            <div key={task.task_id} className="bg-red-100 p-2 rounded-md">
+              {task.task_name} – {task.due_date}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+      {todayTasks.length > 0 && (
+        <div>
+          <h3 className="font-bold mb-2">Today</h3>
+          {todayTasks.map((task) => (
+            <div key={task.task_id} className="bg-green-100 p-2 rounded-md">
+              {task.task_name} – {task.due_date}
+            </div>
+          ))}
+        </div>
+      )}
+      {later.length > 0 && (
+        <div>
+          <h3 className="font-bold mb-2">Later</h3>
+          {later.map((task) => (
+            <div key={task.task_id} className="bg-blue-100 p-2 rounded-md">
+              {task.task_name} – {task.due_date}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

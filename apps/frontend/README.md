@@ -1,56 +1,48 @@
-# Frontend (Holly AI v6)
+# Holly v6 Frontend
 
-## Overview
-The frontend now supports **time-based tasks** integrated into both the task list and calendar views.
+## Task & Calendar System
 
----
+### Date Handling
+We use **Day.js** with strict parsing for all date/time operations. 
+Custom helpers live in `src/utils/dateUtils.ts`:
+- `parseDateSafe(dateStr)` → safely parses API or UI date strings, defaults to today if invalid.
+- `formatForApi(date)` → converts a date to ISO `YYYY-MM-DD`.
+- `formatDateTimeForApi(date)` → converts a datetime to `YYYY-MM-DDTHH:mm:ss`.
 
-## 🎨 TaskDialog.tsx
-- Added **Start Date, Start Time, and End Time** pickers.
-- Serializes dates/times correctly for backend:
-  - `due_date` → `YYYY-MM-DD`
-  - `start_date` / `end_date` → `YYYY-MM-DDTHH:mm:ss`
-- Ensures task name is required.
+### Task Normalization
+Located in `src/utils/taskUtils.ts`:
+- `normalizeTaskForApi(task)` ensures all tasks are serialized consistently before API calls.
+- Dates are always sent as ISO (for `due_date`) or ISO datetime (for `start_date` / `end_date`).
+- The frontend **never** generates random years — invalid or missing dates are replaced with today.
 
----
+### Known Fixes
+- Fixed bug where tasks were showing with years like `1008` or `2508` due to loose parsing.
+- Normalization layer enforces correct formats.
+- Calendar and Task views now share the same utils for consistency.
+- **Duplicate tasks in Calendar**: originally caused by both Calendar and TaskDialog POSTing.
+  - Fixed by removing Calendar POSTs — only TaskDialog creates tasks.
+  - Added `submitting` guard to TaskDialog to block double submits.
 
-## 📋 TabTasks.tsx
-- Shows times inline with task title in grey font (e.g. `Doctor appointment 16:00 – 17:30`).
-- Payload builder strips null/empty fields.
-- Debug logs added for PATCH/POST payloads.
+### Debugging
+- To debug date issues: `console.log(task, normalizeTaskForApi(task))` before API call.
+- If tasks do not appear in **Calendar**, confirm `due_date` is valid ISO `YYYY-MM-DD`.
+- To debug duplicates: check frontend console for `[TaskDialog] POST payload` vs `[TabCalendar] POST payload`.
+- Backend logs also capture POST payloads for confirmation.
 
----
+### Adding New Task Fields
+When extending tasks (e.g., adding priority, tags, etc.):
+1. Update **backend**:
+   - `models.py` → Add DB field.
+   - `schemas.py` → Add field in `TaskBase` + validators if needed.
+   - `main.py` → Ensure field is included in POST/PATCH routes.
+2. Update **frontend**:
+   - `src/api/tasks.ts` → Ensure payload includes new field.
+   - `src/utils/taskUtils.ts` → Normalize new field if it’s a date or structured type.
+   - `TaskDialog.tsx` → Add input field.
+   - `TabTasks.tsx` / `TabCalendar.tsx` → Display field where relevant.
 
-## 📅 TabCalendar.tsx
-- Full integration with FullCalendar:
-  - **Day/Week views**: timed tasks placed in correct slots.
-  - **Month view**: tasks ordered by time, untimed at top as all-day.
-  - **Drag-to-create**: passes selected times into TaskDialog.
-  - **Drag all-day → timed slot**: assigns proper `start_date`/`end_date`.
-  - **Drag/resize**: updates DB correctly.
-- Tooltip fix: `<span>` wrapper avoids MUI ref error.
-- Event coloring based on task status.
-
----
-
-## 🎨 CalendarStyles.css
-- Custom styles for FullCalendar events based on task status:
-  - `Todo`
-  - `In Progress`
-  - `Done`
-  - `Pinned`
-
----
-
-## ⚠️ Problems & Fixes
-- `.toISOString()` rejected by backend → fixed with `dayjs().format("YYYY-MM-DDTHH:mm:ss")`.
-- Missing end times in Day/Week views → fixed with fallback `end_date = start_date + 1h`.
-- Drag-to-create not setting times → fixed by passing times into TaskDialog.
-- Dragging all-day tasks not updating → fixed by enforcing `start_date`/`end_date` in `eventDrop`.
-- Resize support added via `eventResizableFromStart` + `eventResize` handler.
-- Tooltip ref errors fixed with `<span>` wrapper.
-
----
-
-## 📝 Summary
-The frontend now provides **seamless drag, drop, and resize task scheduling** across tasks and calendar views, synchronized with backend.
+### Logs
+Frontend logs are captured in `logs/frontend-console.log` via `scripts/log_server.js`. Always tail logs when testing changes:
+```bash
+tail -f logs/frontend-console.log
+```

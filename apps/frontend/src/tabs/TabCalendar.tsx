@@ -64,7 +64,6 @@ export default function TabCalendar() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isNewTask, setIsNewTask] = useState(false);
-  const [defaultDate, setDefaultDate] = useState<string | null>(null);
 
   const updateTitle = () => {
     const api = calendarRef.current?.getApi();
@@ -102,7 +101,11 @@ export default function TabCalendar() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
-          setTasks(data);
+          setTasks(
+            data.filter(
+              (v, i, a) => a.findIndex((t) => t.task_id === v.task_id) === i
+            )
+          );
         }
       })
       .catch((err) => console.error("[TabCalendar] Failed to fetch tasks", err));
@@ -137,6 +140,7 @@ export default function TabCalendar() {
     if (Object.keys(payload).length === 0) return;
 
     try {
+      console.log("[TabCalendar] PATCH payload", { taskId, payload });
       const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
         method: "PATCH",
         headers: {
@@ -149,24 +153,6 @@ export default function TabCalendar() {
       fetchTasks();
     } catch (err) {
       console.error("[TabCalendar] Failed to update task", err);
-    }
-  };
-
-  const createTask = async (newTask: Partial<Task>) => {
-    const payload = buildPayload(newTask, true);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create task");
-      fetchTasks();
-    } catch (err) {
-      console.error("[TabCalendar] Failed to create task", err);
     }
   };
 
@@ -209,35 +195,52 @@ export default function TabCalendar() {
 
   const handleDateSelect = (selectInfo: any) => {
     setIsNewTask(true);
-    setDefaultDate(selectInfo.startStr);
     setSelectedTask({
+      task_name: "",
+      description: "",
       due_date: dayjs(selectInfo.start).format("YYYY-MM-DD"),
       start_date: dayjs(selectInfo.start).format("YYYY-MM-DDTHH:mm:ss"),
       end_date: selectInfo.end
         ? dayjs(selectInfo.end).format("YYYY-MM-DDTHH:mm:ss")
         : dayjs(selectInfo.start).add(1, "hour").format("YYYY-MM-DDTHH:mm:ss"),
+      status: "Todo",
     } as Task);
     setDialogOpen(true);
+    selectInfo.view.calendar.unselect(); // remove highlight, prevent ghost event
   };
 
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
     setIsNewTask(false);
-    setDefaultDate(null);
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
+    console.log("[TabCalendar] Dialog Save - isNewTask:", isNewTask, updates);
     if (isNewTask) {
-      const taskWithDate = { ...updates, due_date: updates.due_date || defaultDate };
-      await createTask(taskWithDate);
-    } else if (selectedTask && selectedTask.task_id) {
+      // TaskDialog handles POST, TabCalendar does not create directly
+      try {
+        const payload = buildPayload(updates, true);
+        console.log("[TabCalendar] POST payload", payload);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Failed to create task");
+        fetchTasks();
+      } catch (err) {
+        console.error("[TabCalendar] Failed to create task", err);
+      }
+    } else if (selectedTask?.task_id) {
       await updateTask(selectedTask.task_id, updates);
     }
     handleDialogClose();
   };
 
-  // Build FullCalendar events
   const events = tasks
     .filter((t) => t.due_date || t.start_date)
     .sort((a, b) => {
@@ -297,7 +300,6 @@ export default function TabCalendar() {
           height: "calc(90vh - 64px)",
         }}
       >
-        {/* Custom Toolbar */}
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
           <Typography variant="h6" fontWeight="bold">
             {title}
@@ -326,13 +328,16 @@ export default function TabCalendar() {
             <Button onClick={handleToday}>Today</Button>
             <Button onClick={handlePrev}>{"<"}</Button>
             <Button onClick={handleNext}>{">"}</Button>
-            <Button variant="contained" onClick={() => { setIsNewTask(true); setDialogOpen(true); }}>
+            <Button variant="contained" onClick={() => {
+              setIsNewTask(true);
+              setSelectedTask({ task_name: "", description: "", due_date: null, start_date: null, end_date: null, status: "Todo" } as Task);
+              setDialogOpen(true);
+            }}>
               + New Task
             </Button>
           </Stack>
         </Stack>
 
-        {/* FullCalendar */}
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <FullCalendar
             ref={calendarRef}
@@ -361,7 +366,7 @@ export default function TabCalendar() {
 
       <TaskDialog
         open={dialogOpen}
-        task={isNewTask ? (selectedTask as Task) : selectedTask}
+        task={selectedTask || undefined}
         onClose={handleDialogClose}
         onSave={handleDialogSave}
       />

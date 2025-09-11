@@ -100,11 +100,6 @@ const allowedPatchFields = new Set([
   "category",
 ]);
 
-const allowedPostFields = new Set([
-  ...Array.from(allowedPatchFields),
-  "task_name",
-]);
-
 const groupTasksByDate = (tasks: Task[]): TaskGroups => {
   const groups: TaskGroups = {
     Overdue: [],
@@ -191,12 +186,12 @@ const TabTasks: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const buildPayload = (updates: Partial<Task>, isNew: boolean): Record<string, any> => {
-    const allowed = isNew ? allowedPostFields : allowedPatchFields;
-    const payload: Record<string, any> = {};
+  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
+    if (!taskId) return;
 
+    const payload: Record<string, any> = {};
     Object.entries(updates).forEach(([key, value]) => {
-      if (allowed.has(key) && value !== null && value !== "") {
+      if (allowedPatchFields.has(key) && value !== null && value !== "") {
         if (key === "status") {
           payload[key] = toBackendStatus(value as string);
         } else if (key === "due_date") {
@@ -217,15 +212,7 @@ const TabTasks: React.FC = () => {
       }
     });
 
-    return payload;
-  };
-
-  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
-    if (!taskId) return;
-
-    const payload = buildPayload(updates, false);
     if (Object.keys(payload).length === 0) return;
-
     console.debug("[TabTasks] PATCH payload", payload);
 
     try {
@@ -244,25 +231,6 @@ const TabTasks: React.FC = () => {
     }
   };
 
-  const createTask = async (newTask: Partial<Task>) => {
-    const payload = buildPayload(newTask, true);
-    console.debug("[TabTasks] POST payload", payload);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create task");
-      fetchTasks();
-    } catch (err) {
-      console.error("[TabTasks] Failed to create task", err);
-    }
-  };
-
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setDialogOpen(true);
@@ -271,13 +239,12 @@ const TabTasks: React.FC = () => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
+    fetchTasks(); // ✅ Just refetch tasks after dialog closes
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
     if (selectedTask && selectedTask.task_id) {
       await updateTask(selectedTask.task_id, updates);
-    } else {
-      await createTask(updates);
     }
     handleDialogClose();
   };
