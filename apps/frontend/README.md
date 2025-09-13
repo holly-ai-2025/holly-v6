@@ -1,48 +1,121 @@
-# Holly v6 Frontend
+# Frontend (React + Vite + MUI)
 
-## Task & Calendar System
+## Overview
+The frontend is a React app using Vite, Material UI (MUI), and FullCalendar. It communicates with the backend via API wrapper functions in `src/api/`.
 
-### Date Handling
-We use **Day.js** with strict parsing for all date/time operations. 
-Custom helpers live in `src/utils/dateUtils.ts`:
-- `parseDateSafe(dateStr)` → safely parses API or UI date strings, defaults to today if invalid.
-- `formatForApi(date)` → converts a date to ISO `YYYY-MM-DD`.
-- `formatDateTimeForApi(date)` → converts a datetime to `YYYY-MM-DDTHH:mm:ss`.
+---
 
-### Task Normalization
-Located in `src/utils/taskUtils.ts`:
-- `normalizeTaskForApi(task)` ensures all tasks are serialized consistently before API calls.
-- Dates are always sent as ISO (for `due_date`) or ISO datetime (for `start_date` / `end_date`).
-- The frontend **never** generates random years — invalid or missing dates are replaced with today.
+## API Usage Rules
 
-### Known Fixes
-- Fixed bug where tasks were showing with years like `1008` or `2508` due to loose parsing.
-- Normalization layer enforces correct formats.
-- Calendar and Task views now share the same utils for consistency.
-- **Duplicate tasks in Calendar**: originally caused by both Calendar and TaskDialog POSTing.
-  - Fixed by removing Calendar POSTs — only TaskDialog creates tasks.
-  - Added `submitting` guard to TaskDialog to block double submits.
+⚠️ **Golden Rule:** Components must **never call backend endpoints directly**. All API calls must flow through the wrapper files in `src/api/`. These wrappers are the **source of truth** for frontend–backend communication.
 
-### Debugging
-- To debug date issues: `console.log(task, normalizeTaskForApi(task))` before API call.
-- If tasks do not appear in **Calendar**, confirm `due_date` is valid ISO `YYYY-MM-DD`.
-- To debug duplicates: check frontend console for `[TaskDialog] POST payload` vs `[TabCalendar] POST payload`.
-- Backend logs also capture POST payloads for confirmation.
+### Wrapper Architecture
+- Each entity has its own wrapper: `tasks.ts`, `items.ts`, `projects.ts`, `phases.ts`, `groups.ts`, `boards.ts`.
+- Wrappers always expose a consistent set of functions:
+  - `get<Entity>()`
+  - `create<Entity>(payload)`
+  - `update<Entity>(id, payload)`
+  - `delete<Entity>(id)`
+- Wrappers normalize backend data before returning to components:
+  - All returned objects include both the backend’s `*_id` (e.g. `task_id`) **and** a normalized `id` field.
+  - All fields are standardized into **camelCase** for frontend use.
+  - Example: `{ task_id: 42, id: 42, taskName: "Example", dueDate: "2025-09-13" }`
+- Each wrapper defines a **TypeScript interface** (e.g. `Task`, `Item`) that all components must use. This ensures consistent field names across the app.
+- Components must **always use camelCase field names** and `.id`.
 
-### Adding New Task Fields
-When extending tasks (e.g., adding priority, tags, etc.):
-1. Update **backend**:
-   - `models.py` → Add DB field.
-   - `schemas.py` → Add field in `TaskBase` + validators if needed.
-   - `main.py` → Ensure field is included in POST/PATCH routes.
-2. Update **frontend**:
-   - `src/api/tasks.ts` → Ensure payload includes new field.
-   - `src/utils/taskUtils.ts` → Normalize new field if it’s a date or structured type.
-   - `TaskDialog.tsx` → Add input field.
-   - `TabTasks.tsx` / `TabCalendar.tsx` → Display field where relevant.
+### Multi-Entity Pages
+Some content pages need to query multiple tables (e.g. Projects + Tasks + Phases). That’s expected, but the rule still applies:
+- Import only from the relevant wrappers.
+- Never hardcode `/db/...` calls in components.
+- Always consume normalized objects with TypeScript interfaces.
+- Example:
+  ```ts
+  import { getProjects } from "../api/projects";
+  import { getTasks } from "../api/tasks";
+  import { getPhases } from "../api/phases";
 
-### Logs
-Frontend logs are captured in `logs/frontend-console.log` via `scripts/log_server.js`. Always tail logs when testing changes:
+  export async function loadDashboard() {
+    const projects = await getProjects();
+    const tasks = await getTasks();
+    const phases = await getPhases();
+    return { projects, tasks, phases };
+  }
+  ```
+
+This guarantees that all content pages use a **single consistent integration style**.
+
+---
+
+## Task Fields
+Tasks returned by backend include (after normalization):
+- `id` (normalized from `task_id`)
+- `taskId` (raw backend ID, kept for backend references)
+- `name` (task_name)
+- `description`
+- `dueDate`
+- `startDate`
+- `endDate`
+- `status`
+- `priority`
+- `category`
+- `tokenValue`
+- `urgencyScore`
+- `effortLevel`
+- `boardId`, `groupId`, `projectId`, `phaseId`
+- `archived`
+- `pinned`
+
+---
+
+## Components
+- **TaskDialog**
+  - Handles task create/edit/delete.
+  - Parent decides whether to POST (new) or PATCH (update).
+  - Delete button only shown for existing tasks.
+  - Defaults: `tokenValue = 5`, `priority = Medium`, `dueDate = blank`.
+
+- **TabTasks**
+  - Uses `getTasks` to list tasks.
+  - Uses `updateTask` when saving edits.
+
+- **TabCalendar**
+  - Uses FullCalendar for drag/create/edit.
+  - Only Calendar persists tasks → avoids duplicate saves.
+  - Maps `status → className` for color coding.
+  - Requires each task to include `.id` (from wrapper normalization).
+
+---
+
+## Development
+Run frontend with:
 ```bash
-tail -f logs/frontend-console.log
+scripts/start-dev.sh
 ```
+
+Logs:
+- `logs/frontend-console.log` → browser console output
+
+---
+
+## Adding New Fields (Frontend Workflow)
+When backend adds a new field:
+1. Update API wrapper type definitions (`api/<entity>.ts`).
+   - Add the field to the **TypeScript interface**.
+   - Normalize field names into **camelCase**.
+2. Update normalization functions in the wrapper.
+3. Update components (e.g. TaskDialog) to show/edit the field.
+4. Add sensible defaults for new fields (avoid breaking existing forms).
+5. Update this README to document the new field.
+
+---
+
+## Adding New Entities (Frontend Workflow)
+When backend introduces a new table/entity:
+1. Create a new wrapper in `src/api/<entity>.ts`.
+   - Implement `get<Entity>, create<Entity>, update<Entity>, delete<Entity>`.
+   - Normalize `*_id → id`.
+   - Define a TypeScript interface for the entity.
+   - Normalize all field names to **camelCase**.
+2. Import wrapper functions into new content pages.
+3. Components must always reference `.id` and camelCase field names for consistency.
+4. Update this README to document the entity and its fields.

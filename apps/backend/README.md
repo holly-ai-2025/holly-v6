@@ -1,103 +1,145 @@
-# Holly v6 Backend
+# Backend (FastAPI)
 
-## Database & Task API
-
-### Database Setup
-- SQLite DB (file-based): `infra/data/holly.db`
-- ORM: SQLAlchemy models in `apps/backend/models.py`
-- Pydantic schemas in `apps/backend/schemas.py`
-- Session factory in `apps/backend/database.py`
-
-### Resetting the Database (Dev Workflow)
-⚠️ SQLite is file-based — schema changes do **not** auto-apply.
-When you add/remove columns:
-1. Delete the DB:
-   ```bash
-   rm -f infra/data/holly.db
-   ```
-2. Run reset script:
-   ```bash
-   python scripts/reset-db.py
-   ```
-3. Restart backend:
-   ```bash
-   bash scripts/start-dev.sh
-   ```
-
-This **drops & recreates all tables** from `models.py`.
-Do this every time you edit schema in dev. (In production, migrations will be managed with Alembic).
-
-### Routes
-- `GET /db/tasks` → Fetch all tasks.
-- `POST /db/tasks` → Create a new task.
-- `PATCH /db/tasks/{id}` → Update a task.
-- `DELETE /db/tasks/{id}` → Delete a task.
-- `GET /db/boards` → Fetch boards.
-- `GET /db/projects` → Fetch projects.
-- `GET /db/phases` → Fetch phases.
-- `GET /db/groups` → Fetch groups.
-- `GET /db/items` → Fetch items.
-
-(All support `POST`, `PATCH`, `DELETE` as well.)
-
-### Date Handling
-- **DB layer**:
-  - Use `Date` for `due_date`, `deadline`.
-  - Use `DateTime` for `start_date`, `end_date`.
-- **Schemas**:
-  - Validators normalize ISO strings (`YYYY-MM-DD` / `YYYY-MM-DDTHH:mm:ss`).
-  - Serializers always output ISO (`YYYY-MM-DD` or full ISO datetime).
-- **Frontend**:
-  - Always use `dateUtils.ts` → `formatForApi`, `formatDateTimeForApi`.
-  - Never handcraft date strings.
-- ✅ This fixes the old **year 1008 / 2508 bug**.
-
-### Adding New Fields to Tasks
-Safe additions include:
-- `board_id`, `phase_id`, `group_id` (FKs)
-- `archived` (bool)
-- `pinned` (bool)
-- `labels`, `effort_level`, `urgency_score`
-
-Rules:
-1. **`models.py`** → Add column with correct type (`Integer`, `String`, `Boolean`, `Date`, `DateTime`).
-   - ⚠️ Never use `String` for dates.
-2. **`schemas.py`** → Add to `TaskBase`, `TaskCreate`, `TaskUpdate`.
-   - Mark optional unless required.
-   - Provide defaults (`archived: bool = False`).
-3. **`main.py`** → No changes unless validation needed. CRUD routes auto-accept schema fields.
-4. **Frontend**:
-   - If editable → update `TaskDialog.tsx`.
-   - If not editable (e.g. archived) → update `taskUtils.ts` → `normalizeTaskForApi`.
-   - `TabTasks.tsx` and `TabCalendar.tsx` won’t break unless you remove/rename existing fields.
-
-### Boards & Projects Schema
-- **Boards**: top-level container (`project` or `list`).
-- **Projects**: linked to boards, contain phases.
-- **Phases**: linked to projects, optional deadlines, dependency flag.
-- **Groups**: sections inside list boards, can hold tasks/items.
-- **Items**: non-task entries (notes, journal, etc.), live in groups/boards.
-
-### Logs
-- Backend live logs: `logs/backend-live.log`
-- Hypercorn logs (manual run): `logs/backend-hypercorn.log`
-- Tail logs:
-  ```bash
-  tail -f logs/backend-live.log
-  ```
-
-### CORS Config
-Already correct in `main.py`:
-```python
-allow_origins=["http://localhost:5173"]
-```
-Do **not** edit unless adding more dev origins.
-
-### Dev Tips
-- Always drop DB after schema changes.
-- Never bypass schema validators for dates.
-- Never edit CORS middleware.
-- Verify `/db/tasks` works before adding new boards/projects endpoints.
+## Overview
+The backend is a FastAPI app that manages data for Holly AI. It uses SQLAlchemy ORM with Postgres, and exposes a consistent set of CRUD endpoints for all major entities.
 
 ---
-✅ With this workflow, schema extensions (Boards, Projects, Groups, Items, Task fields) are safe and won’t break frontend. 
+
+## Endpoints
+
+### Tasks
+- `GET    /db/tasks`
+- `POST   /db/tasks`
+- `PATCH  /db/tasks/{task_id}`
+- `DELETE /db/tasks/{task_id}`
+
+### Boards
+- `GET    /db/boards`
+- `POST   /db/boards`
+- `PATCH  /db/boards/{board_id}`
+- `DELETE /db/boards/{board_id}`
+
+### Projects
+- `GET    /db/projects`
+- `POST   /db/projects`
+- `PATCH  /db/projects/{project_id}`
+- `DELETE /db/projects/{project_id}`
+
+### Phases
+- `GET    /db/phases`
+- `POST   /db/phases`
+- `PATCH  /db/phases/{phase_id}`
+- `DELETE /db/phases/{phase_id}`
+
+### Groups
+- `GET    /db/groups`
+- `POST   /db/groups`
+- `PATCH  /db/groups/{group_id}`
+- `DELETE /db/groups/{group_id}`
+
+### Items
+- `GET    /db/items`
+- `POST   /db/items`
+- `PATCH  /db/items/{item_id}`
+- `DELETE /db/items/{item_id}`
+
+---
+
+## Primary Key Naming
+⚠️ **Important**: Do not use `.id` in filters — each table uses its own key field:
+- `Task.task_id`
+- `Board.board_id`
+- `Project.project_id`
+- `Phase.phase_id`
+- `Group.group_id`
+- `Item.item_id`
+
+Example:
+```python
+# Correct
+ db.query(models.Task).filter(models.Task.task_id == task_id).first()
+
+# Wrong (will throw AttributeError)
+ db.query(models.Task).filter(models.Task.id == task_id).first()
+```
+
+---
+
+## Schemas
+Schemas are defined in `schemas.py`. They:
+- Use `extra = "forbid"` → unknown fields are rejected.
+- Separate `Create`, `Update`, and full models.
+
+### Task fields
+- `task_id` (int)
+- `task_name` (string, required)
+- `description` (string)
+- `due_date` (date)
+- `start_date` (datetime)
+- `end_date` (datetime)
+- `status` (string)
+- `priority` (string)
+- `category` (string)
+- `token_value` (int)
+- `urgency_score` (int)
+- `effort_level` (string)
+- Relations: `board_id`, `group_id`, `project_id`, `phase_id`
+- `archived` (bool)
+- `pinned` (bool)
+
+---
+
+## CORS
+For development, backend allows all origins:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+⚠️ In production, restrict this to the actual frontend domain.
+
+---
+
+## Migrations
+We use **Alembic** for database migrations.
+
+To create a migration after editing `models.py`:
+```bash
+alembic revision --autogenerate -m "Add priority to tasks"
+alembic upgrade head
+```
+
+To roll back one step:
+```bash
+alembic downgrade -1
+```
+
+---
+
+## Development
+Run backend with:
+```bash
+scripts/start-dev.sh
+```
+Logs:
+- `logs/backend-live.log` (live server)
+- `logs/backend-hypercorn.log` (manual run)
+
+---
+
+## Adding New Fields (Backend + Frontend Workflow)
+When adding a new field to a model:
+1. Update the model in `models.py`.
+2. Add field to Pydantic schema in `schemas.py`.
+3. Generate and apply Alembic migration.
+4. **Update the corresponding frontend wrapper** (`src/api/<entity>.ts`) to include the new field.
+   - Normalize the field into **camelCase**.
+   - Add it to the entity’s TypeScript interface.
+   - Ensure defaults are set if needed.
+5. Update README files (backend + frontend) to document the new field.
+
+This ensures backend and frontend stay in sync and all content pages use consistent naming and structure.
