@@ -17,29 +17,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
-import { getTasks, updateTask as apiUpdateTask } from "../api/tasks";
-
-interface Task {
-  task_id?: number;
-  task_name?: string;
-  description?: string;
-  due_date?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  status?: string;
-  priority?: string;
-  category?: string;
-  project_id?: number;
-  project?: string;
-  phase_id?: number;
-  notes?: string;
-  token_value?: number;
-  urgency_score?: number;
-  effort_level?: string;
-  board_id?: number;
-  created_at?: string;
-  updated_at?: string;
-}
+import { Task, getTasks, updateTask as apiUpdateTask } from "../api/tasks";
 
 type TaskGroups = Record<string, Task[]>;
 
@@ -76,32 +54,6 @@ const normalizeStatus = (status?: string) => {
   return "Todo";
 };
 
-const toBackendStatus = (status?: string) => {
-  if (!status) return "Todo";
-  const s = status.toLowerCase();
-  if (s === "done") return "Done";
-  if (s === "in progress" || s === "in_progress") return "In Progress";
-  if (s === "pinned") return "Pinned";
-  return "Todo";
-};
-
-const allowedPatchFields = new Set([
-  "status",
-  "priority",
-  "due_date",
-  "start_date",
-  "end_date",
-  "project_id",
-  "phase_id",
-  "notes",
-  "description",
-  "token_value",
-  "urgency_score",
-  "effort_level",
-  "category",
-  "task_name",
-]);
-
 const groupTasksByDate = (tasks: Task[]): TaskGroups => {
   const groups: TaskGroups = {
     Overdue: [],
@@ -125,8 +77,9 @@ const groupTasksByDate = (tasks: Task[]): TaskGroups => {
       return;
     }
 
-    if (!task.due_date) {
-      if ((task.urgency_score || 0) > 5) {
+    const date = task.dueDate || task.startDate;
+    if (!date) {
+      if ((task.urgencyScore || 0) > 5) {
         groups.SuggestedToday.push(task);
       } else {
         groups.SuggestedTomorrow.push(task);
@@ -134,7 +87,7 @@ const groupTasksByDate = (tasks: Task[]): TaskGroups => {
       return;
     }
 
-    const due = dayjs(task.due_date);
+    const due = dayjs(date);
     if (due.isBefore(today, "day")) {
       groups.Overdue.push(task);
     } else if (due.isSame(today, "day")) {
@@ -180,41 +133,11 @@ const TabTasks: React.FC = () => {
     fetchTasks();
   }, []);
 
-  const handleToggle = (group: string) => {
-    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
-  };
-
   const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
     if (!taskId) return;
 
-    const payload: Record<string, any> = {};
-    Object.entries(updates).forEach(([key, value]) => {
-      if (allowedPatchFields.has(key) && value !== null && value !== "") {
-        if (key === "status") {
-          payload[key] = toBackendStatus(value as string);
-        } else if (key === "due_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DD");
-        } else if (key === "start_date" || key === "end_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
-        } else if (key === "priority") {
-          const map: Record<string, string> = {
-            "1": "Tiny",
-            "2": "Small",
-            "3": "Medium",
-            "4": "Big",
-          };
-          payload[key] = map[String(value)] || String(value);
-        } else {
-          payload[key] = value;
-        }
-      }
-    });
-
-    if (Object.keys(payload).length === 0) return;
-    console.debug("[TabTasks] PATCH payload", payload);
-
     try {
-      await apiUpdateTask(taskId, payload);
+      await apiUpdateTask(taskId, updates);
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
@@ -229,18 +152,18 @@ const TabTasks: React.FC = () => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
-    fetchTasks(); // ✅ Just refetch tasks after dialog closes
+    fetchTasks();
   };
 
   const handleDialogSave = async (updates: Partial<Task>) => {
-    if (selectedTask && selectedTask.task_id) {
-      await updateTask(selectedTask.task_id, updates);
+    if (selectedTask) {
+      await updateTask(selectedTask.id, updates);
     }
     handleDialogClose();
   };
 
   const renderTaskRow = (task: Task) => {
-    const taskId = task.task_id;
+    const taskId = task.id;
     const isCompleted = normalizeStatus(task.status) === "Done";
 
     return (
@@ -264,12 +187,12 @@ const TabTasks: React.FC = () => {
           />
         </Box>
 
-        {task.token_value !== undefined && (
-          <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
+        {task.tokenValue !== undefined && (
+          <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
             <Typography
               component="span"
               sx={{
-                background: getTokenGradient(task.token_value),
+                background: getTokenGradient(task.tokenValue),
                 borderRadius: "999px",
                 px: 1,
                 py: 0.3,
@@ -282,7 +205,7 @@ const TabTasks: React.FC = () => {
                 boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
               }}
             >
-              +{task.token_value}
+              +{task.tokenValue}
             </Typography>
           </Tooltip>
         )}
@@ -296,9 +219,9 @@ const TabTasks: React.FC = () => {
           sx={{
             backgroundColor: isCompleted
               ? groupColors.Completed
-              : task.due_date && dayjs(task.due_date).isBefore(dayjs(), "day")
+              : task.dueDate && dayjs(task.dueDate).isBefore(dayjs(), "day")
               ? groupColors["Overdue"]
-              : groupColors[task.due_date ? "Today" : "Later"] || "#fff",
+              : groupColors[task.dueDate ? "Today" : "Later"] || "#fff",
             borderRadius: "14px",
             boxShadow: 1,
             py: 0.3,
@@ -316,29 +239,29 @@ const TabTasks: React.FC = () => {
               color: isCompleted ? "#888" : "inherit",
             }}
           >
-            {task.task_name}
-            {task.start_date && task.end_date && (
+            {task.name}
+            {task.startDate && task.endDate && (
               <Typography
                 component="span"
                 variant="body2"
                 color="text.secondary"
                 sx={{ ml: 0.5 }}
               >
-                {dayjs(task.start_date).format("HH:mm")} – {dayjs(task.end_date).format("HH:mm")}
+                {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
               </Typography>
             )}
           </Typography>
 
-          {(task.project_id || task.project) && (
+          {task.projectId && (
             <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
           )}
         </Box>
 
-        <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow>
+        <Tooltip title={`Due: ${task.dueDate || task.startDate || "Not set"}`} arrow>
           <DatePicker
-            value={task.due_date ? dayjs(task.due_date) : null}
+            value={task.dueDate ? dayjs(task.dueDate) : task.startDate ? dayjs(task.startDate) : null}
             onChange={(newDate) =>
-              updateTask(taskId, { due_date: newDate?.format("YYYY-MM-DD") })
+              updateTask(taskId, { dueDate: newDate?.format("YYYY-MM-DD") })
             }
             slots={{ openPickerIcon: CalendarTodayIcon }}
             slotProps={{
@@ -383,7 +306,7 @@ const TabTasks: React.FC = () => {
               display="flex"
               justifyContent="space-between"
               alignItems="center"
-              onClick={() => handleToggle(group)}
+              onClick={() => setOpenGroups({ ...openGroups, [group]: !openGroups[group] })}
               sx={{ cursor: "pointer" }}
             >
               <Typography variant="subtitle1" fontWeight="bold">
@@ -391,38 +314,4 @@ const TabTasks: React.FC = () => {
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
                 <Typography variant="body2">{groupTasks.length}</Typography>
-                <IconButton size="small">
-                  {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
-            </Box>
-            <Divider sx={{ mt: 0.5, mb: 1 }} />
-
-            <Collapse in={openGroups[group]}>
-              <Box mt={0.5}>
-                {groupTasks.map(renderTaskRow)}
-                {suggestedTasks.length > 0 && (
-                  <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
-                    <Typography variant="caption" fontWeight="bold" color="text.secondary">
-                      Suggested
-                    </Typography>
-                    <Box mt={0.5}>{suggestedTasks.map(renderTaskRow)}</Box>
-                  </Paper>
-                )}
-              </Box>
-            </Collapse>
-          </Box>
-        );
-      })}
-
-      <TaskDialog
-        open={dialogOpen}
-        task={selectedTask}
-        onClose={handleDialogClose}
-        onSave={handleDialogSave}
-      />
-    </Box>
-  );
-};
-
-export default TabTasks;
+                <IconButton size
