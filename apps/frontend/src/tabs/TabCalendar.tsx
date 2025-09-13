@@ -10,8 +10,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Box, Button, Typography } from "@mui/material";
 import TaskDialog from "../components/TaskDialog";
-import { Task } from "../types";
-import { getTasks, createTask, updateTask } from "../api/tasks";
+import { Task, getTasks, updateTask } from "../api/tasks";
 import "../styles/CalendarStyles.css";
 
 const TabCalendar: React.FC = () => {
@@ -37,15 +36,18 @@ const TabCalendar: React.FC = () => {
     const { start, end } = selectInfo;
     setSelectedTask({
       id: 0,
-      task_name: "",
+      taskId: 0,
+      name: "",
       description: "",
-      due_date: start.toISOString().split("T")[0],
-      start_date: start.toISOString(),
-      end_date: end ? end.toISOString() : null,
+      dueDate: start.toISOString().split("T")[0],
+      startDate: start.toISOString(),
+      endDate: end ? end.toISOString() : undefined,
       status: "Todo",
       priority: "Medium",
-      token_value: 5,
-      category: null,
+      tokenValue: 5,
+      category: undefined,
+      archived: false,
+      pinned: false,
     });
     setDialogOpen(true);
   };
@@ -63,9 +65,9 @@ const TabCalendar: React.FC = () => {
     if (task) {
       const updated: Task = {
         ...task,
-        start_date: dropInfo.event.start?.toISOString() || null,
-        end_date: dropInfo.event.end?.toISOString() || null,
-        due_date: dropInfo.event.start?.toISOString().split("T")[0] || null,
+        startDate: dropInfo.event.start?.toISOString(),
+        endDate: dropInfo.event.end?.toISOString(),
+        dueDate: dropInfo.event.start?.toISOString().split("T")[0],
       };
       await updateTask(updated.id, updated);
       fetchTasks();
@@ -77,8 +79,8 @@ const TabCalendar: React.FC = () => {
     if (task) {
       const updated: Task = {
         ...task,
-        start_date: resizeInfo.event.start?.toISOString() || null,
-        end_date: resizeInfo.event.end?.toISOString() || null,
+        startDate: resizeInfo.event.start?.toISOString(),
+        endDate: resizeInfo.event.end?.toISOString(),
       };
       await updateTask(updated.id, updated);
       fetchTasks();
@@ -111,9 +113,9 @@ const TabCalendar: React.FC = () => {
         }}
         events={tasks.map((t) => ({
           id: t.id.toString(),
-          title: t.task_name,
-          start: t.start_date || t.due_date,
-          end: t.end_date,
+          title: t.name,
+          start: t.startDate || t.dueDate,
+          end: t.endDate,
           classNames: [
             t.status === "Todo"
               ? "event-todo"
