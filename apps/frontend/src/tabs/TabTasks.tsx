@@ -314,4 +314,34 @@ const TabTasks: React.FC = () => {
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
                 <Typography variant="body2">{groupTasks.length}</Typography>
-                <IconButton size
+                <IconButton size="small">
+                  {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
+            </Box>
+
+            <Collapse in={openGroups[group]} timeout="auto" unmountOnExit>
+              <Paper variant="outlined" sx={{ mt: 1, p: 1 }}>
+                {groupTasks.map(renderTaskRow)}
+                {suggestedTasks.map(renderTaskRow)}
+              </Paper>
+            </Collapse>
+
+            <Divider sx={{ my: 1.5 }} />
+          </Box>
+        );
+      })}
+
+      {dialogOpen && (
+        <TaskDialog
+          open={dialogOpen}
+          task={selectedTask}
+          onClose={handleDialogClose}
+          onSave={fetchTasks}
+        />
+      )}
+    </Box>
+  );
+};
+
+export default TabTasks;
