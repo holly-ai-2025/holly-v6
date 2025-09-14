@@ -18,6 +18,7 @@ This project has a **strict workflow** to prevent breakages when adding fields/t
    alembic upgrade head
    ```
 5. Update `apps/backend/README.md` with the new field.
+6. Update `apps/frontend/src/api/<entity>.ts` to include the field, normalize to camelCase, and expose via TypeScript interface.
 
 ### Adding a new table
 1. Define the model in `apps/backend/models.py`.
@@ -25,23 +26,33 @@ This project has a **strict workflow** to prevent breakages when adding fields/t
 3. Add full CRUD endpoints (GET/POST/PATCH/DELETE) in `apps/backend/main.py`.
 4. Generate and apply Alembic migration.
 5. Update `apps/backend/README.md` with new endpoints.
+6. Create a new API wrapper in `apps/frontend/src/api/<entity>.ts`.
+7. Update `apps/frontend/README.md` with wrapper details.
 
 ---
 
 ## Frontend Changes
 
-### API Wrappers
+### API Wrappers (⚠️ Source of Truth)
 - All API calls go through `apps/frontend/src/api/*.ts`.
-- Endpoints must match backend (`/db/*`).
-- Never hardcode URLs inside components.
+- Wrappers normalize backend snake_case → frontend camelCase.
+- Wrappers denormalize frontend camelCase → backend snake_case.
+- Every wrapper must:
+  - Define a TypeScript interface for its entity.
+  - Implement `get<Entity>, create<Entity>, update<Entity>, delete<Entity>`.
+  - Ensure all objects include `.id`.
 
 ### Components
-- Update relevant components (TaskDialog, TabTasks, TabCalendar, etc.) to include the new field.
-- Add sensible defaults for new fields (e.g. priority = Medium).
-- Components should gracefully handle missing fields.
+- Must never call `/db/...` endpoints directly.
+- Always import from wrappers.
+- Must only use camelCase field names.
+- Examples:
+  - `TaskDialog` → handles all task fields.
+  - `TabTasks` → lists and groups tasks consistently.
+  - `TabCalendar` → creates/edits/moves tasks but always routes through TaskDialog.
 
 ### Documentation
-- Update `apps/frontend/README.md` with the new field.
+- Update `apps/frontend/README.md` whenever fields/entities change.
 
 ---
 
@@ -49,7 +60,7 @@ This project has a **strict workflow** to prevent breakages when adding fields/t
 - **Every code change must include README updates**.
 - Backend README → endpoints & schema.
 - Frontend README → API wrappers & fields.
-- Root README → workflow & instructions.
+- Root README → workflow & integration rules.
 
 ---
 
@@ -83,4 +94,4 @@ This project has a **strict workflow** to prevent breakages when adding fields/t
 
 ---
 
-✅ Following this workflow ensures new DB fields/tables do not break existing frontend or cause contract mismatches.
+✅ Following this workflow ensures backend and frontend stay fully in sync. New DB fields/tables will not break existing components, and all integrations remain consistent.
