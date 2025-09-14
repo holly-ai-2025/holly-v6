@@ -77,12 +77,14 @@ Tasks returned by backend include (after normalization):
 - **TabTasks**
   - Uses `getTasks` to list tasks.
   - Uses `updateTask` when saving edits.
+  - Groups tasks by due date, priority, or status consistently.
 
 - **TabCalendar**
   - Uses FullCalendar for drag/create/edit.
   - Only Calendar persists tasks → avoids duplicate saves.
   - Maps `status → className` for color coding.
   - Requires each task to include `.id` (from wrapper normalization).
+  - Single-click, drag, and resize all route through TaskDialog.
 
 ---
 
@@ -103,7 +105,7 @@ When backend adds a new field:
    - Add the field to the **TypeScript interface**.
    - Normalize field names into **camelCase**.
 2. Update normalization functions in the wrapper.
-3. Update components (e.g. TaskDialog) to show/edit the field.
+3. Update components (e.g. TaskDialog, TabTasks, TabCalendar) to show/edit/use the field.
 4. Add sensible defaults for new fields (avoid breaking existing forms).
 5. Update this README to document the new field.
 

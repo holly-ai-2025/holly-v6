@@ -142,4 +142,15 @@ When adding a new field to a model:
    - Ensure defaults are set if needed.
 5. Update README files (backend + frontend) to document the new field.
 
+---
+
+## Adding New Entities
+When introducing a new table/entity:
+1. Create SQLAlchemy model in `models.py`.
+2. Add CRUD endpoints in `routes/<entity>.py`.
+3. Add schema definitions in `schemas.py`.
+4. Create Alembic migration.
+5. **Update frontend**: add wrapper + TypeScript interface.
+6. Update README files.
+
 This ensures backend and frontend stay in sync and all content pages use consistent naming and structure.
