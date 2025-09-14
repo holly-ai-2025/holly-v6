@@ -4,19 +4,31 @@ const base = "/db/groups";
 
 export interface Group {
   id: number;
-  groupId: number;
-  boardId: number;
   name: string;
-  sortOrder: number;
+  description?: string;
+  boardId: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 function normalizeGroup(raw: any): Group {
   return {
     id: raw.group_id,
-    groupId: raw.group_id,
-    boardId: raw.board_id,
     name: raw.name,
-    sortOrder: raw.sort_order,
+    description: raw.description,
+    boardId: raw.board_id,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+  };
+}
+
+function denormalizeGroup(payload: Partial<Group>): any {
+  return {
+    name: payload.name,
+    description: payload.description,
+    board_id: payload.boardId,
+    created_at: payload.createdAt,
+    updated_at: payload.updatedAt,
   };
 }
 
@@ -25,13 +37,13 @@ export async function getGroups(): Promise<Group[]> {
   return res.data.map(normalizeGroup);
 }
 
-export async function createGroup(payload: any): Promise<Group> {
-  const res = await client.post(base, payload);
+export async function createGroup(payload: Partial<Group>): Promise<Group> {
+  const res = await client.post(base, denormalizeGroup(payload));
   return normalizeGroup(res.data);
 }
 
-export async function updateGroup(id: number, payload: any): Promise<Group> {
-  const res = await client.patch(`${base}/${id}`, payload);
+export async function updateGroup(id: number, payload: Partial<Group>): Promise<Group> {
+  const res = await client.patch(`${base}/${id}`, denormalizeGroup(payload));
   return normalizeGroup(res.data);
 }
 

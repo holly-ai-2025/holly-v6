@@ -4,33 +4,34 @@ const base = "/db/phases";
 
 export interface Phase {
   id: number;
-  phaseId: number;
   name: string;
+  description?: string;
   projectId: number;
-  deadline?: string;
-  dependsOnPrevious?: boolean;
+  order?: number;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 function normalizePhase(raw: any): Phase {
   return {
     id: raw.phase_id,
-    phaseId: raw.phase_id,
     name: raw.name,
+    description: raw.description,
     projectId: raw.project_id,
-    deadline: raw.deadline,
-    dependsOnPrevious: raw.depends_on_previous,
+    order: raw.order,
     createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
   };
 }
 
-function denormalizePhase(payload: any): any {
+function denormalizePhase(payload: Partial<Phase>): any {
   return {
     name: payload.name,
+    description: payload.description,
     project_id: payload.projectId,
-    deadline: payload.deadline,
-    depends_on_previous: payload.dependsOnPrevious,
+    order: payload.order,
     created_at: payload.createdAt,
+    updated_at: payload.updatedAt,
   };
 }
 
@@ -39,12 +40,12 @@ export async function getPhases(): Promise<Phase[]> {
   return res.data.map(normalizePhase);
 }
 
-export async function createPhase(payload: any): Promise<Phase> {
+export async function createPhase(payload: Partial<Phase>): Promise<Phase> {
   const res = await client.post(base, denormalizePhase(payload));
   return normalizePhase(res.data);
 }
 
-export async function updatePhase(id: number, payload: any): Promise<Phase> {
+export async function updatePhase(id: number, payload: Partial<Phase>): Promise<Phase> {
   const res = await client.patch(`${base}/${id}`, denormalizePhase(payload));
   return normalizePhase(res.data);
 }

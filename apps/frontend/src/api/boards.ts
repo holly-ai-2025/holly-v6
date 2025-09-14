@@ -4,13 +4,8 @@ const base = "/db/boards";
 
 export interface Board {
   id: number;
-  boardId: number;
   name: string;
-  type: string;
-  category?: string;
-  color?: string;
   description?: string;
-  pinned: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -18,15 +13,19 @@ export interface Board {
 function normalizeBoard(raw: any): Board {
   return {
     id: raw.board_id,
-    boardId: raw.board_id,
     name: raw.name,
-    type: raw.type,
-    category: raw.category,
-    color: raw.color,
     description: raw.description,
-    pinned: raw.pinned,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
+  };
+}
+
+function denormalizeBoard(payload: Partial<Board>): any {
+  return {
+    name: payload.name,
+    description: payload.description,
+    created_at: payload.createdAt,
+    updated_at: payload.updatedAt,
   };
 }
 
@@ -35,13 +34,13 @@ export async function getBoards(): Promise<Board[]> {
   return res.data.map(normalizeBoard);
 }
 
-export async function createBoard(payload: any): Promise<Board> {
-  const res = await client.post(base, payload);
+export async function createBoard(payload: Partial<Board>): Promise<Board> {
+  const res = await client.post(base, denormalizeBoard(payload));
   return normalizeBoard(res.data);
 }
 
-export async function updateBoard(id: number, payload: any): Promise<Board> {
-  const res = await client.patch(`${base}/${id}`, payload);
+export async function updateBoard(id: number, payload: Partial<Board>): Promise<Board> {
+  const res = await client.patch(`${base}/${id}`, denormalizeBoard(payload));
   return normalizeBoard(res.data);
 }
 
