@@ -78,7 +78,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
       await createTask({
         boardId: board.id,
         groupId: groupId || null,
-        taskName: newTaskName,
+        name: newTaskName,
       });
       setNewTaskName("");
       fetchTasks();
@@ -93,7 +93,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
       await createItem({
         boardId: board.id,
         groupId: groupId || null,
-        title: newItemTitle,
+        name: newItemTitle,
       });
       setNewItemTitle("");
       fetchItems();
@@ -156,7 +156,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
               {tasks.filter((t) => t.groupId === group.id).map((task) => (
                 <Grid item xs={12} key={task.id}>
                   <Paper sx={{ p: 1, borderRadius: 2 }}>
-                    <Typography>📝 {task.taskName}</Typography>
+                    <Typography>📝 {task.name}</Typography>
                   </Paper>
                 </Grid>
               ))}
@@ -167,7 +167,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
               {items.filter((i) => i.groupId === group.id).map((item) => (
                 <Grid item xs={12} key={item.id}>
                   <Paper sx={{ p: 1, borderRadius: 2 }}>
-                    <Typography>📌 {item.title}</Typography>
+                    <Typography>📌 {item.name}</Typography>
                   </Paper>
                 </Grid>
               ))}
