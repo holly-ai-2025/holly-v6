@@ -5,24 +5,32 @@ const base = "/db/phases";
 export interface Phase {
   id: number;
   phaseId: number;
-  projectId: number;
   name: string;
+  projectId: number;
   deadline?: string;
   dependsOnPrevious?: boolean;
   createdAt?: string;
-  updatedAt?: string;
 }
 
 function normalizePhase(raw: any): Phase {
   return {
     id: raw.phase_id,
     phaseId: raw.phase_id,
-    projectId: raw.project_id,
     name: raw.name,
+    projectId: raw.project_id,
     deadline: raw.deadline,
     dependsOnPrevious: raw.depends_on_previous,
     createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
+  };
+}
+
+function denormalizePhase(payload: any): any {
+  return {
+    name: payload.name,
+    project_id: payload.projectId,
+    deadline: payload.deadline,
+    depends_on_previous: payload.dependsOnPrevious,
+    created_at: payload.createdAt,
   };
 }
 
@@ -32,12 +40,12 @@ export async function getPhases(): Promise<Phase[]> {
 }
 
 export async function createPhase(payload: any): Promise<Phase> {
-  const res = await client.post(base, payload);
+  const res = await client.post(base, denormalizePhase(payload));
   return normalizePhase(res.data);
 }
 
 export async function updatePhase(id: number, payload: any): Promise<Phase> {
-  const res = await client.patch(`${base}/${id}`, payload);
+  const res = await client.patch(`${base}/${id}`, denormalizePhase(payload));
   return normalizePhase(res.data);
 }
 
