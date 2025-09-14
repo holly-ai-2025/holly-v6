@@ -9,28 +9,29 @@ import {
   MenuItem,
   Grid,
 } from "@mui/material";
-import { Task } from "../types";
-import { createTask, updateTask, deleteTask } from "../api/tasks";
+import { DateCalendar, TimePicker } from "@mui/x-date-pickers";
+import dayjs from "dayjs";
+import { Task, createTask, updateTask, deleteTask } from "../api/tasks";
 
 interface TaskDialogProps {
   open: boolean;
   task: Task | null;
   onClose: () => void;
-  onSave: () => void; // refresh callback
+  onSave: () => void;
 }
 
 const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) => {
-  const [formData, setFormData] = useState<Task>({
+  const [formData, setFormData] = useState<Partial<Task>>({
     id: 0,
-    task_name: "",
+    name: "",
     description: "",
-    due_date: null,
-    start_date: null,
-    end_date: null,
+    dueDate: undefined,
+    startDate: undefined,
+    endDate: undefined,
     status: "Todo",
     priority: "Medium",
-    token_value: 5,
-    category: null,
+    tokenValue: 5,
+    category: undefined,
   });
 
   useEffect(() => {
@@ -39,15 +40,15 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
     } else {
       setFormData({
         id: 0,
-        task_name: "",
+        name: "",
         description: "",
-        due_date: null,
-        start_date: null,
-        end_date: null,
+        dueDate: undefined,
+        startDate: undefined,
+        endDate: undefined,
         status: "Todo",
         priority: "Medium",
-        token_value: 5,
-        category: null,
+        tokenValue: 5,
+        category: undefined,
       });
     }
   }, [task]);
@@ -58,7 +59,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
   };
 
   const handleSave = async () => {
-    if (formData.id) {
+    if (formData.id && formData.id !== 0) {
       await updateTask(formData.id, formData);
     } else {
       await createTask(formData);
@@ -68,7 +69,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
   };
 
   const handleDelete = async () => {
-    if (formData.id) {
+    if (formData.id && formData.id !== 0) {
       await deleteTask(formData.id);
       onSave();
       onClose();
@@ -77,14 +78,14 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{formData.id ? "Edit Task" : "New Task"}</DialogTitle>
+      <DialogTitle>{formData.id && formData.id !== 0 ? "Edit Task" : "New Task"}</DialogTitle>
       <DialogContent>
         <Grid container spacing={2}>
           <Grid item xs={12}>
             <TextField
               label="Title"
-              name="task_name"
-              value={formData.task_name}
+              name="name"
+              value={formData.name || ""}
               onChange={handleChange}
               fullWidth
             />
@@ -101,14 +102,11 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
             />
           </Grid>
           <Grid item xs={6}>
-            <TextField
-              label="Due Date"
-              name="due_date"
-              type="date"
-              value={formData.due_date || ""}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
+            <DateCalendar
+              value={formData.dueDate ? dayjs(formData.dueDate) : null}
+              onChange={(newDate) =>
+                setFormData((prev) => ({ ...prev, dueDate: newDate?.format("YYYY-MM-DD") }))
+              }
             />
           </Grid>
           <Grid item xs={6}>
@@ -116,7 +114,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
               label="Priority"
               name="priority"
               select
-              value={formData.priority}
+              value={formData.priority || "Medium"}
               onChange={handleChange}
               fullWidth
             >
@@ -126,25 +124,21 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
             </TextField>
           </Grid>
           <Grid item xs={6}>
-            <TextField
+            <TimePicker
               label="Start Time"
-              name="start_date"
-              type="datetime-local"
-              value={formData.start_date || ""}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
+              value={formData.startDate ? dayjs(formData.startDate) : null}
+              onChange={(newTime) =>
+                setFormData((prev) => ({ ...prev, startDate: newTime?.toISOString() }))
+              }
             />
           </Grid>
           <Grid item xs={6}>
-            <TextField
+            <TimePicker
               label="End Time"
-              name="end_date"
-              type="datetime-local"
-              value={formData.end_date || ""}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
+              value={formData.endDate ? dayjs(formData.endDate) : null}
+              onChange={(newTime) =>
+                setFormData((prev) => ({ ...prev, endDate: newTime?.toISOString() }))
+              }
             />
           </Grid>
           <Grid item xs={6}>
@@ -152,7 +146,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
               label="Status"
               name="status"
               select
-              value={formData.status}
+              value={formData.status || "Todo"}
               onChange={handleChange}
               fullWidth
             >
@@ -173,7 +167,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave }) 
         </Grid>
       </DialogContent>
       <DialogActions>
-        {formData.id !== 0 && (
+        {formData.id && formData.id !== 0 && (
           <Button onClick={handleDelete} color="error">
             Delete
           </Button>
