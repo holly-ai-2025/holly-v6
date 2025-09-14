@@ -96,8 +96,8 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
       await createTask({
         boardId: board.id,
         phaseId: phaseId,
-        taskName: newTaskName,
-        status: "todo",
+        name: newTaskName,
+        status: "Todo",
       });
       setNewTaskName("");
       fetchTasks();
@@ -108,7 +108,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
   const toggleTaskStatus = async (task: Task) => {
     try {
-      const newStatus = task.status === "done" ? "todo" : "done";
+      const newStatus = task.status === "Done" ? "Todo" : "Done";
       await updateTask(task.id, { status: newStatus });
       fetchTasks();
     } catch (err) {
@@ -175,16 +175,16 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
                   >
                     <Box display="flex" alignItems="center" gap={1}>
                       <Checkbox
-                        checked={task.status === "done"}
+                        checked={task.status === "Done"}
                         onChange={() => toggleTaskStatus(task)}
                       />
                       <Typography
                         sx={{
-                          textDecoration: task.status === "done" ? "line-through" : "none",
-                          color: task.status === "done" ? "text.secondary" : "text.primary",
+                          textDecoration: task.status === "Done" ? "line-through" : "none",
+                          color: task.status === "Done" ? "text.secondary" : "text.primary",
                         }}
                       >
-                        {task.taskName}
+                        {task.name}
                       </Typography>
                     </Box>
                   </Paper>
