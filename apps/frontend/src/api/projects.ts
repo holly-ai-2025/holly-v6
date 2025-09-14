@@ -4,7 +4,6 @@ const base = "/db/projects";
 
 export interface Project {
   id: number;
-  projectId: number;
   name: string;
   notes?: string;
   goal?: string;
@@ -17,7 +16,6 @@ export interface Project {
 function normalizeProject(raw: any): Project {
   return {
     id: raw.project_id,
-    projectId: raw.project_id,
     name: raw.name,
     notes: raw.notes,
     goal: raw.goal,
@@ -28,7 +26,7 @@ function normalizeProject(raw: any): Project {
   };
 }
 
-function denormalizeProject(payload: any): any {
+function denormalizeProject(payload: Partial<Project>): any {
   return {
     name: payload.name,
     notes: payload.notes,
@@ -45,12 +43,12 @@ export async function getProjects(): Promise<Project[]> {
   return res.data.map(normalizeProject);
 }
 
-export async function createProject(payload: any): Promise<Project> {
+export async function createProject(payload: Partial<Project>): Promise<Project> {
   const res = await client.post(base, denormalizeProject(payload));
   return normalizeProject(res.data);
 }
 
-export async function updateProject(id: number, payload: any): Promise<Project> {
+export async function updateProject(id: number, payload: Partial<Project>): Promise<Project> {
   const res = await client.patch(`${base}/${id}`, denormalizeProject(payload));
   return normalizeProject(res.data);
 }
