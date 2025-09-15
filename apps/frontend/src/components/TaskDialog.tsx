@@ -4,96 +4,237 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
+  Button,
   MenuItem,
+  Grid,
 } from "@mui/material";
-import dayjs from "dayjs";
-import { createTask, updateTask } from "../api/tasks";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import dayjs, { Dayjs } from "dayjs";
+import { Task, createTask, updateTask } from "../api/tasks";
 
 interface TaskDialogProps {
   open: boolean;
-  task?: any;
+  task: Task | null;
   onClose: () => void;
-  onSave: (updates: any) => void;
-  externalSave?: boolean; // ✅ new prop
+  onSave: () => void;
+  defaultStart?: Dayjs | null;
+  defaultEnd?: Dayjs | null;
 }
 
-const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, externalSave = false }) => {
-  const [formData, setFormData] = useState<any>({});
+const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, defaultStart, defaultEnd }) => {
+  const [form, setForm] = useState<Partial<Task>>({});
 
   useEffect(() => {
-    setFormData(task || {});
-  }, [task]);
+    if (task) {
+      setForm(task);
+    } else {
+      setForm({
+        startDate: defaultStart?.toISOString() || null,
+        endDate: defaultEnd?.toISOString() || null,
+      });
+    }
+  }, [task, defaultStart, defaultEnd]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (field: keyof Task, value: any) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-    if (externalSave) {
-      // ✅ Skip backend calls, delegate to parent
-      onSave(formData);
-      return;
-    }
-
+  const handleSubmit = async () => {
     try {
-      if (task?.task_id) {
-        await updateTask(task.task_id, formData);
+      if (task && task.id) {
+        await updateTask(task.id, form);
       } else {
-        await createTask(formData);
+        await createTask(form);
       }
-      onSave(formData);
+      onSave();
+      onClose();
     } catch (err) {
       console.error("[TaskDialog] Failed to save task", err);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{task ? "Edit Task" : "New Task"}</DialogTitle>
-      <DialogContent>
-        <TextField
-          autoFocus
-          margin="dense"
-          name="task_name"
-          label="Task Name"
-          type="text"
-          fullWidth
-          value={formData.task_name || ""}
-          onChange={handleChange}
-        />
-        <TextField
-          margin="dense"
-          name="description"
-          label="Description"
-          type="text"
-          fullWidth
-          multiline
-          minRows={3}
-          value={formData.description || ""}
-          onChange={handleChange}
-        />
-        <TextField
-          select
-          margin="dense"
-          name="status"
-          label="Status"
-          fullWidth
-          value={formData.status || "Todo"}
-          onChange={handleChange}
-        >
-          <MenuItem value="Todo">Todo</MenuItem>
-          <MenuItem value="In Progress">In Progress</MenuItem>
-          <MenuItem value="Done">Done</MenuItem>
-          <MenuItem value="Pinned">Pinned</MenuItem>
-        </TextField>
+      <DialogContent dividers>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <TextField
+              label="Name"
+              value={form.name || ""}
+              onChange={(e) => handleChange("name", e.target.value)}
+              fullWidth
+              required
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              label="Description"
+              value={form.description || ""}
+              onChange={(e) => handleChange("description", e.target.value)}
+              fullWidth
+              multiline
+              rows={3}
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <DatePicker
+              label="Start Date"
+              value={form.startDate ? dayjs(form.startDate) : null}
+              onChange={(date) => handleChange("startDate", date?.toISOString())}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TimePicker
+              label="Start Time"
+              value={form.startDate ? dayjs(form.startDate) : null}
+              onChange={(time) => {
+                if (time) {
+                  const newDate = dayjs(form.startDate || new Date()).hour(time.hour()).minute(time.minute());
+                  handleChange("startDate", newDate.toISOString());
+                }
+              }}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <DatePicker
+              label="End Date"
+              value={form.endDate ? dayjs(form.endDate) : null}
+              onChange={(date) => handleChange("endDate", date?.toISOString())}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <TimePicker
+              label="End Time"
+              value={form.endDate ? dayjs(form.endDate) : null}
+              onChange={(time) => {
+                if (time) {
+                  const newDate = dayjs(form.endDate || new Date()).hour(time.hour()).minute(time.minute());
+                  handleChange("endDate", newDate.toISOString());
+                }
+              }}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Priority"
+              select
+              value={form.priority || ""}
+              onChange={(e) => handleChange("priority", e.target.value)}
+              fullWidth
+            >
+              {["Tiny", "Small", "Medium", "Big"].map((p) => (
+                <MenuItem key={p} value={p}>{p}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Status"
+              select
+              value={form.status || "Todo"}
+              onChange={(e) => handleChange("status", e.target.value)}
+              fullWidth
+            >
+              {["Todo", "In Progress", "Done", "Pinned"].map((s) => (
+                <MenuItem key={s} value={s}>{s}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Category"
+              value={form.category || ""}
+              onChange={(e) => handleChange("category", e.target.value)}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Board ID"
+              type="number"
+              value={form.boardId || ""}
+              onChange={(e) => handleChange("boardId", Number(e.target.value))}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Phase ID"
+              type="number"
+              value={form.phaseId || ""}
+              onChange={(e) => handleChange("phaseId", Number(e.target.value))}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Project ID"
+              type="number"
+              value={form.projectId || ""}
+              onChange={(e) => handleChange("projectId", Number(e.target.value))}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Token Value"
+              type="number"
+              value={form.tokenValue || ""}
+              onChange={(e) => handleChange("tokenValue", Number(e.target.value))}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Urgency Score"
+              type="number"
+              value={form.urgencyScore || ""}
+              onChange={(e) => handleChange("urgencyScore", Number(e.target.value))}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              label="Effort Level"
+              value={form.effortLevel || ""}
+              onChange={(e) => handleChange("effortLevel", e.target.value)}
+              fullWidth
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              label="Notes"
+              value={form.notes || ""}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              fullWidth
+              multiline
+              rows={2}
+            />
+          </Grid>
+        </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave} variant="contained" color="primary">
-          Save
-        </Button>
+        <Button variant="contained" onClick={handleSubmit}>Save</Button>
       </DialogActions>
     </Dialog>
   );

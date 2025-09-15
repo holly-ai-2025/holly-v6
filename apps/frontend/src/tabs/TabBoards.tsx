@@ -17,21 +17,13 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  IconButton,
 } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import dayjs from "dayjs";
-import { getBoards, createBoard } from "../api/boards";
-
-interface Board {
-  board_id: number;
-  name: string;
-  type: "project" | "list";
-  category?: string;
-  color?: string;
-  description?: string;
-  pinned?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+import { getBoards, createBoard, Board } from "../api/boards";
+import { createProject } from "../api/projects";
+import BoardDetailPage from "../components/BoardDetailPage";
 
 const boardColors: string[] = ["#5cc9f5", "#5a96f5", "#a469f5", "#f57ad1", "#f55c5c"];
 
@@ -41,6 +33,7 @@ const TabBoards: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newBoard, setNewBoard] = useState<Partial<Board>>({ type: "project" });
+  const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
 
   const fetchBoards = async () => {
     try {
@@ -60,7 +53,22 @@ const TabBoards: React.FC = () => {
   const handleCreateBoard = async () => {
     if (!newBoard.name || !newBoard.type) return;
     try {
-      await createBoard(newBoard);
+      const createdBoard = await createBoard({
+        name: newBoard.name,
+        type: newBoard.type,
+        category: newBoard.category,
+        color: newBoard.color,
+        description: newBoard.description,
+      });
+
+      if (createdBoard.type === "project") {
+        await createProject({
+          boardId: createdBoard.boardId,
+          name: createdBoard.name,
+          notes: createdBoard.description,
+        });
+      }
+
       setDialogOpen(false);
       setNewBoard({ type: "project" });
       fetchBoards();
@@ -75,13 +83,14 @@ const TabBoards: React.FC = () => {
 
   const renderProjectCard = (board: Board) => {
     const completion = Math.floor(Math.random() * 100);
-    const deadline = "2025-12-31";
+    const deadline = board.updatedAt || null;
 
     return (
       <Paper
-        key={board.board_id}
+        key={board.id}
         elevation={3}
-        sx={{ p: 2, borderRadius: 3, minHeight: 180, display: "flex", flexDirection: "column" }}
+        sx={{ p: 2, borderRadius: 3, minHeight: 180, display: "flex", flexDirection: "column", cursor: "pointer" }}
+        onClick={() => setSelectedBoard(board)}
       >
         <Box sx={{ height: 6, borderRadius: 2, backgroundColor: board.color || boardColors[0], mb: 2 }} />
         <Typography variant="h6" fontWeight="bold">{board.name}</Typography>
@@ -105,9 +114,10 @@ const TabBoards: React.FC = () => {
 
     return (
       <Paper
-        key={board.board_id}
+        key={board.id}
         elevation={3}
-        sx={{ p: 2, borderRadius: 3, minHeight: 160, display: "flex", flexDirection: "column" }}
+        sx={{ p: 2, borderRadius: 3, minHeight: 160, display: "flex", flexDirection: "column", cursor: "pointer" }}
+        onClick={() => setSelectedBoard(board)}
       >
         <Box sx={{ height: 6, borderRadius: 2, backgroundColor: board.color || boardColors[1], mb: 2 }} />
         <Typography variant="h6" fontWeight="bold">{board.name}</Typography>
@@ -119,12 +129,26 @@ const TabBoards: React.FC = () => {
             {taskCount} tasks • {itemCount} items
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
-            Updated {board.updated_at ? dayjs(board.updated_at).fromNow() : "–"}
+            Updated {board.updatedAt ? dayjs(board.updatedAt).fromNow() : "–"}
           </Typography>
         </Box>
       </Paper>
     );
   };
+
+  if (selectedBoard) {
+    return (
+      <Box p={2}>
+        <Box display="flex" alignItems="center" mb={2}>
+          <IconButton onClick={() => setSelectedBoard(null)}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" ml={1}>{selectedBoard.name}</Typography>
+        </Box>
+        <BoardDetailPage board={selectedBoard} />
+      </Box>
+    );
+  }
 
   return (
     <Box p={2}>
@@ -161,7 +185,7 @@ const TabBoards: React.FC = () => {
         {filteredBoards.length > 0 ? (
           <Grid container spacing={2}>
             {filteredBoards.map((b) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={b.board_id}>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={b.id}>
                 {b.type === "project" ? renderProjectCard(b) : renderListCard(b)}
               </Grid>
             ))}

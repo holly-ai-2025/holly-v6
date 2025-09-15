@@ -17,7 +17,6 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
-import { getTasks, updateTask as apiUpdateTask } from "../api/tasks";
 
 interface Task {
   task_id?: number;
@@ -99,7 +98,6 @@ const allowedPatchFields = new Set([
   "urgency_score",
   "effort_level",
   "category",
-  "task_name",
 ]);
 
 const groupTasksByDate = (tasks: Task[]): TaskGroups => {
@@ -165,15 +163,19 @@ const TabTasks: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const fetchTasks = async () => {
-    try {
-      const data = await getTasks();
-      if (Array.isArray(data)) {
-        setTasks(groupTasksByDate(data));
-      }
-    } catch (err) {
-      console.error("[TabTasks] Failed to fetch tasks", err);
-    }
+  const fetchTasks = () => {
+    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setTasks(groupTasksByDate(data));
+        } else {
+          setTasks(data);
+        }
+      })
+      .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
   };
 
   useEffect(() => {
@@ -214,7 +216,15 @@ const TabTasks: React.FC = () => {
     console.debug("[TabTasks] PATCH payload", payload);
 
     try {
-      await apiUpdateTask(taskId, payload);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Failed to update task");
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to update task", err);
