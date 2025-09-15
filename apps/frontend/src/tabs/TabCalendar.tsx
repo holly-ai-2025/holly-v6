@@ -9,7 +9,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Paper } from "@mui/material";
-import { Task, getTasks, updateTask } from "../api/tasks";
+import { Task, getTasks, createTask, updateTask } from "../api/tasks";
 import TaskDialog from "../components/TaskDialog";
 import "../styles/calendar.css";
 import dayjs from "dayjs";
@@ -20,7 +20,6 @@ const TabCalendar: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [defaultStart, setDefaultStart] = useState<any>(null);
-  const [defaultEnd, setDefaultEnd] = useState<any>(null);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -49,7 +48,6 @@ const TabCalendar: React.FC = () => {
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedTask(null);
     setDefaultStart(dayjs(selectInfo.start));
-    setDefaultEnd(dayjs(selectInfo.end));
     setDialogOpen(true);
   };
 
@@ -81,19 +79,22 @@ const TabCalendar: React.FC = () => {
     }
   };
 
-  const eventContent = (eventInfo: any) => {
-    const task = tasks.find((t) => t.id?.toString() === eventInfo.event.id);
-    let className = "event-normal";
-    if (task) {
-      if (task.status === "Done") {
-        className = "event-completed";
-      } else if (task.dueDate && dayjs(task.dueDate).isBefore(dayjs())) {
-        className = "event-overdue";
+  const handleDialogSave = async (form: Partial<Task>) => {
+    try {
+      if (selectedTask && selectedTask.id) {
+        await updateTask(selectedTask.id, form);
+      } else {
+        await createTask(form);
       }
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabCalendar] Failed to save task from dialog", err);
     }
+  };
+
+  const eventContent = (eventInfo: any) => {
     return (
-      <div className={className}>
-        <b>{eventInfo.timeText}</b>
+      <div>
         <i>{eventInfo.event.title}</i>
       </div>
     );
@@ -133,9 +134,8 @@ const TabCalendar: React.FC = () => {
         open={dialogOpen}
         task={selectedTask}
         onClose={() => setDialogOpen(false)}
-        onSave={fetchTasks}
+        onSave={handleDialogSave}
         defaultStart={defaultStart}
-        defaultEnd={defaultEnd}
       />
     </Paper>
   );

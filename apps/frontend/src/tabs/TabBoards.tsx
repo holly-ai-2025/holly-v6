@@ -63,7 +63,7 @@ const TabBoards: React.FC = () => {
 
       if (createdBoard.type === "project") {
         await createProject({
-          boardId: createdBoard.boardId,
+          boardId: createdBoard.id, // FIXED: use normalized id from wrapper
           name: createdBoard.name,
           notes: createdBoard.description,
         });

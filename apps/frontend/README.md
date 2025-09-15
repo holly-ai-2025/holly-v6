@@ -74,12 +74,12 @@ Tasks returned by backend include (after normalization):
   - Delete button only shown for existing tasks.
   - Defaults: `tokenValue = 5`, `priority = Medium`, `dueDate = blank`.
 
-- **TabTasks**
+- **TabTasks** (`src/tabs/TabTasks.tsx`)
   - Uses `getTasks` to list tasks.
   - Uses `updateTask` when saving edits.
   - Groups tasks by due date, priority, or status consistently.
 
-- **TabCalendar**
+- **TabCalendar** (`src/tabs/TabCalendar.tsx`)
   - Uses FullCalendar for drag/create/edit.
   - Only Calendar persists tasks → avoids duplicate saves.
   - Maps `status → className` for color coding.
