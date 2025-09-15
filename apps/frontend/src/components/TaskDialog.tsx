@@ -11,30 +11,32 @@ import {
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs, { Dayjs } from "dayjs";
-import { Task, createTask, updateTask } from "../api/tasks";
+import { Task } from "../api/tasks";
 
 interface TaskDialogProps {
   open: boolean;
   task: Task | null;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (form: Partial<Task>) => void;
   defaultStart?: Dayjs | null;
-  defaultEnd?: Dayjs | null;
 }
 
-const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, defaultStart, defaultEnd }) => {
+const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, defaultStart }) => {
   const [form, setForm] = useState<Partial<Task>>({});
 
   useEffect(() => {
     if (task) {
       setForm(task);
+    } else if (defaultStart) {
+      // Calendar new task → default start and +1 hour end
+      const start = defaultStart.toISOString();
+      const end = defaultStart.add(1, "hour").toISOString();
+      setForm({ startDate: start, endDate: end });
     } else {
-      setForm({
-        startDate: defaultStart?.toISOString() || null,
-        endDate: defaultEnd?.toISOString() || null,
-      });
+      // Task tab new task → no date assigned
+      setForm({});
     }
-  }, [task, defaultStart, defaultEnd]);
+  }, [task, defaultStart]);
 
   const handleChange = (field: keyof Task, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -42,12 +44,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, de
 
   const handleSubmit = async () => {
     try {
-      if (task && task.id) {
-        await updateTask(task.id, form);
-      } else {
-        await createTask(form);
-      }
-      onSave();
+      onSave(form);
       onClose();
     } catch (err) {
       console.error("[TaskDialog] Failed to save task", err);
@@ -96,28 +93,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, task, onClose, onSave, de
                 if (time) {
                   const newDate = dayjs(form.startDate || new Date()).hour(time.hour()).minute(time.minute());
                   handleChange("startDate", newDate.toISOString());
-                }
-              }}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-
-          <Grid item xs={6}>
-            <DatePicker
-              label="End Date"
-              value={form.endDate ? dayjs(form.endDate) : null}
-              onChange={(date) => handleChange("endDate", date?.toISOString())}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TimePicker
-              label="End Time"
-              value={form.endDate ? dayjs(form.endDate) : null}
-              onChange={(time) => {
-                if (time) {
-                  const newDate = dayjs(form.endDate || new Date()).hour(time.hour()).minute(time.minute());
-                  handleChange("endDate", newDate.toISOString());
                 }
               }}
               slotProps={{ textField: { fullWidth: true } }}

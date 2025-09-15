@@ -17,30 +17,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
-
-interface Task {
-  task_id?: number;
-  task_name?: string;
-  description?: string;
-  due_date?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  status?: string;
-  priority?: string;
-  category?: string;
-  project_id?: number;
-  project?: string;
-  phase_id?: number;
-  notes?: string;
-  token_value?: number;
-  urgency_score?: number;
-  effort_level?: string;
-  board_id?: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-type TaskGroups = Record<string, Task[]>;
+import { Task, getTasks, createTask, updateTask } from "../api/tasks";
 
 const groupColors: Record<string, string> = {
   Overdue: "#f8d7da",
@@ -49,21 +26,6 @@ const groupColors: Record<string, string> = {
   "This Week": "#c5e0f6",
   Later: "#b5d7f3",
   Completed: "#f2f2f2",
-};
-
-const getTokenGradient = (value?: number) => {
-  switch (value) {
-    case 5:
-      return "linear-gradient(135deg, #00e0ff, #00cfff)";
-    case 10:
-      return "linear-gradient(135deg, #3399ff, #0088ff)";
-    case 15:
-      return "linear-gradient(135deg, #5c4dff, #4b32ff)";
-    case 20:
-      return "linear-gradient(135deg, #9d4bff, #8a2be2)";
-    default:
-      return "linear-gradient(135deg, #e0e0e0, #c0c0c0)";
-  }
 };
 
 const normalizeStatus = (status?: string) => {
@@ -75,33 +37,8 @@ const normalizeStatus = (status?: string) => {
   return "Todo";
 };
 
-const toBackendStatus = (status?: string) => {
-  if (!status) return "Todo";
-  const s = status.toLowerCase();
-  if (s === "done") return "Done";
-  if (s === "in progress" || s === "in_progress") return "In Progress";
-  if (s === "pinned") return "Pinned";
-  return "Todo";
-};
-
-const allowedPatchFields = new Set([
-  "status",
-  "priority",
-  "due_date",
-  "start_date",
-  "end_date",
-  "project_id",
-  "phase_id",
-  "notes",
-  "description",
-  "token_value",
-  "urgency_score",
-  "effort_level",
-  "category",
-]);
-
-const groupTasksByDate = (tasks: Task[]): TaskGroups => {
-  const groups: TaskGroups = {
+const groupTasksByDate = (tasks: Task[]) => {
+  const groups: Record<string, Task[]> = {
     Overdue: [],
     Today: [],
     SuggestedToday: [],
@@ -123,8 +60,10 @@ const groupTasksByDate = (tasks: Task[]): TaskGroups => {
       return;
     }
 
-    if (!task.due_date) {
-      if ((task.urgency_score || 0) > 5) {
+    const effectiveDate = task.startDate || task.dueDate || null;
+
+    if (!effectiveDate) {
+      if ((task.urgencyScore || 0) > 5) {
         groups.SuggestedToday.push(task);
       } else {
         groups.SuggestedTomorrow.push(task);
@@ -132,7 +71,8 @@ const groupTasksByDate = (tasks: Task[]): TaskGroups => {
       return;
     }
 
-    const due = dayjs(task.due_date);
+    const due = dayjs(effectiveDate).startOf("day");
+
     if (due.isBefore(today, "day")) {
       groups.Overdue.push(task);
     } else if (due.isSame(today, "day")) {
@@ -146,11 +86,26 @@ const groupTasksByDate = (tasks: Task[]): TaskGroups => {
     }
   });
 
+  // Sorting by effective date
+  const sortByDate = (arr: Task[]) =>
+    arr.sort(
+      (a, b) =>
+        dayjs(a.startDate || a.dueDate).valueOf() -
+        dayjs(b.startDate || b.dueDate).valueOf()
+    );
+
+  sortByDate(groups.Overdue);
+  sortByDate(groups.Today);
+  sortByDate(groups.Tomorrow);
+  sortByDate(groups["This Week"]);
+  sortByDate(groups.Later);
+
   return groups;
 };
 
 const TabTasks: React.FC = () => {
-  const [tasks, setTasks] = useState<TaskGroups>({});
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [grouped, setGrouped] = useState<Record<string, Task[]>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Overdue: true,
     Today: true,
@@ -163,19 +118,14 @@ const TabTasks: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const fetchTasks = () => {
-    fetch(`${import.meta.env.VITE_API_URL}/db/tasks`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setTasks(groupTasksByDate(data));
-        } else {
-          setTasks(data);
-        }
-      })
-      .catch((err) => console.error("[TabTasks] Failed to fetch tasks", err));
+  const fetchTasks = async () => {
+    try {
+      const data = await getTasks();
+      setTasks(data);
+      setGrouped(groupTasksByDate(data));
+    } catch (err) {
+      console.error("[TabTasks] Failed to fetch tasks", err);
+    }
   };
 
   useEffect(() => {
@@ -186,48 +136,16 @@ const TabTasks: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const updateTask = async (taskId: number | undefined, updates: Partial<Task>) => {
-    if (!taskId) return;
-
-    const payload: Record<string, any> = {};
-    Object.entries(updates).forEach(([key, value]) => {
-      if (allowedPatchFields.has(key) && value !== null && value !== "") {
-        if (key === "status") {
-          payload[key] = toBackendStatus(value as string);
-        } else if (key === "due_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DD");
-        } else if (key === "start_date" || key === "end_date") {
-          payload[key] = dayjs(value).format("YYYY-MM-DDTHH:mm:ss");
-        } else if (key === "priority") {
-          const map: Record<string, string> = {
-            "1": "Tiny",
-            "2": "Small",
-            "3": "Medium",
-            "4": "Big",
-          };
-          payload[key] = map[String(value)] || String(value);
-        } else {
-          payload[key] = value;
-        }
-      }
-    });
-
-    if (Object.keys(payload).length === 0) return;
-    console.debug("[TabTasks] PATCH payload", payload);
-
+  const handleDialogSave = async (form: Partial<Task>) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/db/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPS_TOKEN}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to update task");
+      if (selectedTask && selectedTask.id) {
+        await updateTask(selectedTask.id, form);
+      } else {
+        await createTask(form);
+      }
       fetchTasks();
     } catch (err) {
-      console.error("[TabTasks] Failed to update task", err);
+      console.error("[TabTasks] Failed to save task", err);
     }
   };
 
@@ -239,23 +157,29 @@ const TabTasks: React.FC = () => {
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
-    fetchTasks(); // ✅ Just refetch tasks after dialog closes
   };
 
-  const handleDialogSave = async (updates: Partial<Task>) => {
-    if (selectedTask && selectedTask.task_id) {
-      await updateTask(selectedTask.task_id, updates);
-    }
-    handleDialogClose();
-  };
-
-  const renderTaskRow = (task: Task) => {
-    const taskId = task.task_id;
+  const renderTaskRow = (task: Task, groupName: string) => {
     const isCompleted = normalizeStatus(task.status) === "Done";
+
+    let bgColor = "#fff";
+    if (groupName === "Overdue") {
+      bgColor = groupColors.Overdue;
+    } else if (groupName === "Later") {
+      bgColor = groupColors.Later;
+    } else if (groupName === "Today") {
+      bgColor = groupColors.Today;
+    } else if (groupName === "Tomorrow") {
+      bgColor = groupColors.Tomorrow;
+    } else if (groupName === "This Week") {
+      bgColor = groupColors["This Week"];
+    } else if (isCompleted) {
+      bgColor = groupColors.Completed;
+    }
 
     return (
       <Box
-        key={taskId}
+        key={task.id}
         display="flex"
         alignItems="center"
         gap={0.8}
@@ -267,19 +191,20 @@ const TabTasks: React.FC = () => {
             sx={{ borderRadius: "50%" }}
             checked={isCompleted}
             onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
+            onChange={async (e) => {
               e.stopPropagation();
-              updateTask(taskId, { status: e.target.checked ? "Done" : "Todo" });
+              await updateTask(task.id!, { status: e.target.checked ? "Done" : "Todo" });
+              fetchTasks();
             }}
           />
         </Box>
 
-        {task.token_value !== undefined && (
-          <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
+        {task.tokenValue !== undefined && (
+          <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
             <Typography
               component="span"
               sx={{
-                background: getTokenGradient(task.token_value),
+                background: "#3399ff",
                 borderRadius: "999px",
                 px: 1,
                 py: 0.3,
@@ -292,7 +217,7 @@ const TabTasks: React.FC = () => {
                 boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
               }}
             >
-              +{task.token_value}
+              +{task.tokenValue}
             </Typography>
           </Tooltip>
         )}
@@ -304,11 +229,7 @@ const TabTasks: React.FC = () => {
           justifyContent="space-between"
           onClick={() => handleTaskClick(task)}
           sx={{
-            backgroundColor: isCompleted
-              ? groupColors.Completed
-              : task.due_date && dayjs(task.due_date).isBefore(dayjs(), "day")
-              ? groupColors["Overdue"]
-              : groupColors[task.due_date ? "Today" : "Later"] || "#fff",
+            backgroundColor: bgColor,
             borderRadius: "14px",
             boxShadow: 1,
             py: 0.3,
@@ -326,29 +247,29 @@ const TabTasks: React.FC = () => {
               color: isCompleted ? "#888" : "inherit",
             }}
           >
-            {task.task_name}
-            {task.start_date && task.end_date && (
+            {task.name}
+            {task.startDate && task.endDate && (
               <Typography
                 component="span"
                 variant="body2"
                 color="text.secondary"
                 sx={{ ml: 0.5 }}
               >
-                {dayjs(task.start_date).format("HH:mm")} – {dayjs(task.end_date).format("HH:mm")}
+                {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
               </Typography>
             )}
           </Typography>
 
-          {(task.project_id || task.project) && (
+          {(task.projectId || task.project) && (
             <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
           )}
         </Box>
 
-        <Tooltip title={`Due: ${task.due_date || "Not set"}`} arrow>
+        <Tooltip title={`Due: ${task.startDate || task.dueDate || "Not set"}`} arrow>
           <DatePicker
-            value={task.due_date ? dayjs(task.due_date) : null}
+            value={task.startDate ? dayjs(task.startDate) : task.dueDate ? dayjs(task.dueDate) : null}
             onChange={(newDate) =>
-              updateTask(taskId, { due_date: newDate?.format("YYYY-MM-DD") })
+              updateTask(task.id!, { dueDate: newDate?.toISOString() || null })
             }
             slots={{ openPickerIcon: CalendarTodayIcon }}
             slotProps={{
@@ -376,15 +297,15 @@ const TabTasks: React.FC = () => {
         </Button>
       </Box>
 
-      {Object.keys(tasks || {}).map((group) => {
+      {Object.keys(grouped || {}).map((group) => {
         if (group === "SuggestedToday" || group === "SuggestedTomorrow") return null;
 
-        const groupTasks = tasks[group] || [];
+        const groupTasks = grouped[group] || [];
         const suggestedTasks =
           group === "Today"
-            ? tasks.SuggestedToday || []
+            ? grouped.SuggestedToday || []
             : group === "Tomorrow"
-            ? tasks.SuggestedTomorrow || []
+            ? grouped.SuggestedTomorrow || []
             : [];
 
         return (
@@ -410,13 +331,13 @@ const TabTasks: React.FC = () => {
 
             <Collapse in={openGroups[group]}>
               <Box mt={0.5}>
-                {groupTasks.map(renderTaskRow)}
+                {groupTasks.map((task) => renderTaskRow(task, group))}
                 {suggestedTasks.length > 0 && (
                   <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
                     <Typography variant="caption" fontWeight="bold" color="text.secondary">
                       Suggested
                     </Typography>
-                    <Box mt={0.5}>{suggestedTasks.map(renderTaskRow)}</Box>
+                    <Box mt={0.5}>{suggestedTasks.map((task) => renderTaskRow(task, group))}</Box>
                   </Paper>
                 )}
               </Box>
