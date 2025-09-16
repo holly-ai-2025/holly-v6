@@ -16,6 +16,7 @@ import {
   Checkbox,
   FormControlLabel,
   Typography,
+  Box,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Slider from "@mui/material/Slider";
@@ -176,6 +177,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     onClose();
   };
 
+  const inputSx = { "& .MuiInputBase-root": { height: 42 } };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogContent>
@@ -185,6 +188,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           margin="dense"
+          size="small"
+          sx={inputSx}
         />
         <TextField
           fullWidth
@@ -194,6 +199,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           margin="dense"
+          size="small"
+          sx={inputSx}
         />
 
         <Divider sx={{ my: 2 }} />
@@ -207,6 +214,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             fullWidth
+            size="small"
+            sx={inputSx}
           />
           <TextField
             label="Start Time"
@@ -216,6 +225,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             onChange={(e) => handleStartTimeChange(e.target.value)}
             disabled={!dueDate}
             fullWidth
+            size="small"
+            sx={inputSx}
           />
           <TextField
             label="End Time"
@@ -225,6 +236,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             onChange={(e) => setEndTime(e.target.value)}
             disabled={!startTime}
             fullWidth
+            size="small"
+            sx={inputSx}
           />
         </div>
 
@@ -232,36 +245,48 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
         {/* Priority Slider */}
         <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Priority</Typography>
-        <ColoredSlider
-          sliderType="priority"
-          value={priority}
-          onChange={(_, val) => setPriority(val as number)}
-          min={1}
-          max={4}
-          step={1}
-        />
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <ColoredSlider
+            sliderType="priority"
+            value={priority}
+            onChange={(_, val) => setPriority(val as number)}
+            min={1}
+            max={4}
+            step={1}
+            sx={{ flex: 1, mr: 2 }}
+          />
+          <Typography sx={{ width: 30, textAlign: "center" }}>{priority}</Typography>
+        </Box>
 
         {/* Reward Tokens */}
         <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Reward Tokens</Typography>
-        <ColoredSlider
-          sliderType="tokens"
-          value={rewardTokens}
-          onChange={(_, val) => setRewardTokens(val as number)}
-          min={5}
-          max={20}
-          step={5}
-        />
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <ColoredSlider
+            sliderType="tokens"
+            value={rewardTokens}
+            onChange={(_, val) => setRewardTokens(val as number)}
+            min={5}
+            max={20}
+            step={5}
+            sx={{ flex: 1, mr: 2 }}
+          />
+          <Typography sx={{ width: 30, textAlign: "center" }}>{rewardTokens}</Typography>
+        </Box>
 
         {/* Effort Slider */}
         <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Effort</Typography>
-        <ColoredSlider
-          sliderType="effort"
-          value={effort}
-          onChange={(_, val) => setEffort(val as number)}
-          min={1}
-          max={3}
-          step={1}
-        />
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <ColoredSlider
+            sliderType="effort"
+            value={effort}
+            onChange={(_, val) => setEffort(val as number)}
+            min={1}
+            max={3}
+            step={1}
+            sx={{ flex: 1, mr: 2 }}
+          />
+          <Typography sx={{ width: 30, textAlign: "center" }}>{effort}</Typography>
+        </Box>
 
         <Divider sx={{ my: 2 }} />
 
@@ -274,6 +299,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
               value={board}
               onChange={(e) => setBoard(e.target.value)}
               displayEmpty
+              size="small"
+              sx={inputSx}
             >
               <MenuItem value="" disabled>
                 Select a board
@@ -288,7 +315,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
               onChange={(e) => setPhase(e.target.value)}
               displayEmpty
               disabled={!board}
-              sx={{ mt: 2 }}
+              size="small"
+              sx={{ mt: 2, ...inputSx }}
             >
               <MenuItem value="" disabled>
                 Select a phase
@@ -303,7 +331,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               margin="dense"
-              sx={{ mt: 2 }}
+              size="small"
+              sx={{ mt: 2, ...inputSx }}
             />
           </AccordionDetails>
         </Accordion>
@@ -330,9 +359,33 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           onChange={(_, val) => val && setStatus(val)}
           size="small"
         >
-          <ToggleButton value="todo" sx={{ bgcolor: status === "todo" ? "#2196f3" : "transparent", color: status === "todo" ? "#fff" : "grey" }}>Todo</ToggleButton>
-          <ToggleButton value="inprogress" sx={{ bgcolor: status === "inprogress" ? "#ff9800" : "transparent", color: status === "inprogress" ? "#fff" : "grey" }}>In Progress</ToggleButton>
-          <ToggleButton value="done" sx={{ bgcolor: status === "done" ? "#4caf50" : "transparent", color: status === "done" ? "#fff" : "grey" }}>Done</ToggleButton>
+          <ToggleButton
+            value="todo"
+            sx={{
+              "&.Mui-selected": { bgcolor: "#2196f3", color: "#fff" },
+              "&.Mui-selected:hover": { bgcolor: "#1976d2" },
+            }}
+          >
+            Todo
+          </ToggleButton>
+          <ToggleButton
+            value="inprogress"
+            sx={{
+              "&.Mui-selected": { bgcolor: "#ff9800", color: "#fff" },
+              "&.Mui-selected:hover": { bgcolor: "#e68900" },
+            }}
+          >
+            In Progress
+          </ToggleButton>
+          <ToggleButton
+            value="done"
+            sx={{
+              "&.Mui-selected": { bgcolor: "#4caf50", color: "#fff" },
+              "&.Mui-selected:hover": { bgcolor: "#3e8e41" },
+            }}
+          >
+            Done
+          </ToggleButton>
         </ToggleButtonGroup>
 
         <div>
