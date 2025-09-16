@@ -105,6 +105,7 @@ export async function updateTask(id: number, payload: Partial<Task>): Promise<Ta
   return normalizeTask(res.data);
 }
 
+// ✅ Soft delete: archive instead of hard delete
 export async function deleteTask(id: number): Promise<void> {
-  await client.delete(`/db/tasks/${id}`);
+  await client.patch(`/db/tasks/${id}`, { archived: true });
 }
