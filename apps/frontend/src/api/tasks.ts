@@ -1,7 +1,7 @@
 import client from "./client";
 
 export interface Task {
-  id?: number; // frontend always uses `id` (camelCase), mapped from backend `task_id`
+  id?: number;
   name: string;
   description?: string;
   boardId?: number;
@@ -24,16 +24,16 @@ export interface Task {
   project?: any;
   phase?: any;
   board?: any;
+  notes?: string; // ✅ added
 }
 
-// Remove undefined values from payload
 function stripUndefined(obj: Record<string, any>) {
   return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
 }
 
 function normalizeTask(data: any): Task {
   return {
-    id: data.task_id, // ✅ map backend task_id → frontend id
+    id: data.task_id,
     name: data.task_name,
     description: data.description,
     boardId: data.board_id,
@@ -56,6 +56,7 @@ function normalizeTask(data: any): Task {
     project: data.project,
     phase: data.phase,
     board: data.board,
+    notes: data.notes, // ✅ added
   };
 }
 
@@ -80,6 +81,7 @@ function denormalizeTask(payload: Partial<Task>): any {
     pinned: payload.pinned,
     created_at: payload.createdAt,
     updated_at: payload.updatedAt,
+    notes: payload.notes, // ✅ added
   };
 
   return stripUndefined(raw);
@@ -105,7 +107,6 @@ export async function updateTask(id: number, payload: Partial<Task>): Promise<Ta
   return normalizeTask(res.data);
 }
 
-// ✅ Soft delete: archive instead of hard delete
 export async function deleteTask(id: number): Promise<void> {
   await client.patch(`/db/tasks/${id}`, { archived: true });
 }
