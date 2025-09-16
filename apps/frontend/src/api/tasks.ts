@@ -1,9 +1,7 @@
 import client from "./client";
 
-const base = "/db/tasks";
-
 export interface Task {
-  id: number;
+  id?: number; // frontend always uses `id` (camelCase), mapped from backend `task_id`
   name: string;
   description?: string;
   boardId?: number;
@@ -23,35 +21,46 @@ export interface Task {
   pinned?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  project?: any;
+  phase?: any;
+  board?: any;
 }
 
-function normalizeTask(raw: any): Task {
+// Remove undefined values from payload
+function stripUndefined(obj: Record<string, any>) {
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+}
+
+function normalizeTask(data: any): Task {
   return {
-    id: raw.task_id,
-    name: raw.task_name,
-    description: raw.description,
-    boardId: raw.board_id,
-    projectId: raw.project_id,
-    phaseId: raw.phase_id,
-    groupId: raw.group_id,
-    status: raw.status,
-    urgencyScore: raw.urgency_score,
-    priority: raw.priority,
-    category: raw.category,
-    tokenValue: raw.token_value,
-    dueDate: raw.due_date,
-    startDate: raw.start_date,
-    endDate: raw.end_date,
-    effortLevel: raw.effort_level,
-    archived: raw.archived,
-    pinned: raw.pinned,
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
+    id: data.task_id, // ✅ map backend task_id → frontend id
+    name: data.task_name,
+    description: data.description,
+    boardId: data.board_id,
+    projectId: data.project_id,
+    phaseId: data.phase_id,
+    groupId: data.group_id,
+    status: data.status,
+    urgencyScore: data.urgency_score,
+    priority: data.priority,
+    category: data.category,
+    tokenValue: data.token_value,
+    dueDate: data.due_date,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    effortLevel: data.effort_level,
+    archived: data.archived,
+    pinned: data.pinned,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    project: data.project,
+    phase: data.phase,
+    board: data.board,
   };
 }
 
 function denormalizeTask(payload: Partial<Task>): any {
-  return {
+  const raw: any = {
     task_name: payload.name,
     description: payload.description,
     board_id: payload.boardId,
@@ -72,24 +81,30 @@ function denormalizeTask(payload: Partial<Task>): any {
     created_at: payload.createdAt,
     updated_at: payload.updatedAt,
   };
+
+  return stripUndefined(raw);
 }
 
 export async function getTasks(): Promise<Task[]> {
-  const res = await client.get(base);
+  const res = await client.get("/db/tasks");
   return res.data.map(normalizeTask);
 }
 
+export async function getTask(id: number): Promise<Task> {
+  const res = await client.get(`/db/tasks/${id}`);
+  return normalizeTask(res.data);
+}
+
 export async function createTask(payload: Partial<Task>): Promise<Task> {
-  const res = await client.post(base, denormalizeTask(payload));
+  const res = await client.post("/db/tasks", denormalizeTask(payload));
   return normalizeTask(res.data);
 }
 
 export async function updateTask(id: number, payload: Partial<Task>): Promise<Task> {
-  const res = await client.patch(`${base}/${id}`, denormalizeTask(payload));
+  const res = await client.patch(`/db/tasks/${id}`, denormalizeTask(payload));
   return normalizeTask(res.data);
 }
 
-export async function deleteTask(id: number): Promise<{ ok: boolean }> {
-  const res = await client.delete(`${base}/${id}`);
-  return res.data;
+export async function deleteTask(id: number): Promise<void> {
+  await client.delete(`/db/tasks/${id}`);
 }
