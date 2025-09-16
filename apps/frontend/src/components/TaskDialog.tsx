@@ -14,6 +14,8 @@ import {
   Select,
   ToggleButton,
   ToggleButtonGroup,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Slider from "@mui/material/Slider";
@@ -41,19 +43,21 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
   const [title, setTitle] = useState(task?.name || "");
   const [description, setDescription] = useState(task?.description || "");
   const [startDate, setStartDate] = useState(task?.startDate || "");
-  const [startTime, setStartTime] = useState(task?.startTime || "");
-  const [endTime, setEndTime] = useState(task?.endTime || "");
-  const [priority, setPriority] = useState(task?.priority || 2);
-  const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 10);
-  const [effort, setEffort] = useState(task?.effortLevel || 1);
+  const [endDate, setEndDate] = useState(task?.endDate || "");
+  const [priority, setPriority] = useState(task?.priority || "Medium");
+  const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
+  const [effort, setEffort] = useState(task?.effortLevel || "Medium");
   const [status, setStatus] = useState(task?.status || "todo");
+  const [dueDate, setDueDate] = useState(task?.dueDate || "");
+  const [urgencyScore, setUrgencyScore] = useState(task?.urgencyScore || 5);
+  const [archived, setArchived] = useState(task?.archived || false);
+  const [pinned, setPinned] = useState(task?.pinned || false);
 
   const [boards, setBoards] = useState<any[]>([]);
   const [phases, setPhases] = useState<any[]>([]);
   const [board, setBoard] = useState(task?.boardId || "");
   const [phase, setPhase] = useState(task?.phaseId || "");
   const [category, setCategory] = useState(task?.category || "");
-  const [tags, setTags] = useState<string[]>(task?.tags || []);
 
   useEffect(() => {
     getBoards().then(setBoards);
@@ -68,16 +72,18 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       name: title,
       description,
       startDate: startDate || null,
-      startTime: startTime || null,
-      endTime: endTime || null,
+      endDate: endDate || null,
+      dueDate: dueDate || null,
       priority,
       tokenValue: rewardTokens,
       effortLevel: effort,
+      urgencyScore,
       status,
       boardId: board || null,
       phaseId: phase || null,
       category,
-      tags,
+      archived,
+      pinned,
     };
     if (isNew) await createTask(payload);
     else await updateTask(task.id, payload);
@@ -112,7 +118,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Date & Time */}
+        {/* Date Fields */}
         <div style={{ display: "flex", gap: "10px" }}>
           <TextField
             label="Start Date"
@@ -123,57 +129,33 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             fullWidth
           />
           <TextField
-            label="Start Time"
-            type="time"
+            label="End Date"
+            type="date"
             InputLabelProps={{ shrink: true }}
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
             fullWidth
           />
           <TextField
-            label="End Time"
-            type="time"
+            label="Due Date"
+            type="date"
             InputLabelProps={{ shrink: true }}
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
             fullWidth
           />
         </div>
 
-        {/* Priority */}
+        {/* Urgency */}
         <div style={{ marginTop: "10px" }}>
-          <div style={{ marginBottom: 4 }}>Priority</div>
+          <div style={{ marginBottom: 4 }}>Urgency Score</div>
           <CompactSlider
-            value={priority}
-            onChange={(_, val) => setPriority(val as number)}
+            value={urgencyScore}
+            onChange={(_, val) => setUrgencyScore(val as number)}
             min={1}
-            max={4}
+            max={10}
             step={1}
           />
-        </div>
-
-        {/* Reward + Effort */}
-        <div style={{ display: "flex", gap: "20px", marginTop: "10px" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: 4 }}>Reward Tokens</div>
-            <CompactSlider
-              value={rewardTokens}
-              onChange={(_, val) => setRewardTokens(val as number)}
-              min={5}
-              max={20}
-              step={5}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: 4 }}>Effort</div>
-            <CompactSlider
-              value={effort}
-              onChange={(_, val) => setEffort(val as number)}
-              min={1}
-              max={3}
-              step={1}
-            />
-          </div>
         </div>
 
         <Divider sx={{ my: 2 }} />
@@ -218,16 +200,20 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
               margin="dense"
               sx={{ mt: 2 }}
             />
-            <TextField
-              fullWidth
-              placeholder="Add tags..."
-              value={tags.join(", ")}
-              onChange={(e) => setTags(e.target.value.split(","))}
-              margin="dense"
-              sx={{ mt: 2 }}
-            />
           </AccordionDetails>
         </Accordion>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Flags */}
+        <FormControlLabel
+          control={<Checkbox checked={archived} onChange={(e) => setArchived(e.target.checked)} />}
+          label="Archived"
+        />
+        <FormControlLabel
+          control={<Checkbox checked={pinned} onChange={(e) => setPinned(e.target.checked)} />}
+          label="Pinned"
+        />
       </DialogContent>
 
       <Divider />
