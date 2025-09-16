@@ -1,218 +1,416 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  CircularProgress,
+  Checkbox,
+  Collapse,
+  IconButton,
+  Divider,
+  Tooltip,
   Button,
+  Paper,
 } from "@mui/material";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import FolderIcon from "@mui/icons-material/Folder";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
-import { getTasks, createTask, updateTask } from "../api/tasks";
+import { Task, getTasks, createTask, updateTask } from "../api/tasks";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-interface Task {
-  id: number;
-  name: string;
-  description?: string | null;
-  dueDate?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  boardId?: number | null;
-  projectId?: number | null;
-  phaseId?: number | null;
-}
+const groupColors: Record<string, string> = {
+  Overdue: "#f8d7da",
+  Today: "#e6f0fa",
+  Tomorrow: "#d6e9f8",
+  "This Week": "#c5e0f6",
+  Later: "#b5d7f3",
+  Completed: "#f2f2f2",
+};
 
-const TabTasks = () => {
+const normalizeStatus = (status?: string) => {
+  if (!status) return "Todo";
+  const s = status.toLowerCase();
+  if (s === "done") return "Done";
+  if (s === "in progress" || s === "in_progress") return "In Progress";
+  if (s === "pinned") return "Pinned";
+  return "Todo";
+};
+
+const groupTasksByDate = (tasks: Task[]) => {
+  const groups: Record<string, Task[]> = {
+    Overdue: [],
+    Today: [],
+    SuggestedToday: [],
+    Tomorrow: [],
+    SuggestedTomorrow: [],
+    "This Week": [],
+    Later: [],
+    Completed: [],
+  };
+
+  const today = dayjs().startOf("day");
+  const tomorrow = today.add(1, "day");
+  const endOfWeek = today.endOf("week");
+
+  tasks.forEach((task) => {
+    const status = normalizeStatus(task.status);
+    if (status === "Done") {
+      groups.Completed.push(task);
+      return;
+    }
+
+    const effectiveDate = task.startDate || task.dueDate || null;
+
+    if (!effectiveDate) {
+      if ((task.urgencyScore || 0) > 5) {
+        groups.SuggestedToday.push(task);
+      } else {
+        groups.SuggestedTomorrow.push(task);
+      }
+      return;
+    }
+
+    const due = dayjs(effectiveDate).startOf("day");
+
+    if (due.isBefore(today, "day")) {
+      groups.Overdue.push(task);
+    } else if (due.isSame(today, "day")) {
+      groups.Today.push(task);
+    } else if (due.isSame(tomorrow, "day")) {
+      groups.Tomorrow.push(task);
+    } else if (due.isBefore(endOfWeek, "day")) {
+      groups["This Week"].push(task);
+    } else {
+      groups.Later.push(task);
+    }
+  });
+
+  const sortByDate = (arr: Task[]) =>
+    arr.sort(
+      (a, b) =>
+        dayjs(a.startDate || a.dueDate).valueOf() -
+        dayjs(b.startDate || b.dueDate).valueOf()
+    );
+
+  sortByDate(groups.Overdue);
+  sortByDate(groups.Today);
+  sortByDate(groups.Tomorrow);
+  sortByDate(groups["This Week"]);
+  sortByDate(groups.Later);
+
+  return groups;
+};
+
+const TabTasks: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [grouped, setGrouped] = useState<Record<string, Task[]>>({});
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    Overdue: true,
+    Today: true,
+    Tomorrow: true,
+    "This Week": false,
+    Later: false,
+    Completed: false,
+  });
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  const fetchTasks = async () => {
+    try {
+      const data = await getTasks();
+      setTasks(data);
+      setGrouped(groupTasksByDate(data));
+    } catch (err) {
+      console.error("[TabTasks] Failed to fetch tasks", err);
+    }
+  };
 
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  const fetchTasks = async () => {
-    setLoading(true);
-    try {
-      const data = await getTasks();
-      setTasks(data);
-    } catch (error) {
-      console.error("[TabTasks] Failed to fetch tasks", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleToggle = (group: string) => {
+    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const handleCreateTask = async (task: Partial<Task>) => {
+  const handleDialogSave = async (form: Partial<Task>) => {
     try {
-      const newTask = await createTask(task);
-      setTasks((prev) => [...prev, newTask]);
-    } catch (error) {
-      console.error("[TabTasks] Failed to create task", error);
-    }
-  };
-
-  const handleUpdateTask = async (id: number, updates: Partial<Task>) => {
-    try {
-      const updated = await updateTask(id, updates);
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ...updated } : t))
-      );
-    } catch (error) {
-      console.error("[TabTasks] Failed to update task", error);
-    }
-  };
-
-  const groupTasks = () => {
-    const today: Task[] = [];
-    const tomorrow: Task[] = [];
-    const overdue: Task[] = [];
-    const suggested: Task[] = [];
-
-    const now = new Date();
-    const todayDate = now.toISOString().split("T")[0];
-    const tomorrowDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1
-    )
-      .toISOString()
-      .split("T")[0];
-
-    tasks.forEach((task) => {
-      if (!task.dueDate) {
-        suggested.push(task);
-      } else if (task.dueDate < todayDate) {
-        overdue.push(task);
-      } else if (task.dueDate === todayDate) {
-        today.push(task);
-      } else if (task.dueDate === tomorrowDate) {
-        tomorrow.push(task);
+      if (selectedTask && selectedTask.id) {
+        await updateTask(selectedTask.id, form);
       } else {
-        suggested.push(task);
+        await createTask(form);
       }
-    });
-
-    return { today, tomorrow, overdue, suggested };
+      fetchTasks();
+    } catch (err) {
+      console.error("[TabTasks] Failed to save task", err);
+    }
   };
 
-  const { today, tomorrow, overdue, suggested } = groupTasks();
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedTask(null);
+  };
 
   const handleDragEnd = async (result: any) => {
-    const { source, destination, draggableId } = result;
-    if (!destination) return;
+    if (!result.destination) return;
 
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
+    const { destination, draggableId } = result;
+    const taskId = parseInt(draggableId);
+    const toGroup = destination.droppableId;
+
+    // Disallow dropping into these groups
+    if (toGroup === "Later" || toGroup === "Completed" || toGroup === "Overdue") {
       return;
     }
 
-    const taskId = parseInt(draggableId, 10);
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    // Compute new dueDate
-    let newDueDate: string | null = null;
-    const now = new Date();
-    if (destination.droppableId === "today") {
-      newDueDate = now.toISOString().split("T")[0];
-    } else if (destination.droppableId === "tomorrow") {
-      newDueDate = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1
-      )
-        .toISOString()
-        .split("T")[0];
-    } else if (destination.droppableId === "overdue") {
-      newDueDate = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() - 1
-      )
-        .toISOString()
-        .split("T")[0];
-    } else if (destination.droppableId === "suggested") {
-      newDueDate = null;
+    // Snapshot for rollback
+    const prevTasks = [...tasks];
+
+    let updates: Partial<Task> = {};
+
+    if (toGroup === "Today") {
+      updates = { dueDate: dayjs().toISOString(), startDate: null };
+    } else if (toGroup === "Tomorrow") {
+      updates = { dueDate: dayjs().add(1, "day").toISOString(), startDate: null };
     }
 
     // Optimistic update
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, dueDate: newDueDate } : t))
-    );
+    if (updates.dueDate !== undefined) {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+      setGrouped(groupTasksByDate(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))));
 
-    try {
-      await handleUpdateTask(taskId, { dueDate: newDueDate });
-    } catch (error) {
-      console.error("[TabTasks] Drag update failed", error);
-      // Rollback
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? task : t)));
+      try {
+        await updateTask(taskId, updates);
+      } catch (err) {
+        console.error("[TabTasks] Drag update failed", err);
+        setTasks(prevTasks); // rollback
+        setGrouped(groupTasksByDate(prevTasks));
+      }
     }
   };
 
-  const renderTaskList = (title: string, taskList: Task[], droppableId: string) => (
-    <Box sx={{ flex: 1, minWidth: 250, p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        {title}
-      </Typography>
-      <Droppable droppableId={droppableId}>
+  const renderTaskRow = (task: Task, groupName: string, index: number) => {
+    const isCompleted = normalizeStatus(task.status) === "Done";
+
+    let bgColor = "#fff";
+    if (groupName === "Overdue") {
+      bgColor = groupColors.Overdue;
+    } else if (groupName === "Later") {
+      bgColor = groupColors.Later;
+    } else if (groupName === "Today") {
+      bgColor = groupColors.Today;
+    } else if (groupName === "Tomorrow") {
+      bgColor = groupColors.Tomorrow;
+    } else if (groupName === "This Week") {
+      bgColor = groupColors["This Week"];
+    } else if (isCompleted) {
+      bgColor = groupColors.Completed;
+    }
+
+    return (
+      <Draggable draggableId={task.id!.toString()} index={index} key={task.id}>
         {(provided) => (
-          <Box ref={provided.innerRef} {...provided.droppableProps} sx={{ minHeight: 100 }}>
-            {taskList.map((task, index) => (
-              <Draggable key={task.id.toString()} draggableId={task.id.toString()} index={index}>
-                {(provided) => (
-                  <Box
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    sx={{
-                      p: 1,
-                      mb: 1,
-                      bgcolor: "background.paper",
-                      borderRadius: 1,
-                      boxShadow: 1,
-                    }}
+          <Box
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            display="flex"
+            alignItems="center"
+            gap={0.8}
+            sx={{ mb: 1, cursor: "pointer" }}
+          >
+            <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
+              <Checkbox
+                size="small"
+                sx={{ borderRadius: "50%" }}
+                checked={isCompleted}
+                onClick={(e) => e.stopPropagation()}
+                onChange={async (e) => {
+                  e.stopPropagation();
+                  await updateTask(task.id!, { status: e.target.checked ? "Done" : "Todo" });
+                  fetchTasks();
+                }}
+              />
+            </Box>
+
+            {task.tokenValue !== undefined && (
+              <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
+                <Typography
+                  component="span"
+                  sx={{
+                    background: "#3399ff",
+                    borderRadius: "999px",
+                    px: 1,
+                    py: 0.3,
+                    minWidth: "28px",
+                    textAlign: "center",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "0.5px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  +{task.tokenValue}
+                </Typography>
+              </Tooltip>
+            )}
+
+            <Box
+              flex={1}
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              onClick={() => handleTaskClick(task)}
+              sx={{
+                backgroundColor: bgColor,
+                borderRadius: "14px",
+                boxShadow: 1,
+                py: 0.3,
+                px: 1.2,
+                minHeight: "28px",
+                fontSize: "0.75rem",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  color: isCompleted ? "#888" : "inherit",
+                }}
+              >
+                {task.name}
+                {task.startDate && task.endDate && (
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ ml: 0.5 }}
                   >
-                    <Typography>{task.name}</Typography>
-                  </Box>
+                    {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
+                  </Typography>
                 )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
+              </Typography>
+
+              {(task.projectId || (task as any).project) && (
+                <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
+              )}
+            </Box>
+
+            <Tooltip title={`Due: ${task.startDate || task.dueDate || "Not set"}`} arrow>
+              <DatePicker
+                value={task.startDate ? dayjs(task.startDate) : task.dueDate ? dayjs(task.dueDate) : null}
+                onChange={(newDate) =>
+                  updateTask(task.id!, { dueDate: newDate?.toISOString() || null })
+                }
+                slots={{ openPickerIcon: CalendarTodayIcon }}
+                slotProps={{
+                  textField: { sx: { display: "none" } },
+                  openPickerButton: {
+                    sx: {
+                      p: 0.5,
+                      borderRadius: "50%",
+                      color: "#555",
+                      "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
+                    },
+                  },
+                }}
+              />
+            </Tooltip>
           </Box>
         )}
-      </Droppable>
-    </Box>
-  );
-
-  if (loading) {
-    return (
-      <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
-        <CircularProgress />
-      </Box>
+      </Draggable>
     );
-  }
+  };
 
   return (
-    <Box sx={{ display: "flex", gap: 2 }}>
-      <DragDropContext onDragEnd={handleDragEnd}>
-        {renderTaskList("Today", today, "today")}
-        {renderTaskList("Tomorrow", tomorrow, "tomorrow")}
-        {renderTaskList("Overdue", overdue, "overdue")}
-        {renderTaskList("Suggested", suggested, "suggested")}
-      </DragDropContext>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Box p={2}>
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Button variant="contained" onClick={() => setDialogOpen(true)}>
+            + New Task
+          </Button>
+        </Box>
 
-      <Button variant="contained" onClick={() => setOpenDialog(true)}>
-        New Task
-      </Button>
+        {Object.keys(grouped || {}).map((group) => {
+          if (group === "SuggestedToday" || group === "SuggestedTomorrow") return null;
 
-      <TaskDialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        onSave={handleCreateTask}
-      />
-    </Box>
+          const groupTasks = grouped[group] || [];
+          const suggestedTasks =
+            group === "Today"
+              ? grouped.SuggestedToday || []
+              : group === "Tomorrow"
+              ? grouped.SuggestedTomorrow || []
+              : [];
+
+          return (
+            <Box key={group} mt={2}>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                onClick={() => handleToggle(group)}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {group}
+                </Typography>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2">{groupTasks.length}</Typography>
+                  <IconButton size="small">
+                    {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Box>
+              </Box>
+              <Divider sx={{ mt: 0.5, mb: 1 }} />
+
+              <Collapse in={openGroups[group]}>
+                <Droppable droppableId={group}>
+                  {(provided) => (
+                    <Box mt={0.5} ref={provided.innerRef} {...provided.droppableProps}>
+                      {groupTasks.map((task, index) => renderTaskRow(task, group, index))}
+                      {suggestedTasks.length > 0 && (
+                        <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
+                          <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                            Suggested
+                          </Typography>
+                          <Box mt={0.5}>
+                            {suggestedTasks.map((task, index) =>
+                              renderTaskRow(task, group, groupTasks.length + index)
+                            )}
+                          </Box>
+                        </Paper>
+                      )}
+                      {provided.placeholder}
+                    </Box>
+                  )}
+                </Droppable>
+              </Collapse>
+            </Box>
+          );
+        })}
+
+        <TaskDialog
+          open={dialogOpen}
+          task={selectedTask}
+          onClose={handleDialogClose}
+          onSave={handleDialogSave}
+        />
+      </Box>
+    </DragDropContext>
   );
 };
 
