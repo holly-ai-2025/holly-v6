@@ -21,6 +21,8 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Slider from "@mui/material/Slider";
 import { styled } from "@mui/system";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import { createTask, updateTask, deleteTask } from "../api/tasks";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
@@ -172,12 +174,12 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     };
 
     if (isNew) await createTask(payload);
-    else await updateTask(task.id, payload);
+    else await updateTask(task.task_id || task.id, payload);
     onClose();
   };
 
   const handleDelete = async () => {
-    if (!isNew) await deleteTask(task.id);
+    if (!isNew) await deleteTask(task.task_id || task.id);
     onClose();
   };
 
@@ -295,9 +297,9 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
         <Divider sx={{ my: 2 }} />
 
         {/* Connections */}
-        <Accordion sx={{ bgcolor: "#424242", color: "#fff", borderRadius: 1, mb: 2 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#fff" }} />}>Connections</AccordionSummary>
-          <AccordionDetails sx={{ bgcolor: "#fafafa" }}>
+        <Accordion sx={{ bgcolor: "#f5f5f5", color: "#000", borderRadius: 1, mb: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#000" }} />}>Connections</AccordionSummary>
+          <AccordionDetails sx={{ bgcolor: "#fff" }}>
             <Select
               fullWidth
               value={board}
@@ -342,21 +344,10 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
         </Accordion>
 
         {/* Notes */}
-        <Accordion sx={{ bgcolor: "#424242", color: "#fff", borderRadius: 1, mb: 2 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#fff" }} />}>Notes</AccordionSummary>
-          <AccordionDetails sx={{ bgcolor: "#fafafa" }}>
-            <TextField
-              fullWidth
-              multiline
-              minRows={4}
-              placeholder="Enter notes here..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-            <Button variant="outlined" disabled>
-              Attach Files (coming soon)
-            </Button>
+        <Accordion sx={{ bgcolor: "#f5f5f5", color: "#000", borderRadius: 1, mb: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#000" }} />}>Notes</AccordionSummary>
+          <AccordionDetails sx={{ bgcolor: "#fff" }}>
+            <ReactQuill theme="snow" value={notes} onChange={setNotes} />
           </AccordionDetails>
         </Accordion>
 
