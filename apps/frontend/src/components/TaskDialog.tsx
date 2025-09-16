@@ -25,8 +25,8 @@ import { createTask, updateTask, deleteTask } from "../api/tasks";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
 
-// Styled sliders with dynamic color backgrounds
-const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType, theme }) => ({
+// Styled sliders with fixed gradients (no theme dependency)
+const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) => ({
   height: 6,
   borderRadius: 4,
   padding: "6px 0",
@@ -38,19 +38,19 @@ const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType, them
     border: "none",
   },
   ...(sliderType === "priority" && {
-    color: theme.palette.error.main,
+    color: "#f44336",
     "& .MuiSlider-track": {
       background: "linear-gradient(90deg, #4caf50, #ffeb3b, #ff9800, #f44336)",
     },
   }),
   ...(sliderType === "effort" && {
-    color: theme.palette.primary.main,
+    color: "#1565c0",
     "& .MuiSlider-track": {
       background: "linear-gradient(90deg, #81d4fa, #42a5f5, #1565c0)",
     },
   }),
   ...(sliderType === "tokens" && {
-    color: theme.palette.success.main,
+    color: "#2e7d32",
     "& .MuiSlider-track": {
       background: "linear-gradient(90deg, #a5d6a7, #66bb6a, #2e7d32)",
     },
@@ -68,13 +68,12 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
   const [title, setTitle] = useState(task?.name || "");
   const [description, setDescription] = useState(task?.description || "");
-  const [startDate, setStartDate] = useState(task?.startDate || "");
-  const [endDate, setEndDate] = useState(task?.endDate || "");
+  const [dueDate, setDueDate] = useState(task?.dueDate || "");
+  const [startTime, setStartTime] = useState(task?.startDate ? task.startDate.split("T")[1]?.slice(0,5) : "");
   const [priority, setPriority] = useState(task?.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
   const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
   const [effort, setEffort] = useState(task?.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
   const [status, setStatus] = useState(task?.status || "todo");
-  const [dueDate, setDueDate] = useState(task?.dueDate || "");
   const [archived, setArchived] = useState(task?.archived || false);
   const [pinned, setPinned] = useState(task?.pinned || false);
 
@@ -96,12 +95,23 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     const priorityMap = ["Low", "Medium", "High", "Urgent"];
     const effortMap = ["Low", "Medium", "High"];
 
+    let startDateTime: string | null = null;
+    let endDateTime: string | null = null;
+
+    if (dueDate && startTime) {
+      startDateTime = new Date(`${dueDate}T${startTime}`).toISOString();
+      const [hours, minutes] = startTime.split(":").map(Number);
+      const end = new Date(`${dueDate}T${startTime}`);
+      end.setHours(hours, minutes + 60); // +1 hour default
+      endDateTime = end.toISOString();
+    }
+
     const payload = {
       name: title,
       description,
-      startDate: startDate || null,
-      endDate: endDate || null,
       dueDate: dueDate || null,
+      startDate: startDateTime,
+      endDate: endDateTime,
       priority: priorityMap[priority - 1],
       tokenValue: rewardTokens,
       effortLevel: effortMap[effort - 1],
@@ -113,6 +123,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       archived,
       pinned,
     };
+
     if (isNew) await createTask(payload);
     else await updateTask(task.id, payload);
     onClose();
@@ -146,30 +157,23 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Date Fields */}
+        {/* Date + Time Fields */}
         <div style={{ display: "flex", gap: "10px" }}>
-          <TextField
-            label="Start Date"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            fullWidth
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            fullWidth
-          />
           <TextField
             label="Due Date"
             type="date"
             InputLabelProps={{ shrink: true }}
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Start Time"
+            type="time"
+            InputLabelProps={{ shrink: true }}
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            disabled={!dueDate}
             fullWidth
           />
         </div>
