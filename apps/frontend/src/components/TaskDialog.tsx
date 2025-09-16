@@ -24,7 +24,7 @@ import { createTask, updateTask, deleteTask } from "../api/tasks";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
 
-// Styled sliders with fixed gradients (no theme dependency)
+// Styled sliders with updated red→blue gradients
 const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) => ({
   height: 6,
   borderRadius: 4,
@@ -37,21 +37,18 @@ const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) =>
     border: "none",
   },
   ...(sliderType === "priority" && {
-    color: "#f44336",
     "& .MuiSlider-track": {
-      background: "linear-gradient(90deg, #4caf50, #ffeb3b, #ff9800, #f44336)",
+      background: "linear-gradient(90deg, #FE433C, #F31D64, #A224AD)",
     },
   }),
   ...(sliderType === "effort" && {
-    color: "#1565c0",
     "& .MuiSlider-track": {
-      background: "linear-gradient(90deg, #81d4fa, #42a5f5, #1565c0)",
+      background: "linear-gradient(90deg, #A224AD, #6A38B3, #3C50B1)",
     },
   }),
   ...(sliderType === "tokens" && {
-    color: "#2e7d32",
     "& .MuiSlider-track": {
-      background: "linear-gradient(90deg, #a5d6a7, #66bb6a, #2e7d32)",
+      background: "linear-gradient(90deg, #3C50B1, #0095EF)",
     },
   }),
 }));
@@ -91,7 +88,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     if (board) getPhases(board).then(setPhases);
   }, [board]);
 
-  // 🔄 Reset state when task changes
   useEffect(() => {
     if (task) {
       setTitle(task.name || "");
