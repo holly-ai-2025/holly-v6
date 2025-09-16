@@ -16,6 +16,7 @@ import {
   ToggleButtonGroup,
   Checkbox,
   FormControlLabel,
+  Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Slider from "@mui/material/Slider";
@@ -24,12 +25,37 @@ import { createTask, updateTask, deleteTask } from "../api/tasks";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
 
-// Styled sliders
-const CompactSlider = styled(Slider)({
+// Styled sliders with dynamic color backgrounds
+const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType, theme }) => ({
   height: 6,
-  padding: "4px 0",
-  "& .MuiSlider-thumb": { width: 18, height: 18 },
-});
+  borderRadius: 4,
+  padding: "6px 0",
+  "& .MuiSlider-thumb": {
+    width: 18,
+    height: 18,
+  },
+  "& .MuiSlider-track": {
+    border: "none",
+  },
+  ...(sliderType === "priority" && {
+    color: theme.palette.error.main,
+    "& .MuiSlider-track": {
+      background: "linear-gradient(90deg, #4caf50, #ffeb3b, #ff9800, #f44336)",
+    },
+  }),
+  ...(sliderType === "effort" && {
+    color: theme.palette.primary.main,
+    "& .MuiSlider-track": {
+      background: "linear-gradient(90deg, #81d4fa, #42a5f5, #1565c0)",
+    },
+  }),
+  ...(sliderType === "tokens" && {
+    color: theme.palette.success.main,
+    "& .MuiSlider-track": {
+      background: "linear-gradient(90deg, #a5d6a7, #66bb6a, #2e7d32)",
+    },
+  }),
+}));
 
 interface TaskDialogProps {
   open: boolean;
@@ -44,12 +70,11 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
   const [description, setDescription] = useState(task?.description || "");
   const [startDate, setStartDate] = useState(task?.startDate || "");
   const [endDate, setEndDate] = useState(task?.endDate || "");
-  const [priority, setPriority] = useState(task?.priority || "Medium");
+  const [priority, setPriority] = useState(task?.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
   const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
-  const [effort, setEffort] = useState(task?.effortLevel || "Medium");
+  const [effort, setEffort] = useState(task?.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
   const [status, setStatus] = useState(task?.status || "todo");
   const [dueDate, setDueDate] = useState(task?.dueDate || "");
-  const [urgencyScore, setUrgencyScore] = useState(task?.urgencyScore || 5);
   const [archived, setArchived] = useState(task?.archived || false);
   const [pinned, setPinned] = useState(task?.pinned || false);
 
@@ -68,16 +93,19 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
   }, [board]);
 
   const handleSave = async () => {
+    const priorityMap = ["Low", "Medium", "High", "Urgent"];
+    const effortMap = ["Low", "Medium", "High"];
+
     const payload = {
       name: title,
       description,
       startDate: startDate || null,
       endDate: endDate || null,
       dueDate: dueDate || null,
-      priority,
+      priority: priorityMap[priority - 1],
       tokenValue: rewardTokens,
-      effortLevel: effort,
-      urgencyScore,
+      effortLevel: effortMap[effort - 1],
+      urgencyScore: 5,
       status,
       boardId: board || null,
       phaseId: phase || null,
@@ -146,17 +174,40 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           />
         </div>
 
-        {/* Urgency */}
-        <div style={{ marginTop: "10px" }}>
-          <div style={{ marginBottom: 4 }}>Urgency Score</div>
-          <CompactSlider
-            value={urgencyScore}
-            onChange={(_, val) => setUrgencyScore(val as number)}
-            min={1}
-            max={10}
-            step={1}
-          />
-        </div>
+        <Divider sx={{ my: 2 }} />
+
+        {/* Priority Slider */}
+        <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Priority</Typography>
+        <ColoredSlider
+          sliderType="priority"
+          value={priority}
+          onChange={(_, val) => setPriority(val as number)}
+          min={1}
+          max={4}
+          step={1}
+        />
+
+        {/* Reward Tokens */}
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 2, mb: 1 }}>Reward Tokens</Typography>
+        <ColoredSlider
+          sliderType="tokens"
+          value={rewardTokens}
+          onChange={(_, val) => setRewardTokens(val as number)}
+          min={5}
+          max={20}
+          step={5}
+        />
+
+        {/* Effort Slider */}
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 2, mb: 1 }}>Effort</Typography>
+        <ColoredSlider
+          sliderType="effort"
+          value={effort}
+          onChange={(_, val) => setEffort(val as number)}
+          min={1}
+          max={3}
+          step={1}
+        />
 
         <Divider sx={{ my: 2 }} />
 
