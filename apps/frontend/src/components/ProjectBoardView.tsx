@@ -2,20 +2,23 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Button,
-  Paper,
-  Grid,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  TextField,
   Checkbox,
+  Divider,
+  IconButton,
+  Button,
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import EditIcon from "@mui/icons-material/Edit";
+import dayjs from "dayjs";
 import { getPhases, createPhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
-import { getProjects, Project } from "../api/projects";
+import { getProjects, updateProject, Project } from "../api/projects";
 import { Board } from "../api/boards";
+import TaskDialog from "./TaskDialog";
+import PhaseDialog from "./PhaseDialog";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 interface ProjectBoardViewProps {
   board: Board;
@@ -25,8 +28,18 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const [project, setProject] = useState<Project | null>(null);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newPhaseName, setNewPhaseName] = useState("");
-  const [newTaskName, setNewTaskName] = useState("");
+  const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Partial<Task> | null>(null);
+
+  const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
+
+  const [editingProject, setEditingProject] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [editedNotes, setEditedNotes] = useState("");
+  const [editedDeadline, setEditedDeadline] = useState<any>(null);
 
   useEffect(() => {
     fetchProject();
@@ -36,18 +49,18 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     if (project) {
       fetchPhases(project.id);
       fetchTasks();
+      setEditedName(project.name);
+      setEditedNotes(project.notes || board.description || "");
+      setEditedDeadline(project.deadline ? dayjs(project.deadline) : null);
     }
   }, [project]);
 
   const fetchProject = async () => {
     try {
       const data = await getProjects();
-      console.log("[ProjectBoardView] Projects:", data, "Board:", board.id);
       const linked = data.find((p: Project) => p.boardId === board.id);
       if (linked) {
         setProject(linked);
-      } else {
-        console.warn("[ProjectBoardView] No project linked for board", board.id);
       }
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch project", err);
@@ -58,13 +71,10 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     try {
       const data = await getPhases();
       const projectPhases = data.filter((p: Phase) => p.projectId === projectId);
-
-      if (projectPhases.length === 0) {
-        const defaultPhase = await createPhase({ projectId, name: "Phase 1" });
-        setPhases([defaultPhase]);
-      } else {
-        setPhases(projectPhases);
-      }
+      setPhases(projectPhases);
+      const expanded: Record<number, boolean> = {};
+      projectPhases.forEach((p) => (expanded[p.id] = true));
+      setOpenGroups(expanded);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch phases", err);
     }
@@ -79,33 +89,6 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     }
   };
 
-  const handleAddPhase = async () => {
-    if (!newPhaseName || !project) return;
-    try {
-      await createPhase({ projectId: project.id, name: newPhaseName });
-      setNewPhaseName("");
-      fetchPhases(project.id);
-    } catch (err) {
-      console.error("[ProjectBoardView] Failed to create phase", err);
-    }
-  };
-
-  const handleAddTask = async (phaseId: number) => {
-    if (!newTaskName) return;
-    try {
-      await createTask({
-        boardId: board.id,
-        phaseId: phaseId,
-        name: newTaskName,
-        status: "Todo",
-      });
-      setNewTaskName("");
-      fetchTasks();
-    } catch (err) {
-      console.error("[ProjectBoardView] Failed to create task", err);
-    }
-  };
-
   const toggleTaskStatus = async (task: Task) => {
     try {
       const newStatus = task.status === "Done" ? "Todo" : "Done";
@@ -113,6 +96,65 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
       fetchTasks();
     } catch (err) {
       console.error("[ProjectBoardView] Failed to update task", err);
+    }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setDialogOpen(true);
+  };
+
+  const handleAddTaskClick = (phaseId: number) => {
+    if (!project) return;
+    setSelectedTask({
+      boardId: board.id,
+      projectId: project.id,
+      phaseId,
+      status: "Todo",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDialogSave = async (form: Partial<Task>) => {
+    try {
+      if (form.id) {
+        await updateTask(form.id, form);
+      } else {
+        await createTask({ ...form, boardId: board.id, projectId: project?.id });
+      }
+      fetchTasks();
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to save task", err);
+    }
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handlePhaseSave = async (form: Partial<Phase>) => {
+    try {
+      if (!project) return;
+      await createPhase({ ...form, projectId: project.id });
+      fetchPhases(project.id);
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to save phase", err);
+    }
+  };
+
+  const handleProjectSave = async () => {
+    if (!project) return;
+    try {
+      await updateProject(project.id, {
+        name: editedName,
+        notes: editedNotes,
+        deadline: editedDeadline ? editedDeadline.toISOString() : null,
+      });
+      fetchProject();
+      setEditingProject(false);
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to update project", err);
     }
   };
 
@@ -127,73 +169,212 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   }
 
   return (
-    <Box>
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-        <Box sx={{ height: 8, backgroundColor: board.color || "#ccc", borderRadius: 2, mb: 2 }} />
-        <Typography variant="h5" fontWeight="bold">{board.name}</Typography>
-        <Typography variant="body2" color="text.secondary">{board.description}</Typography>
-      </Paper>
+    <Box p={2}>
+      {/* Header */}
+      {editingProject ? (
+        <Box mb={2}>
+          <input
+            style={{
+              width: "100%",
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              marginBottom: "0.5rem",
+              padding: "0.25rem 0.5rem",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+            }}
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+          />
+          <textarea
+            style={{
+              width: "100%",
+              fontSize: "0.9rem",
+              padding: "0.5rem",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              marginTop: "0.5rem",
+            }}
+            value={editedNotes}
+            rows={3}
+            onChange={(e) => setEditedNotes(e.target.value)}
+          />
 
-      <Box display="flex" gap={2} mb={3}>
-        <TextField
-          size="small"
-          label="New Phase"
-          value={newPhaseName}
-          onChange={(e) => setNewPhaseName(e.target.value)}
-        />
-        <Button variant="contained" onClick={handleAddPhase}>Add Phase</Button>
-      </Box>
+          <Box mt={2}>
+            <DatePicker
+              label="Deadline"
+              value={editedDeadline}
+              onChange={(date) => setEditedDeadline(date)}
+              slotProps={{ textField: { fullWidth: true, size: "small" } }}
+            />
+          </Box>
 
+          <Box display="flex" justifyContent="flex-end" mt={2} gap={1}>
+            <Button onClick={() => setEditingProject(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleProjectSave}>Save</Button>
+          </Box>
+        </Box>
+      ) : (
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+          <Box>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>{project.name}</Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {project.notes || board.description}
+            </Typography>
+            {project.deadline && (
+              <Typography
+                variant="body2"
+                sx={{
+                  color: dayjs(project.deadline).isBefore(dayjs()) ? "error.main" : "text.secondary",
+                  fontWeight: 500,
+                }}
+              >
+                Deadline: {dayjs(project.deadline).format("MMM D, YYYY")}
+              </Typography>
+            )}
+          </Box>
+          <IconButton onClick={() => setEditingProject(true)}>
+            <EditIcon />
+          </IconButton>
+        </Box>
+      )}
+
+      <Divider sx={{ mb: 3 }} />
+
+      {/* Phases */}
       {phases.map((phase) => (
-        <Accordion key={phase.id} defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography fontWeight="bold">{phase.name}</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                size="small"
-                label="New Task"
-                value={newTaskName}
-                onChange={(e) => setNewTaskName(e.target.value)}
-              />
-              <Button variant="contained" onClick={() => handleAddTask(phase.id)}>Add Task</Button>
-            </Box>
+        <Box key={phase.id} mt={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            onClick={() => setOpenGroups({ ...openGroups, [phase.id]: !openGroups[phase.id] })}
+            sx={{ cursor: "pointer" }}
+          >
+            <Typography variant="subtitle1" fontWeight="bold">
+              {phase.name}
+              {phase.deadline && (
+                <Typography
+                  component="span"
+                  variant="body2"
+                  sx={{
+                    ml: 1,
+                    color: dayjs(phase.deadline).isBefore(dayjs()) ? "error.main" : "text.secondary",
+                  }}
+                >
+                  ({dayjs(phase.deadline).format("MMM D, YYYY")})
+                </Typography>
+              )}
+            </Typography>
+            <IconButton size="small">
+              {openGroups[phase.id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
+          </Box>
+          <Divider sx={{ mt: 0.5, mb: 1 }} />
 
-            <Grid container spacing={1}>
+          {openGroups[phase.id] && (
+            <Box>
               {tasks.filter((t) => t.phaseId === phase.id).map((task) => (
-                <Grid item xs={12} key={task.id}>
-                  <Paper
+                <Box
+                  key={task.id}
+                  display="flex"
+                  alignItems="center"
+                  gap={0.8}
+                  sx={{
+                    mb: 1,
+                    cursor: "pointer",
+                    backgroundColor: "#f9f9f9",
+                    borderRadius: "14px",
+                    boxShadow: 1,
+                    py: 0.6,
+                    px: 1.2,
+                  }}
+                  onClick={() => handleTaskClick(task)}
+                >
+                  <Checkbox
+                    size="small"
+                    sx={{ borderRadius: "50%" }}
+                    checked={task.status === "Done"}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={async (e) => {
+                      e.stopPropagation();
+                      await toggleTaskStatus(task);
+                    }}
+                  />
+                  <Typography
+                    variant="body2"
                     sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      boxShadow: 1,
+                      flex: 1,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      textDecoration: task.status === "Done" ? "line-through" : "none",
                     }}
                   >
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Checkbox
-                        checked={task.status === "Done"}
-                        onChange={() => toggleTaskStatus(task)}
-                      />
-                      <Typography
-                        sx={{
-                          textDecoration: task.status === "Done" ? "line-through" : "none",
-                          color: task.status === "Done" ? "text.secondary" : "text.primary",
-                        }}
-                      >
-                        {task.name}
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
+                    {task.name}
+                  </Typography>
+                  {task.startDate && task.endDate && (
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ ml: 1 }}
+                    >
+                      {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
+                    </Typography>
+                  )}
+                </Box>
               ))}
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
+
+              <Box display="flex" justifyContent="flex-start" mt={1}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  sx={{ borderRadius: "8px" }}
+                  onClick={() => handleAddTaskClick(phase.id)}
+                >
+                  + Add Task
+                </Button>
+              </Box>
+
+              <Divider sx={{ my: 2, mx: 4 }} />
+            </Box>
+          )}
+        </Box>
       ))}
+
+      {/* Add Phase Button */}
+      <Box display="flex" justifyContent="flex-start" mt={2}>
+        <Button
+          variant="contained"
+          sx={{ borderRadius: "14px", py: 1.2, width: "25%" }}
+          onClick={() => {
+            setSelectedPhase(null);
+            setPhaseDialogOpen(true);
+          }}
+        >
+          + Add Phase
+        </Button>
+      </Box>
+
+      {/* Task Dialog */}
+      <TaskDialog
+        open={dialogOpen}
+        task={selectedTask as Task | null}
+        onClose={handleDialogClose}
+        onSave={handleDialogSave}
+      />
+
+      {/* Phase Dialog */}
+      {project && (
+        <PhaseDialog
+          open={phaseDialogOpen}
+          phase={selectedPhase}
+          onClose={() => setPhaseDialogOpen(false)}
+          onSave={handlePhaseSave}
+          projectId={project.id}
+        />
+      )}
     </Box>
   );
 };
