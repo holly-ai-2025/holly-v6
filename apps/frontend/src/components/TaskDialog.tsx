@@ -91,6 +91,41 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     if (board) getPhases(board).then(setPhases);
   }, [board]);
 
+  // 🔄 Reset state when task changes
+  useEffect(() => {
+    if (task) {
+      setTitle(task.name || "");
+      setDescription(task.description || "");
+      setDueDate(task.dueDate || "");
+      setStartTime(task.startDate ? task.startDate.split("T")[1]?.slice(0,5) : "");
+      setEndTime(task.endDate ? task.endDate.split("T")[1]?.slice(0,5) : "");
+      setPriority(task.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
+      setRewardTokens(task.tokenValue || 5);
+      setEffort(task.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
+      setStatus(task.status || "todo");
+      setArchived(task.archived || false);
+      setPinned(task.pinned || false);
+      setBoard(task.boardId || "");
+      setPhase(task.phaseId || "");
+      setCategory(task.category || "");
+    } else {
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setStartTime("");
+      setEndTime("");
+      setPriority(2);
+      setRewardTokens(5);
+      setEffort(2);
+      setStatus("todo");
+      setArchived(false);
+      setPinned(false);
+      setBoard("");
+      setPhase("");
+      setCategory("");
+    }
+  }, [task, open]);
+
   const handleStartTimeChange = (val: string) => {
     setStartTime(val);
     if (val) {
