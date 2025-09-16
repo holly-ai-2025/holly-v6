@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
@@ -70,6 +69,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
   const [description, setDescription] = useState(task?.description || "");
   const [dueDate, setDueDate] = useState(task?.dueDate || "");
   const [startTime, setStartTime] = useState(task?.startDate ? task.startDate.split("T")[1]?.slice(0,5) : "");
+  const [endTime, setEndTime] = useState(task?.endDate ? task.endDate.split("T")[1]?.slice(0,5) : "");
   const [priority, setPriority] = useState(task?.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
   const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
   const [effort, setEffort] = useState(task?.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
@@ -91,6 +91,18 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     if (board) getPhases(board).then(setPhases);
   }, [board]);
 
+  const handleStartTimeChange = (val: string) => {
+    setStartTime(val);
+    if (val) {
+      const [h, m] = val.split(":").map(Number);
+      const end = new Date();
+      end.setHours(h, m + 60);
+      setEndTime(end.toTimeString().slice(0, 5));
+    } else {
+      setEndTime("");
+    }
+  };
+
   const handleSave = async () => {
     const priorityMap = ["Low", "Medium", "High", "Urgent"];
     const effortMap = ["Low", "Medium", "High"];
@@ -100,10 +112,9 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
     if (dueDate && startTime) {
       startDateTime = new Date(`${dueDate}T${startTime}`).toISOString();
-      const [hours, minutes] = startTime.split(":").map(Number);
-      const end = new Date(`${dueDate}T${startTime}`);
-      end.setHours(hours, minutes + 60); // +1 hour default
-      endDateTime = end.toISOString();
+      if (endTime) {
+        endDateTime = new Date(`${dueDate}T${endTime}`).toISOString();
+      }
     }
 
     const payload = {
@@ -136,7 +147,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{isNew ? "New Task" : title || "Untitled Task"}</DialogTitle>
       <DialogContent>
         <TextField
           fullWidth
@@ -172,8 +182,17 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             type="time"
             InputLabelProps={{ shrink: true }}
             value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            onChange={(e) => handleStartTimeChange(e.target.value)}
             disabled={!dueDate}
+            fullWidth
+          />
+          <TextField
+            label="End Time"
+            type="time"
+            InputLabelProps={{ shrink: true }}
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            disabled={!startTime}
             fullWidth
           />
         </div>
@@ -192,7 +211,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
         />
 
         {/* Reward Tokens */}
-        <Typography variant="body2" sx={{ fontWeight: 500, mt: 2, mb: 1 }}>Reward Tokens</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Reward Tokens</Typography>
         <ColoredSlider
           sliderType="tokens"
           value={rewardTokens}
@@ -203,7 +222,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
         />
 
         {/* Effort Slider */}
-        <Typography variant="body2" sx={{ fontWeight: 500, mt: 2, mb: 1 }}>Effort</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Effort</Typography>
         <ColoredSlider
           sliderType="effort"
           value={effort}
@@ -280,9 +299,9 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           onChange={(_, val) => val && setStatus(val)}
           size="small"
         >
-          <ToggleButton value="todo" sx={{ color: status === "todo" ? "#2196f3" : "grey" }}>Todo</ToggleButton>
-          <ToggleButton value="inprogress" sx={{ color: status === "inprogress" ? "#ff9800" : "grey" }}>In Progress</ToggleButton>
-          <ToggleButton value="done" sx={{ color: status === "done" ? "#4caf50" : "grey" }}>Done</ToggleButton>
+          <ToggleButton value="todo" sx={{ bgcolor: status === "todo" ? "#2196f3" : "transparent", color: status === "todo" ? "#fff" : "grey" }}>Todo</ToggleButton>
+          <ToggleButton value="inprogress" sx={{ bgcolor: status === "inprogress" ? "#ff9800" : "transparent", color: status === "inprogress" ? "#fff" : "grey" }}>In Progress</ToggleButton>
+          <ToggleButton value="done" sx={{ bgcolor: status === "done" ? "#4caf50" : "transparent", color: status === "done" ? "#fff" : "grey" }}>Done</ToggleButton>
         </ToggleButtonGroup>
 
         <div>
