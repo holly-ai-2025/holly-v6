@@ -18,6 +18,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
 import { Task, getTasks, createTask, updateTask } from "../api/tasks";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 const groupColors: Record<string, string> = {
   Overdue: "#f8d7da",
@@ -86,7 +87,6 @@ const groupTasksByDate = (tasks: Task[]) => {
     }
   });
 
-  // Sorting by effective date
   const sortByDate = (arr: Task[]) =>
     arr.sort(
       (a, b) =>
@@ -159,7 +159,48 @@ const TabTasks: React.FC = () => {
     setSelectedTask(null);
   };
 
-  const renderTaskRow = (task: Task, groupName: string) => {
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    const { destination, draggableId } = result;
+    const taskId = parseInt(draggableId);
+    const toGroup = destination.droppableId;
+
+    // Disallow dropping into these groups
+    if (toGroup === "Later" || toGroup === "Completed" || toGroup === "Overdue") {
+      return;
+    }
+
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Snapshot for rollback
+    const prevTasks = [...tasks];
+
+    let updates: Partial<Task> = {};
+
+    if (toGroup === "Today") {
+      updates = { dueDate: dayjs().toISOString(), startDate: null };
+    } else if (toGroup === "Tomorrow") {
+      updates = { dueDate: dayjs().add(1, "day").toISOString(), startDate: null };
+    }
+
+    // Optimistic update
+    if (updates.dueDate !== undefined) {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+      setGrouped(groupTasksByDate(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))));
+
+      try {
+        await updateTask(taskId, updates);
+      } catch (err) {
+        console.error("[TabTasks] Drag update failed", err);
+        setTasks(prevTasks); // rollback
+        setGrouped(groupTasksByDate(prevTasks));
+      }
+    }
+  };
+
+  const renderTaskRow = (task: Task, groupName: string, index: number) => {
     const isCompleted = normalizeStatus(task.status) === "Done";
 
     let bgColor = "#fff";
@@ -178,181 +219,198 @@ const TabTasks: React.FC = () => {
     }
 
     return (
-      <Box
-        key={task.id}
-        display="flex"
-        alignItems="center"
-        gap={0.8}
-        sx={{ mb: 1, cursor: "pointer" }}
-      >
-        <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
-          <Checkbox
-            size="small"
-            sx={{ borderRadius: "50%" }}
-            checked={isCompleted}
-            onClick={(e) => e.stopPropagation()}
-            onChange={async (e) => {
-              e.stopPropagation();
-              await updateTask(task.id!, { status: e.target.checked ? "Done" : "Todo" });
-              fetchTasks();
-            }}
-          />
-        </Box>
+      <Draggable draggableId={task.id!.toString()} index={index} key={task.id}>
+        {(provided) => (
+          <Box
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            display="flex"
+            alignItems="center"
+            gap={0.8}
+            sx={{ mb: 1, cursor: "pointer" }}
+          >
+            <Box sx={{ minWidth: "32px", display: "flex", justifyContent: "center" }}>
+              <Checkbox
+                size="small"
+                sx={{ borderRadius: "50%" }}
+                checked={isCompleted}
+                onClick={(e) => e.stopPropagation()}
+                onChange={async (e) => {
+                  e.stopPropagation();
+                  await updateTask(task.id!, { status: e.target.checked ? "Done" : "Todo" });
+                  fetchTasks();
+                }}
+              />
+            </Box>
 
-        {task.tokenValue !== undefined && (
-          <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
-            <Typography
-              component="span"
+            {task.tokenValue !== undefined && (
+              <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
+                <Typography
+                  component="span"
+                  sx={{
+                    background: "#3399ff",
+                    borderRadius: "999px",
+                    px: 1,
+                    py: 0.3,
+                    minWidth: "28px",
+                    textAlign: "center",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    color: "#fff",
+                    letterSpacing: "0.5px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  +{task.tokenValue}
+                </Typography>
+              </Tooltip>
+            )}
+
+            <Box
+              flex={1}
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              onClick={() => handleTaskClick(task)}
               sx={{
-                background: "#3399ff",
-                borderRadius: "999px",
-                px: 1,
+                backgroundColor: bgColor,
+                borderRadius: "14px",
+                boxShadow: 1,
                 py: 0.3,
-                minWidth: "28px",
-                textAlign: "center",
+                px: 1.2,
+                minHeight: "28px",
                 fontSize: "0.75rem",
-                fontWeight: 700,
-                color: "#fff",
-                letterSpacing: "0.5px",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
               }}
             >
-              +{task.tokenValue}
-            </Typography>
-          </Tooltip>
-        )}
-
-        <Box
-          flex={1}
-          display="flex"
-          alignItems="center"
-          justifyContent="space-between"
-          onClick={() => handleTaskClick(task)}
-          sx={{
-            backgroundColor: bgColor,
-            borderRadius: "14px",
-            boxShadow: 1,
-            py: 0.3,
-            px: 1.2,
-            minHeight: "28px",
-            fontSize: "0.75rem",
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              color: isCompleted ? "#888" : "inherit",
-            }}
-          >
-            {task.name}
-            {task.startDate && task.endDate && (
               <Typography
-                component="span"
                 variant="body2"
-                color="text.secondary"
-                sx={{ ml: 0.5 }}
+                sx={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  color: isCompleted ? "#888" : "inherit",
+                }}
               >
-                {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
+                {task.name}
+                {task.startDate && task.endDate && (
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ ml: 0.5 }}
+                  >
+                    {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
+                  </Typography>
+                )}
               </Typography>
-            )}
-          </Typography>
 
-          {(task.projectId || task.project) && (
-            <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
-          )}
-        </Box>
+              {(task.projectId || (task as any).project) && (
+                <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
+              )}
+            </Box>
 
-        <Tooltip title={`Due: ${task.startDate || task.dueDate || "Not set"}`} arrow>
-          <DatePicker
-            value={task.startDate ? dayjs(task.startDate) : task.dueDate ? dayjs(task.dueDate) : null}
-            onChange={(newDate) =>
-              updateTask(task.id!, { dueDate: newDate?.toISOString() || null })
-            }
-            slots={{ openPickerIcon: CalendarTodayIcon }}
-            slotProps={{
-              textField: { sx: { display: "none" } },
-              openPickerButton: {
-                sx: {
-                  p: 0.5,
-                  borderRadius: "50%",
-                  color: "#555",
-                  "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
-                },
-              },
-            }}
-          />
-        </Tooltip>
-      </Box>
+            <Tooltip title={`Due: ${task.startDate || task.dueDate || "Not set"}`} arrow>
+              <DatePicker
+                value={task.startDate ? dayjs(task.startDate) : task.dueDate ? dayjs(task.dueDate) : null}
+                onChange={(newDate) =>
+                  updateTask(task.id!, { dueDate: newDate?.toISOString() || null })
+                }
+                slots={{ openPickerIcon: CalendarTodayIcon }}
+                slotProps={{
+                  textField: { sx: { display: "none" } },
+                  openPickerButton: {
+                    sx: {
+                      p: 0.5,
+                      borderRadius: "50%",
+                      color: "#555",
+                      "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
+                    },
+                  },
+                }}
+              />
+            </Tooltip>
+          </Box>
+        )}
+      </Draggable>
     );
   };
 
   return (
-    <Box p={2}>
-      <Box display="flex" justifyContent="flex-end" mb={2}>
-        <Button variant="contained" onClick={() => setDialogOpen(true)}>
-          + New Task
-        </Button>
-      </Box>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <Box p={2}>
+        <Box display="flex" justifyContent="flex-end" mb={2}>
+          <Button variant="contained" onClick={() => setDialogOpen(true)}>
+            + New Task
+          </Button>
+        </Box>
 
-      {Object.keys(grouped || {}).map((group) => {
-        if (group === "SuggestedToday" || group === "SuggestedTomorrow") return null;
+        {Object.keys(grouped || {}).map((group) => {
+          if (group === "SuggestedToday" || group === "SuggestedTomorrow") return null;
 
-        const groupTasks = grouped[group] || [];
-        const suggestedTasks =
-          group === "Today"
-            ? grouped.SuggestedToday || []
-            : group === "Tomorrow"
-            ? grouped.SuggestedTomorrow || []
-            : [];
+          const groupTasks = grouped[group] || [];
+          const suggestedTasks =
+            group === "Today"
+              ? grouped.SuggestedToday || []
+              : group === "Tomorrow"
+              ? grouped.SuggestedTomorrow || []
+              : [];
 
-        return (
-          <Box key={group} mt={2}>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              onClick={() => handleToggle(group)}
-              sx={{ cursor: "pointer" }}
-            >
-              <Typography variant="subtitle1" fontWeight="bold">
-                {group}
-              </Typography>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Typography variant="body2">{groupTasks.length}</Typography>
-                <IconButton size="small">
-                  {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
+          return (
+            <Box key={group} mt={2}>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                onClick={() => handleToggle(group)}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {group}
+                </Typography>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2">{groupTasks.length}</Typography>
+                  <IconButton size="small">
+                    {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Box>
               </Box>
+              <Divider sx={{ mt: 0.5, mb: 1 }} />
+
+              <Collapse in={openGroups[group]}>
+                <Droppable droppableId={group}>
+                  {(provided) => (
+                    <Box mt={0.5} ref={provided.innerRef} {...provided.droppableProps}>
+                      {groupTasks.map((task, index) => renderTaskRow(task, group, index))}
+                      {suggestedTasks.length > 0 && (
+                        <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
+                          <Typography variant="caption" fontWeight="bold" color="text.secondary">
+                            Suggested
+                          </Typography>
+                          <Box mt={0.5}>
+                            {suggestedTasks.map((task, index) =>
+                              renderTaskRow(task, group, groupTasks.length + index)
+                            )}
+                          </Box>
+                        </Paper>
+                      )}
+                      {provided.placeholder}
+                    </Box>
+                  )}
+                </Droppable>
+              </Collapse>
             </Box>
-            <Divider sx={{ mt: 0.5, mb: 1 }} />
+          );
+        })}
 
-            <Collapse in={openGroups[group]}>
-              <Box mt={0.5}>
-                {groupTasks.map((task) => renderTaskRow(task, group))}
-                {suggestedTasks.length > 0 && (
-                  <Paper elevation={2} sx={{ mt: 2, p: 1, backgroundColor: "#f0f0f0" }}>
-                    <Typography variant="caption" fontWeight="bold" color="text.secondary">
-                      Suggested
-                    </Typography>
-                    <Box mt={0.5}>{suggestedTasks.map((task) => renderTaskRow(task, group))}</Box>
-                  </Paper>
-                )}
-              </Box>
-            </Collapse>
-          </Box>
-        );
-      })}
-
-      <TaskDialog
-        open={dialogOpen}
-        task={selectedTask}
-        onClose={handleDialogClose}
-        onSave={handleDialogSave}
-      />
-    </Box>
+        <TaskDialog
+          open={dialogOpen}
+          task={selectedTask}
+          onClose={handleDialogClose}
+          onSave={handleDialogSave}
+        />
+      </Box>
+    </DragDropContext>
   );
 };
 
