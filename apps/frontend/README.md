@@ -15,7 +15,7 @@ The frontend is a React app using Vite, Material UI (MUI), and FullCalendar. It 
   - `get<Entity>()`
   - `create<Entity>(payload)`
   - `update<Entity>(id, payload)`
-  - `delete<Entity>(id)`
+  - `delete<Entity>(id)` → ⚠️ For tasks this is now a **soft delete** (see below).
 - Wrappers normalize backend data before returning to components:
   - All returned objects include both the backend’s `*_id` (e.g. `task_id`) **and** a normalized `id` field.
   - All fields are standardized into **camelCase** for frontend use.
@@ -49,7 +49,6 @@ This guarantees that all content pages use a **single consistent integration sty
 ## Task Fields
 Tasks returned by backend include (after normalization):
 - `id` (normalized from `task_id`)
-- `taskId` (raw backend ID, kept for backend references)
 - `name` (task_name)
 - `description`
 - `dueDate`
@@ -68,23 +67,41 @@ Tasks returned by backend include (after normalization):
 ---
 
 ## Components
-- **TaskDialog**
-  - Handles task create/edit/delete.
-  - Parent decides whether to POST (new) or PATCH (update).
-  - Delete button only shown for existing tasks.
-  - Defaults: `tokenValue = 5`, `priority = Medium`, `dueDate = blank`.
 
-- **TabTasks** (`src/tabs/TabTasks.tsx`)
-  - Uses `getTasks` to list tasks.
-  - Uses `updateTask` when saving edits.
-  - Groups tasks by due date, priority, or status consistently.
+### TaskDialog (`src/components/TaskDialog.tsx`)
+- Handles task create/edit/delete.
+- Parent decides whether to POST (new) or PATCH (update).
+- **Delete button performs soft delete** (sets `archived = true` instead of removing from DB).
+- **Sliders:**
+  - Priority: Low → Urgent (4 steps).
+  - Effort: Low → High (3 steps).
+  - Reward Tokens: 5 → 20 (step 5).
+- **Date/Time fields:**
+  - Due Date = required.
+  - Start Time = optional (enabled once due date selected).
+  - End Time = defaults to start +1h, editable, disabled until Start Time is set.
+  - Backend payload:
+    - `dueDate` = date only.
+    - `startDate` = ISO datetime.
+    - `endDate` = ISO datetime.
+- **UI Enhancements:**
+  - Sliders use colored gradients.
+  - Status buttons are color-coded: Todo (blue), In Progress (orange), Done (green).
+  - "New Task" header removed.
+- Syncs local state with DB task props when dialog is opened.
 
-- **TabCalendar** (`src/tabs/TabCalendar.tsx`)
-  - Uses FullCalendar for drag/create/edit.
-  - Only Calendar persists tasks → avoids duplicate saves.
-  - Maps `status → className` for color coding.
-  - Requires each task to include `.id` (from wrapper normalization).
-  - Single-click, drag, and resize all route through TaskDialog.
+### TabTasks (`src/tabs/TabTasks.tsx`)
+- Uses `getTasks` to list tasks.
+- Uses `updateTask` when saving edits.
+- Groups tasks by due date, priority, or status consistently.
+- ⚠️ Currently still shows archived tasks — future update will filter them out.
+
+### TabCalendar (`src/tabs/TabCalendar.tsx`)
+- Uses FullCalendar for drag/create/edit.
+- Only Calendar persists tasks → avoids duplicate saves.
+- Maps `status → className` for color coding.
+- Requires each task to include `.id` (from wrapper normalization).
+- Single-click, drag, and resize all route through TaskDialog.
 
 ---
 
