@@ -193,3 +193,4 @@ Response:
 - Soft delete is enforced via `archived: true`.
 - Filtering out archived tasks is handled in frontend (future work).
 - Use `skip` and `limit` params for efficient pagination on large datasets.
+- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`.
