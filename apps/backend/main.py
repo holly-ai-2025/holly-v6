@@ -4,27 +4,36 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from . import models, schemas, database
 from datetime import datetime
-import json, logging, os
+import json, logging, os, sys
 
 app = FastAPI()
 
-# Setup logging
-log_dir = "logs"
+# Setup logging with absolute path and flush
+log_dir = os.path.abspath("logs")
 os.makedirs(log_dir, exist_ok=True)
 debug_log_path = os.path.join(log_dir, "debug.log")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("activity_debug")
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler(debug_log_path)
+file_handler = logging.FileHandler(debug_log_path, mode="a", encoding="utf-8")
 file_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+# Ensure immediate flushing
+class FlushFileHandler(logging.FileHandler):
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+logger.handlers.clear()
+logger.addHandler(FlushFileHandler(debug_log_path, mode="a", encoding="utf-8"))
+
 # CORS setup to allow frontend (Vite dev server)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins (safe for dev)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +61,6 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_task)
 
-    # Log creation
     log_entry = models.ActivityLog(
         entity_type="task",
         entity_id=db_task.task_id,
@@ -71,7 +79,6 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Log full previous state (all fields, forced JSON serialization)
     prev_state = {}
     for column in db_task.__table__.columns:
         val = getattr(db_task, column.name)
@@ -80,12 +87,10 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
         else:
             prev_state[column.name] = val
 
-    # DEBUG: log prev_state to separate debug.log
     logger.debug(f"prev_state before update: {json.dumps(prev_state, default=str)}")
 
     serialized_state = json.loads(json.dumps(prev_state, default=str))
 
-    # Determine action type
     incoming_data = task.model_dump(exclude_unset=True)
     action_type = "update"
     if "archived" in incoming_data and incoming_data["archived"] is True and db_task.archived is False:
