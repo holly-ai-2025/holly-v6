@@ -38,6 +38,25 @@
 
 ---
 
+## Task Management
+
+### Archived Tasks
+- Tasks marked as deleted are **soft deleted** → stored with `archived = true`.
+- `TabTasks.tsx`, `TabCalendar.tsx`, and `TabBoards.tsx` filter out archived tasks in their `fetchTasks()` implementations.
+- This ensures deleted tasks no longer appear in active task views, but remain in DB.
+- If a future “Archive” tab is built, it should skip the filter so archived tasks are visible.
+
+### Delete Support
+- `TaskDialog` supports `onDelete`, which calls `deleteTask()` and refreshes tasks.
+- Each tab passes `handleDialogDelete` into `TaskDialog`.
+- Deletion is always **soft** (sets `archived = true`), never hard deletes.
+
+### Consistency
+- Each tab (`TabTasks`, `TabCalendar`, `TabBoards`) has its own `fetchTasks()` implementation, all must include the `!t.archived` filter.
+- Do not move the filter into `api/tasks.ts`, since we may want an “Archived view” later.
+
+---
+
 ## Development Notes
 - All UI built with **MUI Core + Joy UI**.
 - Ensure no other UI libraries are introduced.
