@@ -30,11 +30,10 @@
 
 .fc-event {
   border-radius: 8px !important;
-  padding: 4px 8px; /* increased padding around text */
+  padding: 0; /* remove extra padding from wrapper */
   font-size: 0.8rem;
-  /* Override: remove default background so eventContent pills show correctly */
-  background-color: transparent !important;
+  background-color: transparent !important; /* remove default background */
   border: none !important;
-  color: white !important;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15) !important; /* added drop shadow */
+  color: inherit !important;
+  box-shadow: none !important; /* ensure no shadow on wrapper */
 }
