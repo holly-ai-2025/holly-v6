@@ -12,14 +12,14 @@ Each task record contains the following fields:
 - `phase_id` (integer, nullable)
 - `group_id` (integer, nullable)
 - `status` (string, e.g. "Todo", "In Progress", "Done")
-- `urgency_score` (integer)
+- `urgency_score` (integer, nullable)
 - `priority` (string, e.g. "Low", "Medium", "High", "Urgent")
 - `category` (string, nullable)
-- `token_value` (integer)
-- `due_date` (date)
+- `token_value` (integer, nullable)
+- `due_date` (date, nullable)
 - `start_date` (timestamp, nullable)
 - `end_date` (timestamp, nullable)
-- `effort_level` (string, e.g. "Low", "Medium", "High")
+- `effort_level` (string, e.g. "Low", "Medium", "High", nullable)
 - `archived` (boolean, soft delete flag)
 - `pinned` (boolean)
 - `created_at` (timestamp)
@@ -66,7 +66,9 @@ Content-Type: application/json
   "board_id": 1,
   "project_id": 2,
   "phase_id": 3,
-  "notes": "This task was created via API"
+  "notes": "This task was created via API",
+  "token_value": 10,
+  "effort_level": "Medium"
 }
 ```
 Response:
@@ -82,6 +84,8 @@ Response:
   "project_id": 2,
   "phase_id": 3,
   "notes": "This task was created via API",
+  "token_value": 10,
+  "effort_level": "Medium",
   "created_at": "2025-09-18T10:30:00",
   "updated_at": "2025-09-18T10:30:00"
 }
@@ -114,6 +118,7 @@ Notes:
 - `DELETE /db/tasks/{task_id}` is **not supported** and returns `405 Method Not Allowed`.
 - Always use PATCH with `{ "archived": true }` for deletion.
 - Partial updates are supported: you may send any subset of fields.
+- Soft deletes are logged as `delete` actions in the Activity Log.
 
 ---
 
@@ -186,11 +191,94 @@ Response:
 
 ---
 
+## Endpoints: Activity Log API
+
+### `GET /db/activity`
+Fetch recent activity logs. Supports pagination.
+```http
+GET /db/activity?skip=0&limit=50
+```
+Response (example of full snapshot after task update):
+```json
+[
+  {
+    "log_id": 101,
+    "entity_type": "task",
+    "entity_id": 42,
+    "action": "update",
+    "payload": {
+      "task_id": 42,
+      "task_name": "Write backend docs",
+      "description": "Expand README with examples",
+      "status": "In Progress",
+      "priority": "High",
+      "archived": false,
+      "token_value": 10,
+      "notes": "Initial value",
+      "effort_level": "Medium",
+      "created_at": "2025-09-18T10:30:00",
+      "updated_at": "2025-09-18T10:45:00"
+    },
+    "created_at": "2025-09-18T10:45:00"
+  }
+]
+```
+
+### Example: Soft delete logged
+```json
+{
+  "log_id": 102,
+  "entity_type": "task",
+  "entity_id": 42,
+  "action": "delete",
+  "payload": {
+    "task_id": 42,
+    "task_name": "Write backend docs",
+    "archived": false
+  },
+  "created_at": "2025-09-18T11:00:00"
+}
+```
+
+### `POST /db/activity/undo/{log_id}`
+Undo a previous action by restoring its snapshot.
+```http
+POST /db/activity/undo/101
+```
+Response:
+```json
+{
+  "log_id": 101,
+  "entity_type": "task",
+  "entity_id": 42,
+  "action": "update",
+  "payload": {
+    "task_id": 42,
+    "task_name": "Write backend docs",
+    "status": "In Progress",
+    "priority": "High",
+    "archived": false,
+    "token_value": 10,
+    "notes": "Initial value",
+    "effort_level": "Medium"
+  },
+  "created_at": "2025-09-18T10:45:00"
+}
+```
+
+Notes:
+- Every action (create, update, delete) creates a log entry.
+- Undo restores the **exact previous state** from `payload`.
+- Undo itself creates a new `undo` log entry for auditing.
+- Currently implemented for tasks only. Future extension planned for boards, projects, and phases.
+
+---
+
 ## Development Notes
 
 - All API payloads use **snake_case** (frontend handles mapping to camelCase).
-- `notes` field is persisted end-to-end.
+- `notes`, `token_value`, and `effort_level` are persisted end-to-end.
 - Soft delete is enforced via `archived: true`.
 - Filtering out archived tasks is handled in frontend (future work).
-- Use `skip` and `limit` params for efficient pagination on large datasets.
-- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`.
+- Activity Log persists all changes for auditing + undo.
+- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`. 

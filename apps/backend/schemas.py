@@ -212,3 +212,15 @@ class Item(ItemBase):
 
     class Config:
         from_attributes = True
+
+# -------------------- ACTIVITY LOG --------------------
+class ActivityLog(BaseModel):
+    log_id: int
+    entity_type: str
+    entity_id: int
+    action: str
+    payload: dict   # raw JSON snapshot
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

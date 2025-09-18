@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, Date, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -92,4 +92,15 @@ class Phase(Base):
     name = Column(String, nullable=False)
     deadline = Column(Date, nullable=True)
     depends_on_previous = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# --- Activity Log ---
+class ActivityLog(Base):
+    __tablename__ = "activity_log"
+
+    log_id = Column(Integer, primary_key=True, index=True)
+    entity_type = Column(String, nullable=False)   # e.g. "task", "board", "project"
+    entity_id = Column(Integer, nullable=False)
+    action = Column(String, nullable=False)        # "create", "update", "delete", "undo"
+    payload = Column(JSON, nullable=False)         # snapshot of previous state
     created_at = Column(DateTime, default=datetime.utcnow)

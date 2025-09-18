@@ -1,14 +1,39 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from . import models, schemas, database
+from datetime import datetime
+import json, logging, os, sys
 
 app = FastAPI()
+
+# Setup logging with absolute path and flush
+log_dir = os.path.abspath("logs")
+os.makedirs(log_dir, exist_ok=True)
+debug_log_path = os.path.join(log_dir, "debug.log")
+
+logger = logging.getLogger("activity_debug")
+logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler(debug_log_path, mode="a", encoding="utf-8")
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# Ensure immediate flushing
+class FlushFileHandler(logging.FileHandler):
+    def emit(self, record):
+        super().emit(record)
+        self.flush()
+
+logger.handlers.clear()
+logger.addHandler(FlushFileHandler(debug_log_path, mode="a", encoding="utf-8"))
 
 # CORS setup to allow frontend (Vite dev server)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins (safe for dev)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +60,17 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+
+    log_entry = models.ActivityLog(
+        entity_type="task",
+        entity_id=db_task.task_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
     return db_task
 
 @app.patch("/db/tasks/{task_id}", response_model=schemas.Task)
@@ -42,10 +78,38 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
-    for k, v in task.model_dump(exclude_unset=True).items():
+
+    prev_state = {}
+    for column in db_task.__table__.columns:
+        val = getattr(db_task, column.name)
+        if isinstance(val, datetime):
+            prev_state[column.name] = val.isoformat()
+        else:
+            prev_state[column.name] = val
+
+    logger.debug(f"prev_state before update: {json.dumps(prev_state, default=str)}")
+
+    serialized_state = json.loads(json.dumps(prev_state, default=str))
+
+    incoming_data = task.model_dump(exclude_unset=True)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_task.archived is False:
+        action_type = "delete"
+
+    log_entry = models.ActivityLog(
+        entity_type="task",
+        entity_id=db_task.task_id,
+        action=action_type,
+        payload=serialized_state,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+
+    for k, v in incoming_data.items():
         setattr(db_task, k, v)
     db.commit()
     db.refresh(db_task)
+
     return db_task
 
 # -------------------- BOARDS --------------------
@@ -62,3 +126,35 @@ def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 @app.get("/db/phases", response_model=list[schemas.Phase])
 def read_phases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Phase).offset(skip).limit(limit).all()
+
+# -------------------- ACTIVITY LOG --------------------
+@app.get("/db/activity", response_model=list[schemas.ActivityLog])
+def read_activity(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.ActivityLog).order_by(desc(models.ActivityLog.created_at)).offset(skip).limit(limit).all()
+
+@app.post("/db/activity/undo/{log_id}", response_model=schemas.ActivityLog)
+def undo_activity(log_id: int, db: Session = Depends(get_db)):
+    log_entry = db.query(models.ActivityLog).filter(models.ActivityLog.log_id == log_id).first()
+    if not log_entry:
+        raise HTTPException(status_code=404, detail="Activity log not found")
+
+    if log_entry.entity_type == "task":
+        task = db.query(models.Task).filter(models.Task.task_id == log_entry.entity_id).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="Entity not found")
+        for k, v in log_entry.payload.items():
+            setattr(task, k, v)
+        db.commit()
+        db.refresh(task)
+
+        undo_log = models.ActivityLog(
+            entity_type="task",
+            entity_id=task.task_id,
+            action="undo",
+            payload=log_entry.payload,
+            created_at=datetime.utcnow(),
+        )
+        db.add(undo_log)
+        db.commit()
+
+    return log_entry
