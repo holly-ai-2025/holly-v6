@@ -71,16 +71,22 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
         "updated_at": db_task.updated_at.isoformat() if db_task.updated_at else None,
     }
 
+    # Determine action type
+    incoming_data = task.model_dump(exclude_unset=True)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_task.archived is False:
+        action_type = "delete"
+
     log_entry = models.ActivityLog(
         entity_type="task",
         entity_id=db_task.task_id,
-        action="update",
+        action=action_type,
         payload=prev_state,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
 
-    for k, v in task.model_dump(exclude_unset=True).items():
+    for k, v in incoming_data.items():
         setattr(db_task, k, v)
     db.commit()
     db.refresh(db_task)
