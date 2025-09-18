@@ -136,9 +136,11 @@ const TabCalendar: React.FC = () => {
         style={{
           backgroundColor: bgColor,
           borderRadius: "14px",
-          padding: "2px 6px",
+          padding: "6px 10px",
           fontSize: "0.85rem",
           color: textColor,
+          boxShadow: "0px 2px 6px rgba(0,0,0,0.15)",
+          display: "inline-block",
         }}
       >
         {eventInfo.event.title}
