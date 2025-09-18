@@ -119,8 +119,9 @@ const TabTasks: React.FC = () => {
   const fetchTasks = async () => {
     try {
       const data = await getTasks();
-      setTasks(data);
-      setGrouped(groupTasksByDate(data));
+      const active = data.filter((t: Task) => !t.archived); // hide archived (soft-deleted)
+      setTasks(active);
+      setGrouped(groupTasksByDate(active));
     } catch (err) {
       console.error("[TabTasks] Failed to fetch tasks", err);
     }
