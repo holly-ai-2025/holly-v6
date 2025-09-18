@@ -58,18 +58,14 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Log previous state
+    # Log full previous state (all fields)
     prev_state = {
-        "task_id": db_task.task_id,
-        "task_name": db_task.task_name,
-        "description": db_task.description,
-        "status": db_task.status,
-        "priority": db_task.priority,
-        "archived": db_task.archived,
-        "pinned": db_task.pinned,
-        "created_at": db_task.created_at.isoformat() if db_task.created_at else None,
-        "updated_at": db_task.updated_at.isoformat() if db_task.updated_at else None,
+        column.name: getattr(db_task, column.name)
+        for column in db_task.__table__.columns
     }
+    for k, v in prev_state.items():
+        if isinstance(v, datetime):
+            prev_state[k] = v.isoformat()
 
     # Determine action type
     incoming_data = task.model_dump(exclude_unset=True)
