@@ -58,7 +58,7 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Log full previous state (all fields, serialized)
+    # Log full previous state (all fields, forced JSON serialization)
     prev_state = {}
     for column in db_task.__table__.columns:
         val = getattr(db_task, column.name)
@@ -66,6 +66,8 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
             prev_state[column.name] = val.isoformat()
         else:
             prev_state[column.name] = val
+
+    serialized_state = json.loads(json.dumps(prev_state, default=str))
 
     # Determine action type
     incoming_data = task.model_dump(exclude_unset=True)
@@ -77,7 +79,7 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
         entity_type="task",
         entity_id=db_task.task_id,
         action=action_type,
-        payload=prev_state,
+        payload=serialized_state,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
