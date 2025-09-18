@@ -30,10 +30,15 @@
 
 .fc-event {
   border-radius: 8px !important;
-  padding: 0; /* remove extra padding from wrapper */
+  padding: 0;
   font-size: 0.8rem;
-  background-color: transparent !important; /* remove default background */
+  background-color: transparent !important;
   border: none !important;
   color: inherit !important;
-  box-shadow: none !important; /* ensure no shadow on wrapper */
+  box-shadow: none !important;
+}
+
+/* Add breathing room between stacked events */
+.fc-daygrid-event-harness {
+  margin-bottom: 4px;
 }
