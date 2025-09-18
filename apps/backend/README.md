@@ -114,6 +114,7 @@ Notes:
 - `DELETE /db/tasks/{task_id}` is **not supported** and returns `405 Method Not Allowed`.
 - Always use PATCH with `{ "archived": true }` for deletion.
 - Partial updates are supported: you may send any subset of fields.
+- Soft deletes are logged as `delete` actions in the Activity Log.
 
 ---
 
@@ -186,11 +187,67 @@ Response:
 
 ---
 
+## Endpoints: Activity Log API
+
+### `GET /db/activity`
+Fetch recent activity logs. Supports pagination.
+```http
+GET /db/activity?skip=0&limit=50
+```
+Response:
+```json
+[
+  {
+    "log_id": 101,
+    "entity_type": "task",
+    "entity_id": 42,
+    "action": "delete",
+    "payload": {
+      "task_id": 42,
+      "task_name": "Write backend docs",
+      "status": "In Progress",
+      "priority": "High",
+      "archived": false
+    },
+    "created_at": "2025-09-18T11:00:00"
+  }
+]
+```
+
+### `POST /db/activity/undo/{log_id}`
+Undo a previous action by restoring its snapshot.
+```http
+POST /db/activity/undo/101
+```
+Response:
+```json
+{
+  "log_id": 101,
+  "entity_type": "task",
+  "entity_id": 42,
+  "action": "delete",
+  "payload": {
+    "task_id": 42,
+    "task_name": "Write backend docs",
+    "status": "In Progress",
+    "priority": "High",
+    "archived": false
+  },
+  "created_at": "2025-09-18T11:00:00"
+}
+```
+
+Notes:
+- `undo` creates a new log entry with `action: "undo"`.
+- Currently implemented for tasks only. Future: extend to boards, projects, phases, etc.
+
+---
+
 ## Development Notes
 
 - All API payloads use **snake_case** (frontend handles mapping to camelCase).
 - `notes` field is persisted end-to-end.
 - Soft delete is enforced via `archived: true`.
 - Filtering out archived tasks is handled in frontend (future work).
-- Use `skip` and `limit` params for efficient pagination on large datasets.
-- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`.
+- Activity Log persists all changes for auditing + undo.
+- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`. 
