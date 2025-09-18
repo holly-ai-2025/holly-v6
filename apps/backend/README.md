@@ -24,24 +24,172 @@ Each task record contains the following fields:
 - `pinned` (boolean)
 - `created_at` (timestamp)
 - `updated_at` (timestamp)
-- `notes` (text, nullable) ✅
+- `notes` (text, nullable)
 
 ---
 
-## Soft Delete Behavior
+## Endpoints: Tasks API
 
-- `DELETE /db/tasks/:id` is **not supported** → returns HTTP 405.
-- Instead, tasks are soft deleted by setting `archived: true` via:
-  ```http
-  PATCH /db/tasks/:id
-  { "archived": true }
-  ```
-- Archived tasks remain in the database and may still be returned in API responses until frontend filtering is applied.
+### `GET /db/tasks`
+Fetch a list of tasks. Supports `skip` and `limit` query params for pagination.
+```http
+GET /db/tasks?skip=0&limit=100
+```
+Response:
+```json
+[
+  {
+    "task_id": 1,
+    "task_name": "Example Task",
+    "description": "This is a task",
+    "status": "Todo",
+    "priority": "Medium",
+    "archived": false,
+    "created_at": "2025-01-01T12:00:00",
+    "updated_at": "2025-01-01T12:00:00"
+  }
+]
+```
+
+### `POST /db/tasks`
+Create a new task.
+```http
+POST /db/tasks
+Content-Type: application/json
+
+{
+  "task_name": "Write backend docs",
+  "description": "Expand README with examples",
+  "status": "In Progress",
+  "priority": "High",
+  "due_date": "2025-09-20",
+  "board_id": 1,
+  "project_id": 2,
+  "phase_id": 3,
+  "notes": "This task was created via API"
+}
+```
+Response:
+```json
+{
+  "task_id": 42,
+  "task_name": "Write backend docs",
+  "description": "Expand README with examples",
+  "status": "In Progress",
+  "priority": "High",
+  "archived": false,
+  "board_id": 1,
+  "project_id": 2,
+  "phase_id": 3,
+  "notes": "This task was created via API",
+  "created_at": "2025-09-18T10:30:00",
+  "updated_at": "2025-09-18T10:30:00"
+}
+```
+
+### `PATCH /db/tasks/{task_id}`
+Update a task. This is also used for **soft delete**.
+```http
+PATCH /db/tasks/42
+Content-Type: application/json
+
+{
+  "archived": true
+}
+```
+Response:
+```json
+{
+  "task_id": 42,
+  "task_name": "Write backend docs",
+  "status": "In Progress",
+  "priority": "High",
+  "archived": true,
+  "created_at": "2025-09-18T10:30:00",
+  "updated_at": "2025-09-18T11:00:00"
+}
+```
+
+Notes:
+- `DELETE /db/tasks/{task_id}` is **not supported** and returns `405 Method Not Allowed`.
+- Always use PATCH with `{ "archived": true }` for deletion.
+- Partial updates are supported: you may send any subset of fields.
+
+---
+
+## Endpoints: Boards API
+
+### `GET /db/boards`
+Fetch all boards.
+```http
+GET /db/boards
+```
+Response:
+```json
+[
+  {
+    "board_id": 1,
+    "name": "Work Projects",
+    "type": "project",
+    "category": "work",
+    "color": "#2196F3",
+    "description": "Main work board",
+    "pinned": false
+  }
+]
+```
+
+---
+
+## Endpoints: Projects API
+
+### `GET /db/projects`
+Fetch all projects.
+```http
+GET /db/projects
+```
+Response:
+```json
+[
+  {
+    "project_id": 2,
+    "name": "Backend Rewrite",
+    "notes": "Using FastAPI + SQLAlchemy",
+    "goal": "Restore CRUD",
+    "board_id": 1,
+    "deadline": "2025-09-30"
+  }
+]
+```
+
+---
+
+## Endpoints: Phases API
+
+### `GET /db/phases`
+Fetch all phases.
+```http
+GET /db/phases
+```
+Response:
+```json
+[
+  {
+    "phase_id": 3,
+    "project_id": 2,
+    "name": "Step 1 - Core CRUD",
+    "deadline": "2025-09-18",
+    "depends_on_previous": false
+  }
+]
+```
 
 ---
 
 ## Development Notes
 
-- All API payloads expect **snake_case**.
-- Frontend handles mapping between camelCase and snake_case in `apps/frontend/src/api/tasks.ts`.
-- `notes` field is persisted end-to-end via this mapping.
+- All API payloads use **snake_case** (frontend handles mapping to camelCase).
+- `notes` field is persisted end-to-end.
+- Soft delete is enforced via `archived: true`.
+- Filtering out archived tasks is handled in frontend (future work).
+- Use `skip` and `limit` params for efficient pagination on large datasets.
