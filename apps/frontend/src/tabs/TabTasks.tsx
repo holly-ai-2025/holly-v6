@@ -13,12 +13,10 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FolderIcon from "@mui/icons-material/Folder";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import TaskDialog from "../components/TaskDialog";
 import { Task, getTasks, createTask, updateTask } from "../api/tasks";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import dayjs from "dayjs";
+import TaskDialog from "../components/TaskDialog";
 
 const groupColors: Record<string, string> = {
   Overdue: "#f8d7da",
@@ -166,7 +164,6 @@ const TabTasks: React.FC = () => {
     const taskId = parseInt(draggableId);
     const toGroup = destination.droppableId;
 
-    // Disallow dropping into these groups
     if (toGroup === "Later" || toGroup === "Completed" || toGroup === "Overdue") {
       return;
     }
@@ -174,7 +171,6 @@ const TabTasks: React.FC = () => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    // Snapshot for rollback
     const prevTasks = [...tasks];
 
     let updates: Partial<Task> = {};
@@ -185,7 +181,6 @@ const TabTasks: React.FC = () => {
       updates = { dueDate: dayjs().add(1, "day").toISOString(), startDate: null };
     }
 
-    // Optimistic update
     if (updates.dueDate !== undefined) {
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
       setGrouped(groupTasksByDate(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))));
@@ -194,7 +189,7 @@ const TabTasks: React.FC = () => {
         await updateTask(taskId, updates);
       } catch (err) {
         console.error("[TabTasks] Drag update failed", err);
-        setTasks(prevTasks); // rollback
+        setTasks(prevTasks);
         setGrouped(groupTasksByDate(prevTasks));
       }
     }
@@ -309,27 +304,6 @@ const TabTasks: React.FC = () => {
                 <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
               )}
             </Box>
-
-            <Tooltip title={`Due: ${task.startDate || task.dueDate || "Not set"}`} arrow>
-              <DatePicker
-                value={task.startDate ? dayjs(task.startDate) : task.dueDate ? dayjs(task.dueDate) : null}
-                onChange={(newDate) =>
-                  updateTask(task.id!, { dueDate: newDate?.toISOString() || null })
-                }
-                slots={{ openPickerIcon: CalendarTodayIcon }}
-                slotProps={{
-                  textField: { sx: { display: "none" } },
-                  openPickerButton: {
-                    sx: {
-                      p: 0.5,
-                      borderRadius: "50%",
-                      color: "#555",
-                      "&:hover": { backgroundColor: "rgba(0,0,0,0.1)" },
-                    },
-                  },
-                }}
-              />
-            </Tooltip>
           </Box>
         )}
       </Draggable>
