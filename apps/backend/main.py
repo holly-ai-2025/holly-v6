@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from . import models, schemas, database
+from datetime import datetime
+import json
 
 app = FastAPI()
 
@@ -35,6 +38,18 @@ def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+
+    # Log creation
+    log_entry = models.ActivityLog(
+        entity_type="task",
+        entity_id=db_task.task_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
     return db_task
 
 @app.patch("/db/tasks/{task_id}", response_model=schemas.Task)
@@ -42,10 +57,34 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Log previous state
+    prev_state = {
+        "task_id": db_task.task_id,
+        "task_name": db_task.task_name,
+        "description": db_task.description,
+        "status": db_task.status,
+        "priority": db_task.priority,
+        "archived": db_task.archived,
+        "pinned": db_task.pinned,
+        "created_at": db_task.created_at.isoformat() if db_task.created_at else None,
+        "updated_at": db_task.updated_at.isoformat() if db_task.updated_at else None,
+    }
+
+    log_entry = models.ActivityLog(
+        entity_type="task",
+        entity_id=db_task.task_id,
+        action="update",
+        payload=prev_state,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+
     for k, v in task.model_dump(exclude_unset=True).items():
         setattr(db_task, k, v)
     db.commit()
     db.refresh(db_task)
+
     return db_task
 
 # -------------------- BOARDS --------------------
@@ -62,3 +101,35 @@ def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 @app.get("/db/phases", response_model=list[schemas.Phase])
 def read_phases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Phase).offset(skip).limit(limit).all()
+
+# -------------------- ACTIVITY LOG --------------------
+@app.get("/db/activity", response_model=list[schemas.ActivityLog])
+def read_activity(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.ActivityLog).order_by(desc(models.ActivityLog.created_at)).offset(skip).limit(limit).all()
+
+@app.post("/db/activity/undo/{log_id}", response_model=schemas.ActivityLog)
+def undo_activity(log_id: int, db: Session = Depends(get_db)):
+    log_entry = db.query(models.ActivityLog).filter(models.ActivityLog.log_id == log_id).first()
+    if not log_entry:
+        raise HTTPException(status_code=404, detail="Activity log not found")
+
+    if log_entry.entity_type == "task":
+        task = db.query(models.Task).filter(models.Task.task_id == log_entry.entity_id).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="Entity not found")
+        for k, v in log_entry.payload.items():
+            setattr(task, k, v)
+        db.commit()
+        db.refresh(task)
+
+        undo_log = models.ActivityLog(
+            entity_type="task",
+            entity_id=task.task_id,
+            action="undo",
+            payload=log_entry.payload,
+            created_at=datetime.utcnow(),
+        )
+        db.add(undo_log)
+        db.commit()
+
+    return log_entry
