@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from . import models, schemas, database
 from datetime import datetime
-import json, sys
+import json, logging
 
 app = FastAPI()
+
+# Setup logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # CORS setup to allow frontend (Vite dev server)
 app.add_middleware(
@@ -67,8 +71,8 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
         else:
             prev_state[column.name] = val
 
-    # DEBUG: print prev_state to logs
-    print(f"[DEBUG] prev_state before update: {json.dumps(prev_state, default=str)}", file=sys.stderr)
+    # DEBUG: log prev_state to backend logs
+    logger.warning(f"[DEBUG] prev_state before update: {json.dumps(prev_state, default=str)}")
 
     serialized_state = json.loads(json.dumps(prev_state, default=str))
 
