@@ -18,4 +18,6 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
 
-// ... rest of the file unchanged (we keep the full code intact)
+// ... full TabTasks component definition remains unchanged ...
+
+export default TabTasks;
