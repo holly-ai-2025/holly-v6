@@ -24,17 +24,17 @@
 }
 
 .fc-day-today {
-  background-color: #e3f2fd !important;
+  background-color: #f5f5f5 !important; /* changed from blue to light grey */
   border-radius: 12px;
 }
 
 .fc-event {
   border-radius: 8px !important;
-  padding: 2px 6px;
+  padding: 4px 8px; /* increased padding around text */
   font-size: 0.8rem;
   /* Override: remove default background so eventContent pills show correctly */
   background-color: transparent !important;
   border: none !important;
   color: white !important;
-  box-shadow: none !important;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15) !important; /* added drop shadow */
 }
