@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator, field_serializer
-from typing import Optional
+from typing import Optional, Any, Dict
 from datetime import date, datetime
 
 # -------------------- TASKS --------------------
@@ -209,6 +209,23 @@ class Item(ItemBase):
     item_id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+# -------------------- ACTIVITY LOG --------------------
+class ActivityLogBase(BaseModel):
+    entity_type: str
+    entity_id: int
+    action: str
+    payload: Dict[str, Any]
+
+class ActivityLogCreate(ActivityLogBase):
+    pass
+
+class ActivityLog(ActivityLogBase):
+    log_id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
