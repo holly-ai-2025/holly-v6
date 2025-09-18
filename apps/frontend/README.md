@@ -42,3 +42,5 @@
 - All UI built with **MUI Core + Joy UI**.
 - Ensure no other UI libraries are introduced.
 - Styling changes should use `sx` props or `styled()` from MUI.
+- ✅ Obsolete Tailwind UI components (`Card.tsx`, `NavItem.tsx`) were removed.
+- Repo is now fully compliant with the MUI-only rule.
