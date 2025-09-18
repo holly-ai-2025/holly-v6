@@ -9,7 +9,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Paper } from "@mui/material";
-import { Task, getTasks, createTask, updateTask } from "../api/tasks";
+import { Task, getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
 import TaskDialog from "../components/TaskDialog";
 import "../styles/calendar.css";
 import dayjs from "dayjs";
@@ -25,7 +25,8 @@ const TabCalendar: React.FC = () => {
     try {
       setLoading(true);
       const res = await getTasks();
-      setTasks(res);
+      const active = res.filter((t: Task) => !t.archived); // hide archived (soft-deleted)
+      setTasks(active);
     } catch (err) {
       console.error("[TabCalendar] Failed to fetch tasks", err);
     } finally {
@@ -92,6 +93,17 @@ const TabCalendar: React.FC = () => {
     }
   };
 
+  const handleDialogDelete = async (task: Task) => {
+    try {
+      if (task.id) {
+        await deleteTask(task.id);
+        fetchTasks();
+      }
+    } catch (err) {
+      console.error("[TabCalendar] Failed to delete task from dialog", err);
+    }
+  };
+
   const eventContent = (eventInfo: any) => {
     return (
       <div>
@@ -135,6 +147,7 @@ const TabCalendar: React.FC = () => {
         task={selectedTask}
         onClose={() => setDialogOpen(false)}
         onSave={handleDialogSave}
+        onDelete={handleDialogDelete}
         defaultStart={defaultStart}
       />
     </Paper>
