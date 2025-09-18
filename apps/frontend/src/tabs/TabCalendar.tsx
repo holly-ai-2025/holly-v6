@@ -9,10 +9,16 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Paper } from "@mui/material";
-import { Task, getTasks, createTask, updateTask } from "../api/tasks";
+import { Task, getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
 import TaskDialog from "../components/TaskDialog";
 import "../styles/calendar.css";
 import dayjs from "dayjs";
+
+const groupColors: Record<string, string> = {
+  Overdue: "#f8d7da",
+  Completed: "#f2f2f2",
+  Later: "#b5d7f3",
+};
 
 const TabCalendar: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -25,7 +31,8 @@ const TabCalendar: React.FC = () => {
     try {
       setLoading(true);
       const res = await getTasks();
-      setTasks(res);
+      const active = res.filter((t: Task) => !t.archived); // hide archived (soft-deleted)
+      setTasks(active);
     } catch (err) {
       console.error("[TabCalendar] Failed to fetch tasks", err);
     } finally {
@@ -92,10 +99,51 @@ const TabCalendar: React.FC = () => {
     }
   };
 
+  const handleDialogDelete = async (task: Task) => {
+    try {
+      if (task.id) {
+        await deleteTask(task.id);
+        fetchTasks();
+      }
+    } catch (err) {
+      console.error("[TabCalendar] Failed to delete task from dialog", err);
+    }
+  };
+
   const eventContent = (eventInfo: any) => {
+    const task = tasks.find((t) => t.id?.toString() === eventInfo.event.id);
+    if (!task) return <div>{eventInfo.event.title}</div>;
+
+    const today = dayjs().startOf("day");
+    const dueDate = task.dueDate ? dayjs(task.dueDate) : null;
+
+    let bgColor = groupColors.Later;
+    let textColor = "#000";
+
+    if (task.status === "Done") {
+      bgColor = groupColors.Completed;
+      textColor = "#777";
+    } else if (
+      (task.status === "Todo" || task.status === "In Progress") &&
+      dueDate &&
+      dueDate.isBefore(today)
+    ) {
+      bgColor = groupColors.Overdue;
+    }
+
     return (
-      <div>
-        <i>{eventInfo.event.title}</i>
+      <div
+        style={{
+          backgroundColor: bgColor,
+          borderRadius: "14px",
+          padding: "6px 10px",
+          fontSize: "0.85rem",
+          color: textColor,
+          boxShadow: "0px 2px 6px rgba(0,0,0,0.15)",
+          display: "inline-block",
+        }}
+      >
+        {eventInfo.event.title}
       </div>
     );
   };
@@ -135,6 +183,7 @@ const TabCalendar: React.FC = () => {
         task={selectedTask}
         onClose={() => setDialogOpen(false)}
         onSave={handleDialogSave}
+        onDelete={handleDialogDelete}
         defaultStart={defaultStart}
       />
     </Paper>

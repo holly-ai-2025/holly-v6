@@ -23,7 +23,6 @@ import Slider from "@mui/material/Slider";
 import { styled } from "@mui/system";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import { createTask, updateTask, deleteTask } from "../api/tasks";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
 
@@ -59,10 +58,12 @@ const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) =>
 interface TaskDialogProps {
   open: boolean;
   onClose: () => void;
+  onSave: (payload: any) => void;
+  onDelete?: (task: any) => void;
   task?: any;
 }
 
-const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
+const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete, task }) => {
   const isNew = !task;
 
   const [title, setTitle] = useState(task?.name || "");
@@ -73,7 +74,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
   const [priority, setPriority] = useState(task?.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
   const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
   const [effort, setEffort] = useState(task?.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
-  const [status, setStatus] = useState(task?.status || "todo");
+  const [status, setStatus] = useState(task?.status || "Todo");
   const [archived, setArchived] = useState(task?.archived || false);
   const [pinned, setPinned] = useState(task?.pinned || false);
   const [notes, setNotes] = useState(task?.notes || "");
@@ -102,7 +103,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       setPriority(task.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
       setRewardTokens(task.tokenValue || 5);
       setEffort(task.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
-      setStatus(task.status || "todo");
+      setStatus(task.status || "Todo");
       setArchived(task.archived || false);
       setPinned(task.pinned || false);
       setBoard(task.boardId || "");
@@ -118,7 +119,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       setPriority(2);
       setRewardTokens(5);
       setEffort(2);
-      setStatus("todo");
+      setStatus("Todo");
       setArchived(false);
       setPinned(false);
       setBoard("");
@@ -140,9 +141,17 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const priorityMap = ["Low", "Medium", "High", "Urgent"];
     const effortMap = ["Low", "Medium", "High"];
+    const statusMap: Record<string, string> = {
+      todo: "Todo",
+      inprogress: "In Progress",
+      done: "Done",
+      Todo: "Todo",
+      "In Progress": "In Progress",
+      Done: "Done",
+    };
 
     let startDateTime: string | null = null;
     let endDateTime: string | null = null;
@@ -164,7 +173,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       tokenValue: rewardTokens,
       effortLevel: effortMap[effort - 1],
       urgencyScore: 5,
-      status,
+      status: statusMap[status] || "Todo",
       boardId: board || null,
       phaseId: phase || null,
       category,
@@ -173,13 +182,12 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
       notes,
     };
 
-    if (isNew) await createTask(payload);
-    else await updateTask(task.task_id || task.id, payload);
+    onSave(payload);
     onClose();
   };
 
-  const handleDelete = async () => {
-    if (!isNew) await deleteTask(task.task_id || task.id);
+  const handleDelete = () => {
+    if (!isNew && onDelete) onDelete(task);
     onClose();
   };
 
@@ -372,7 +380,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
           size="small"
         >
           <ToggleButton
-            value="todo"
+            value="Todo"
             sx={{
               "&.Mui-selected": { bgcolor: "#2196f3", color: "#fff" },
               "&.Mui-selected:hover": { bgcolor: "#1976d2" },
@@ -381,7 +389,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             Todo
           </ToggleButton>
           <ToggleButton
-            value="inprogress"
+            value="In Progress"
             sx={{
               "&.Mui-selected": { bgcolor: "#ff9800", color: "#fff" },
               "&.Mui-selected:hover": { bgcolor: "#e68900" },
@@ -390,7 +398,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
             In Progress
           </ToggleButton>
           <ToggleButton
-            value="done"
+            value="Done"
             sx={{
               "&.Mui-selected": { bgcolor: "#4caf50", color: "#fff" },
               "&.Mui-selected:hover": { bgcolor: "#3e8e41" },
@@ -402,7 +410,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, task }) => {
 
         <div>
           <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
-          {!isNew && (
+          {!isNew && onDelete && (
             <Button onClick={handleDelete} color="error" sx={{ mr: 1 }}>Delete</Button>
           )}
           <Button onClick={handleSave} variant="contained">Save</Button>

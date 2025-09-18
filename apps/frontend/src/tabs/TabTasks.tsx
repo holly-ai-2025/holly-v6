@@ -13,7 +13,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FolderIcon from "@mui/icons-material/Folder";
-import { Task, getTasks, createTask, updateTask } from "../api/tasks";
+import { Task, getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
@@ -119,8 +119,9 @@ const TabTasks: React.FC = () => {
   const fetchTasks = async () => {
     try {
       const data = await getTasks();
-      setTasks(data);
-      setGrouped(groupTasksByDate(data));
+      const active = data.filter((t: Task) => !t.archived); // hide archived (soft-deleted)
+      setTasks(active);
+      setGrouped(groupTasksByDate(active));
     } catch (err) {
       console.error("[TabTasks] Failed to fetch tasks", err);
     }
@@ -144,6 +145,17 @@ const TabTasks: React.FC = () => {
       fetchTasks();
     } catch (err) {
       console.error("[TabTasks] Failed to save task", err);
+    }
+  };
+
+  const handleDialogDelete = async (task: Task) => {
+    try {
+      if (task.id) {
+        await deleteTask(task.id);
+        fetchTasks();
+      }
+    } catch (err) {
+      console.error("[TabTasks] Failed to delete task", err);
     }
   };
 
@@ -382,6 +394,7 @@ const TabTasks: React.FC = () => {
           task={selectedTask}
           onClose={handleDialogClose}
           onSave={handleDialogSave}
+          onDelete={handleDialogDelete}
         />
       </Box>
     </DragDropContext>
