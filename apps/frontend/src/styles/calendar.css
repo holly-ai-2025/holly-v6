@@ -1,18 +1,12 @@
 /* Custom calendar overrides */
 
-/* Hide FullCalendar default blue background wrapper */
+/* Only remove the default background fill from events */
 .fc .fc-event {
   background: transparent !important;
   border: none !important;
-  padding: 0 !important;
-  box-shadow: none !important;
 }
 
-/* Optional: remove extra hover/active background */
-.fc .fc-event:hover,
-.fc .fc-event:focus {
-  background: transparent !important;
-}
+/* Keep font, padding, and other inherited styles intact */
 
 /* Keep drag placeholder visible */
 .fc .fc-event.fc-event-dragging {
