@@ -98,3 +98,30 @@ Tasks include the following fields:
 - `created_at` (timestamp)
 - `updated_at` (timestamp)
 - `notes` (text, nullable) ✅
+
+---
+
+## Intended Dependency Structure (Not Fully Implemented)
+
+Holly v6 is designed to support **task and phase dependencies**.  
+This logic is not yet fully implemented, but the database fields exist to enable it.
+
+### Phases
+- Phases belong to projects.
+- `depends_on_previous` (boolean) defines whether a phase must wait for the previous one to complete.
+- If true, all tasks in the prior phase must be marked as `Done` before this phase is considered active.
+
+### Tasks
+- Tasks can belong to a board, project, or phase.
+- `parent_task_id` allows tasks to depend on another task.
+- By chaining parent IDs, tasks can be set in strict sequence:
+  - Task 2 → `parent_task_id = Task 1`
+  - Task 3 → `parent_task_id = Task 2`
+  - Task 4 → `parent_task_id = Task 3`
+- This provides **linear dependencies** (tasks must be completed in order).
+- Branching dependencies (Task 5 depends on both Task 2 and Task 3) are not yet implemented.
+  - For now, this is modeled using **phase-level dependencies** instead.
+
+### Future Extensions
+- A `task_dependencies` join table could be introduced to support branching dependencies.
+- Additional UI/UX will enforce blocked tasks until their prerequisites are complete.
