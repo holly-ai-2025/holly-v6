@@ -4,13 +4,22 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from . import models, schemas, database
 from datetime import datetime
-import json, logging
+import json, logging, os
 
 app = FastAPI()
 
 # Setup logging
+log_dir = "logs"
+os.makedirs(log_dir, exist_ok=True)
+debug_log_path = os.path.join(log_dir, "debug.log")
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler(debug_log_path)
+file_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 # CORS setup to allow frontend (Vite dev server)
 app.add_middleware(
@@ -71,8 +80,8 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
         else:
             prev_state[column.name] = val
 
-    # DEBUG: log prev_state to backend logs
-    logger.warning(f"[DEBUG] prev_state before update: {json.dumps(prev_state, default=str)}")
+    # DEBUG: log prev_state to separate debug.log
+    logger.debug(f"prev_state before update: {json.dumps(prev_state, default=str)}")
 
     serialized_state = json.loads(json.dumps(prev_state, default=str))
 
