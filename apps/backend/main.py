@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from . import models, schemas, database
 from datetime import datetime
-import json
+import json, sys
 
 app = FastAPI()
 
@@ -66,6 +66,9 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
             prev_state[column.name] = val.isoformat()
         else:
             prev_state[column.name] = val
+
+    # DEBUG: print prev_state to logs
+    print(f"[DEBUG] prev_state before update: {json.dumps(prev_state, default=str)}", file=sys.stderr)
 
     serialized_state = json.loads(json.dumps(prev_state, default=str))
 
