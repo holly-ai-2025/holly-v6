@@ -14,6 +14,12 @@ import TaskDialog from "../components/TaskDialog";
 import "../styles/calendar.css";
 import dayjs from "dayjs";
 
+const groupColors: Record<string, string> = {
+  Overdue: "#f8d7da",
+  Completed: "#f2f2f2",
+  Later: "#b5d7f3",
+};
+
 const TabCalendar: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,9 +111,37 @@ const TabCalendar: React.FC = () => {
   };
 
   const eventContent = (eventInfo: any) => {
+    const task = tasks.find((t) => t.id?.toString() === eventInfo.event.id);
+    if (!task) return <div>{eventInfo.event.title}</div>;
+
+    const today = dayjs().startOf("day");
+    const dueDate = task.dueDate ? dayjs(task.dueDate) : null;
+
+    let bgColor = groupColors.Later;
+    let textColor = "#000";
+
+    if (task.status === "Done") {
+      bgColor = groupColors.Completed;
+      textColor = "#777";
+    } else if (
+      (task.status === "Todo" || task.status === "In Progress") &&
+      dueDate &&
+      dueDate.isBefore(today)
+    ) {
+      bgColor = groupColors.Overdue;
+    }
+
     return (
-      <div>
-        <i>{eventInfo.event.title}</i>
+      <div
+        style={{
+          backgroundColor: bgColor,
+          borderRadius: "14px",
+          padding: "2px 6px",
+          fontSize: "0.85rem",
+          color: textColor,
+        }}
+      >
+        {eventInfo.event.title}
       </div>
     );
   };
