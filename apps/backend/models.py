@@ -45,6 +45,7 @@ class Board(Base):
     color = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     pinned = Column(Boolean, default=False)
+    archived = Column(Boolean, default=False)  # soft delete support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
