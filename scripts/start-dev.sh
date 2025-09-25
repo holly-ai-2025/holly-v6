@@ -4,8 +4,8 @@ set -e
 
 echo "=== Starting Holly Dev Environment ==="
 
-# Force Postgres DB URL
-export DATABASE_URL="postgresql+psycopg2://holly:holly@localhost:5432/holly"
+# Force Postgres DB URL (can be overridden by .env)
+export DATABASE_URL="${DATABASE_URL:-postgresql+psycopg2://holly_user:holly_pass@localhost:5432/holly_v6}"
 
 # --- Frontend ---
 echo "-> Installing frontend dependencies"
@@ -23,7 +23,7 @@ if [ ! -z "$PIDS" ]; then
   echo "Killing processes on port 8000: $PIDS"
   kill -9 $PIDS || true
 fi
-PYTHONPATH=$(pwd) nohup python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 & disown
+PYTHONPATH=$(pwd) nohup .venv/bin/python scripts/run_backend.py >> ./logs/backend-live.log 2>&1 & disown
 
 # --- Frontend Log Server ---
 echo "-> Restarting frontend log server on port 9000"

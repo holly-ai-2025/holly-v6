@@ -8,8 +8,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 # --- Load .env file ---
-load_dotenv(override=True)
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+ENV_PATH = BASE_DIR / ".env"
+load_dotenv(dotenv_path=ENV_PATH, override=True)
 app = FastAPI()
 
 # ---------- CORS middleware ----------
@@ -41,10 +44,15 @@ async def verify_ops_token(request: Request, call_next):
 
     if request.url.path.startswith(("/ops/", "/git/", "/db/")):
         auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
+        if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
 
-        token = auth_header.split("Bearer ")[-1].strip()
+        # Normalize
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split("Bearer ")[-1].strip()
+        else:
+            token = auth_header.strip()
+
         if token not in OPS_TOKENS:
             raise HTTPException(status_code=403, detail="Invalid token")
 
@@ -74,10 +82,20 @@ async def ops_shell(request: Request):
     if not cmd:
         raise HTTPException(status_code=400, detail="'cmd' is required")
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-        return {"ok": True, "stdout": result.stdout, "stderr": result.stderr, "returncode": result.returncode}
+        result = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=60
+        )
+        return {
+            "ok": True,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+        }
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        import traceback
+        tb = traceback.format_exc()
+        print("[ops_shell error]", tb)
+        return {"ok": False, "error": str(e), "traceback": tb}
 
 @app.post("/ops/ls")
 async def ops_ls(request: Request):
@@ -113,6 +131,11 @@ async def ops_write(request: Request):
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+@app.post("/ops/debug-headers")
+async def debug_headers(request: Request):
+    return {"headers": dict(request.headers)}
+
 
 # =====================================================
 # ================ GITHUB ENDPOINTS ===================
