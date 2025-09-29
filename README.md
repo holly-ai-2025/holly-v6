@@ -1,169 +1,51 @@
-# Holly v6
+# Holly AI v6
 
 ## Overview
-Holly v6 is a task and workflow management system with frontend (React + MUI) and backend (FastAPI + PostgreSQL) applications.
-⚠️ SQLite is no longer supported in current dev setup. Use Postgres 15.
+Holly AI is a development partner framework that provides both backend and frontend services. The backend runs on Hypercorn and provides REST API endpoints, while the frontend runs on Vite + React with MUI UI components.
 
-## Architecture Overview
-Holly v6 is structured as a monorepo with frontend and backend apps, plus supporting scripts and logs.
+## Backend
+- Entrypoint: `apps/backend/main.py`
+- Runs with Hypercorn on port `8000`
+- Example endpoint: `http://localhost:8000/db/tasks`
 
-### Repository Layout
-holly-v6/
-│
-├── apps/
-│   ├── backend/              # FastAPI + SQLAlchemy service
-│   │   ├── main.py           # API entrypoint (CRUD routes)
-│   │   ├── models.py         # SQLAlchemy ORM models
-│   │   ├── schemas.py        # Pydantic schemas
-│   │   ├── database.py       # DB session + engine setup
-│   │   └── README.md         # Backend API rules & examples
-│   │
-│   └── frontend/             # React + MUI (Vite build)
-│       ├── src/
-│       │   ├── main.tsx      # React entrypoint
-│       │   ├── App.tsx       # Main layout wrapper
-│       │   ├── api/          # REST API clients (e.g. tasks.ts)
-│       │   ├── components/   # Reusable UI components
-│       │   └── tabs/         # Feature views (e.g. Task tabs)
-│       └── README.md         # Frontend UI rules & guidelines
-│
-├── scripts/                  # Dev & ops scripts
-│   └── start-dev.sh          # Starts backend + frontend + logging
-│
-├── logs/                     # Runtime logs
-│   ├── backend-live.log      # FastAPI live logs
-│   ├── backend-hypercorn.log # Manual Hypercorn runs
-│   └── frontend-console.log  # Captured browser console logs
-│
-├── main.py                   # Ops Agent API (git + ops tooling)
-├── README.md                 # High-level overview + architecture
-├── docs/CHANGELOG.md         # All schema + API changes (mandatory updates)
-└── .env / .env.example       # Environment configuration
+## Frontend
+- Entrypoint: `apps/frontend/src/main.tsx`
+- Framework: Vite + React + MUI (Core + Joy UI)
+- Uses a unified API client at `apps/frontend/src/lib/api.ts`
 
-## Backend Overview
-Framework: FastAPI + SQLAlchemy.
-Entrypoint: apps/backend/main.py → exposes REST API under /db/*.
-Models: ORM definitions in models.py.
-Schemas: Pydantic models in schemas.py (validation + serialization).
-Database: Configured via database.py, using DATABASE_URL (Postgres only).
-Rules: See apps/backend/README.md for API reference and soft delete behavior.
-CRUD: All major entities (tasks, boards, projects, phases, groups, items) have CRUD endpoints. Soft delete is supported for tasks + boards.
+### API Client (Important)
+- All frontend API requests **must** go through `lib/api.ts`.
+- In development, requests are sent to `http://localhost:8000`.
+- In production (Vercel), requests use `VITE_API_URL`.
+- The client automatically includes the `ngrok-skip-browser-warning: true` header so ngrok does not block API calls.
+- If `VITE_API_URL` is missing in production, an error will be logged: `[API] Missing VITE_API_URL in production build!`.
+- The API client logs outgoing requests in the browser console:
+  ```
+  [API Request] https://<ngrok>.ngrok-free.app /db/tasks {...headers}
+  ```
+  Use this to confirm the app is targeting the ngrok backend and not falling back to relative paths.
 
-## Frontend Overview
-Framework: React (Vite) with MUI Core + Joy UI (no other UI libs allowed).
-Entrypoint: apps/frontend/src/main.tsx.
-Layout: Root component in App.tsx.
-API Client: src/api/ contains REST clients (e.g. tasks.ts) with camelCase ↔ snake_case mapping.
-UI Components: src/components/ for dialogs/forms, src/tabs/ for feature views.
-Dependencies: Requires date-fns@^3, @date-io/date-fns@^3, @mui/system, @mui/x-date-pickers, react-quill, dayjs, and @fullcalendar/*.
-Rules: See apps/frontend/README.md for UI guidelines and TaskDialog behaviors.
+### Logging
+- Console logs (`console.log` and `console.error`) are forwarded to the backend log server.
+- In development: `http://localhost:9000/log`
+- In production: `VITE_LOG_SERVER_URL`
+
+## Deployment
+- Frontend: Vercel
+- Backend: Local Hypercorn (exposed with ngrok during development)
+
+### Environment Variables
+Ensure the following are set in Vercel:
+- `VITE_API_URL=https://<your-ngrok-subdomain>.ngrok-free.app`
+- `VITE_LOG_SERVER_URL=https://<your-log-server-url>`
 
 ## Development Workflow
-- Frontend: React app with MUI Core + Joy UI, talks to backend via REST API.
-- Backend: FastAPI + SQLAlchemy + Postgres (configured via DATABASE_URL).
-- Logging: All dev output is written to logs/. Always check logs when debugging.
-- Ops Agent: Root main.py provides /ops/* and /git/* endpoints for automation (used by GPT assistant).
-- Startup Script: Use scripts/start-dev.sh to launch both backend (Hypercorn) and frontend (Vite) together.
+1. Start backend with Hypercorn: `hypercorn apps/backend/main.py`
+2. Start log server: `scripts/log_server.js`
+3. Run frontend: `cd apps/frontend && npm run dev`
+4. Expose backend via ngrok: `ngrok http 8000`
+5. Verify API requests and logs in the browser console.
 
-### Changelog Rule
-- ⚠️ **All schema or API changes must include a matching update in `docs/CHANGELOG.md`.**
-- If committing changes to `models.py`, `schemas.py`, or `main.py`, update the changelog in the same PR/commit.
-- Format: date + description of fields/endpoints added/changed/deprecated.
+---
 
-### Pre-commit Hook
-- A safety hook is installed under `.githooks/pre-commit`.
-- To enable it, run:
-```bash
-git config core.hooksPath .githooks
-```
-- It enforces:
-  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
-  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
-  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
-
-### Snapshot Branch Workflow
-For safeguarding local work:
-```bash
-git add -A
-git commit -m "SNAPSHOT: local working state"
-git push origin backup/my-snapshot-$(date +%Y%m%d%H%M%S)
-```
-
-## Database Setup
-### Start Postgres
-```bash
-brew services start postgresql@15
-brew services list | grep postgres
-```
-
-### Create DB + User
-```sql
-CREATE DATABASE holly_v6;
-CREATE USER holly_user WITH PASSWORD 'holly_pass';
-GRANT ALL PRIVILEGES ON DATABASE holly_v6 TO holly_user;
-```
-
-## Troubleshooting
-- Lock file errors: remove postmaster.pid after killing old processes.
-- Shared memory issues: clear with:
-  ```bash
-  ipcs -m | awk '/juliesimac/ {print $2}' | xargs -n 1 ipcrm -m
-  ```
-
-## Task Model
-Tasks include the following fields:
-- task_id (integer, primary key)
-- task_name (string)
-- description (string, nullable)
-- board_id (integer, nullable)
-- project_id (integer, nullable)
-- phase_id (integer, nullable)
-- group_id (integer, nullable)
-- status (string, e.g. "Todo", "In Progress", "Done")
-- urgency_score (integer)
-- priority (string, e.g. "Low", "Medium", "High", "Urgent")
-- category (string, nullable)
-- token_value (integer)
-- due_date (date)
-- start_date (timestamp, nullable)
-- end_date (timestamp, nullable)
-- effort_level (string, e.g. "Low", "Medium", "High")
-- archived (boolean, soft delete flag)
-- pinned (boolean)
-- created_at (timestamp)
-- updated_at (timestamp)
-- notes (text, nullable) ✅
-
-## Intended Dependency Structure (Not Fully Implemented)
-Holly v6 is designed to support task and phase dependencies.
-This logic is not yet fully implemented, but the database fields exist to enable it.
-
-### Phases
-- Belong to projects.
-- `depends_on_previous` (boolean) defines whether a phase must wait for the previous one to complete.
-- If true, all tasks in the prior phase must be marked as Done before this phase is considered active.
-
-### Tasks
-- Tasks can belong to a board, project, or phase.
-- `parent_task_id` allows tasks to depend on another task.
-- By chaining parent IDs, tasks can be set in strict sequence.
-
-Example:
-```
-Task 2 → parent_task_id = Task 1
-Task 3 → parent_task_id = Task 2
-Task 4 → parent_task_id = Task 3
-```
-
-Branching dependencies (Task 5 depends on Task 2 + Task 3) are not yet implemented.
-
-## Future Extensions
-- A `task_dependencies` join table could be introduced to support branching dependencies.
-- Additional UI/UX will enforce blocked tasks until prerequisites are complete.
-
-## Known Gotchas
-- SQLite is not supported: must use Postgres 15.
-- Ops Agent uses uvicorn; backend API uses hypercorn.
-- Frontend ports: Vite will increment ports if 5173 is already in use.
-- Goal field deprecated: present in schemas, not in DB.
-- Shared memory cleanup may be required after hard crashes.
+This ensures all requests are routed correctly to the backend in both dev and production environments.

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
-import axios from "axios";
+import api from "../../lib/api";
 
 const TaskListTab = () => {
   const [tasks, setTasks] = useState<any[]>([]);
 
   useEffect(() => {
-    axios.get("/api/tasks").then((res) => {
+    api.get("/api/tasks").then((res) => {
       setTasks(res.data);
     });
   }, []);

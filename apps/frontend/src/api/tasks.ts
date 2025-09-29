@@ -1,4 +1,4 @@
-import client from "./client";
+import api from "../lib/api";
 
 export interface Task {
   id?: number;
@@ -88,25 +88,25 @@ function denormalizeTask(payload: Partial<Task>): any {
 }
 
 export async function getTasks(): Promise<Task[]> {
-  const res = await client.get("/db/tasks");
+  const res = await api.get("/db/tasks");
   return res.data.map(normalizeTask);
 }
 
 export async function getTask(id: number): Promise<Task> {
-  const res = await client.get(`/db/tasks/${id}`);
+  const res = await api.get(`/db/tasks/${id}`);
   return normalizeTask(res.data);
 }
 
 export async function createTask(payload: Partial<Task>): Promise<Task> {
-  const res = await client.post("/db/tasks", denormalizeTask(payload));
+  const res = await api.post("/db/tasks", denormalizeTask(payload));
   return normalizeTask(res.data);
 }
 
 export async function updateTask(id: number, payload: Partial<Task>): Promise<Task> {
-  const res = await client.patch(`/db/tasks/${id}`, denormalizeTask(payload));
+  const res = await api.patch(`/db/tasks/${id}`, denormalizeTask(payload));
   return normalizeTask(res.data);
 }
 
 export async function deleteTask(id: number): Promise<void> {
-  await client.patch(`/db/tasks/${id}`, { archived: true });
+  await api.patch(`/db/tasks/${id}`, { archived: true });
 }
