@@ -7,8 +7,12 @@ const origLog = console.log;
 const origError = console.error;
 const origWarn = console.warn;
 
+// Use environment variable for log forwarding (only in local dev)
+const logServerUrl = import.meta.env.DEV ? "http://localhost:9000/log" : undefined;
+
 function sendLog(level: string, message: any, ...optionalParams: any[]) {
-  fetch("http://localhost:9000/log", {
+  if (!logServerUrl) return;
+  fetch(logServerUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
