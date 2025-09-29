@@ -1,0 +1,23 @@
+2025-09-29 13:06:06.698 BST [5529] FATAL:  lock file "postmaster.pid" already exists
+2025-09-29 13:06:06.698 BST [5529] HINT:  Is another postmaster (PID 737) running in data directory "/usr/local/var/postgresql@15"?
+2025-09-29 13:08:30.263 BST [5642] FATAL:  lock file "postmaster.pid" already exists
+2025-09-29 13:08:30.263 BST [5642] HINT:  Is another postmaster (PID 5632) running in data directory "/usr/local/var/postgresql@15"?
+2025-09-29 13:22:30.721 BST [5840] FATAL:  pre-existing shared memory block (key 12400759, ID 196608) is still in use
+2025-09-29 13:22:30.721 BST [5840] HINT:  Terminate any old server processes associated with data directory "/usr/local/var/postgresql@15".
+2025-09-29 13:22:30.721 BST [5840] LOG:  database system is shut down
+2025-09-29 13:52:28.999 BST [6747] LOG:  starting PostgreSQL 15.14 (Homebrew) on x86_64-apple-darwin21.6.0, compiled by Apple clang version 14.0.0 (clang-1400.0.29.202), 64-bit
+2025-09-29 13:52:29.002 BST [6747] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-29 13:52:29.002 BST [6747] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-29 13:52:29.002 BST [6747] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-29 13:52:29.006 BST [6750] LOG:  database system was shut down at 2025-09-29 13:51:51 BST
+2025-09-29 13:52:29.009 BST [6747] LOG:  database system is ready to accept connections
+2025-09-29 13:57:29.009 BST [6748] LOG:  checkpoint starting: time
+2025-09-29 13:57:29.012 BST [6748] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.004 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB
+2025-09-29 14:02:29.015 BST [6748] LOG:  checkpoint starting: time
+2025-09-29 14:02:30.736 BST [6748] LOG:  checkpoint complete: wrote 18 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.718 s, sync=0.003 s, total=1.721 s; sync files=14, longest=0.001 s, average=0.001 s; distance=8 kB, estimate=8 kB
+2025-09-29 14:12:29.634 BST [6748] LOG:  checkpoint starting: time
+2025-09-29 14:12:30.142 BST [6748] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.506 s, sync=0.001 s, total=0.508 s; sync files=6, longest=0.001 s, average=0.001 s; distance=6 kB, estimate=8 kB
+2025-09-29 14:17:29.137 BST [6748] LOG:  checkpoint starting: time
+2025-09-29 14:17:30.554 BST [6748] LOG:  checkpoint complete: wrote 15 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.413 s, sync=0.003 s, total=1.417 s; sync files=15, longest=0.001 s, average=0.001 s; distance=10 kB, estimate=10 kB
+2025-09-29 15:02:29.580 BST [6748] LOG:  checkpoint starting: time
+2025-09-29 15:02:30.089 BST [6748] LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.506 s, sync=0.002 s, total=0.509 s; sync files=6, longest=0.001 s, average=0.001 s; distance=9 kB, estimate=10 kB

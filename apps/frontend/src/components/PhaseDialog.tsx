@@ -1,88 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
-  Grid,
+  TextField,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import { Phase } from "../api/phases";
+import { DesktopDatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import axios from "axios";
 
 interface PhaseDialogProps {
   open: boolean;
-  phase: Phase | null;
   onClose: () => void;
-  onSave: (form: Partial<Phase>) => void;
   projectId: number;
+  onPhaseAdded: () => void;
 }
 
-const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, phase, onClose, onSave, projectId }) => {
-  const [form, setForm] = useState<Partial<Phase>>({ projectId });
+const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onPhaseAdded }) => {
+  const [name, setName] = useState("");
+  const [deadline, setDeadline] = useState<Date | null>(null);
 
-  useEffect(() => {
-    if (phase) {
-      setForm({ ...phase });
-    } else {
-      setForm({ projectId });
-    }
-  }, [phase, projectId]);
-
-  const handleChange = (field: keyof Phase, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async () => {
+  const handleSave = async () => {
     try {
-      onSave(form);
+      await axios.post("/db/phases", {
+        name,
+        project_id: projectId,
+        deadline: deadline ? deadline.toISOString() : null,
+      });
+      onPhaseAdded();
       onClose();
-    } catch (err) {
-      console.error("[PhaseDialog] Failed to save phase", err);
+    } catch (error) {
+      console.error("Failed to add phase", error);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{phase ? "Edit Phase" : "New Phase"}</DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              label="Name"
-              value={form.name || ""}
-              onChange={(e) => handleChange("name", e.target.value)}
-              fullWidth
-              required
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              label="Description"
-              value={form.description || ""}
-              onChange={(e) => handleChange("description", e.target.value)}
-              fullWidth
-              multiline
-              rows={3}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <DatePicker
-              label="Deadline"
-              value={form.deadline ? dayjs(form.deadline) : null}
-              onChange={(date) => handleChange("deadline", date ? date.toISOString() : null)}
-              slotProps={{ textField: { fullWidth: true, size: "small" } }}
-            />
-          </Grid>
-        </Grid>
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>Add Phase</DialogTitle>
+      <DialogContent>
+        <TextField
+          margin="dense"
+          label="Phase Name"
+          fullWidth
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DesktopDatePicker
+            label="Deadline"
+            value={deadline}
+            onChange={(newValue) => setDeadline(newValue)}
+            renderInput={(params) => (
+              <TextField {...params} fullWidth margin="dense" />
+            )}
+          />
+        </LocalizationProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={handleSubmit}>Save</Button>
+        <Button onClick={handleSave} variant="contained">
+          Save
+        </Button>
       </DialogActions>
     </Dialog>
   );

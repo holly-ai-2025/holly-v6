@@ -82,10 +82,7 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
     prev_state = {}
     for column in db_task.__table__.columns:
         val = getattr(db_task, column.name)
-        if isinstance(val, datetime):
-            prev_state[column.name] = val.isoformat()
-        else:
-            prev_state[column.name] = val
+        prev_state[column.name] = val.isoformat() if isinstance(val, datetime) else val
 
     logger.debug(f"prev_state before update: {json.dumps(prev_state, default=str)}")
 
@@ -117,15 +114,243 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
 def read_boards(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Board).offset(skip).limit(limit).all()
 
+@app.post("/db/boards", response_model=schemas.Board)
+def create_board(board: schemas.BoardCreate, db: Session = Depends(get_db)):
+    data = board.model_dump(exclude_unset=True)
+    allowed_keys = {c.name for c in models.Board.__table__.columns}
+    clean_data = {k: v for k, v in data.items() if k in allowed_keys}
+    db_board = models.Board(**clean_data)
+    db.add(db_board)
+    db.commit()
+    db.refresh(db_board)
+
+    log_entry = models.ActivityLog(
+        entity_type="board",
+        entity_id=db_board.board_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_board
+
+@app.patch("/db/boards/{board_id}", response_model=schemas.Board)
+def update_board(board_id: int, board: schemas.BoardUpdate, db: Session = Depends(get_db)):
+    db_board = db.query(models.Board).filter(models.Board.board_id == board_id).first()
+    if not db_board:
+        raise HTTPException(status_code=404, detail="Board not found")
+
+    incoming_data = board.model_dump(exclude_unset=True)
+    for k, v in incoming_data.items():
+        setattr(db_board, k, v)
+    db.commit()
+    db.refresh(db_board)
+
+    log_entry = models.ActivityLog(
+        entity_type="board",
+        entity_id=db_board.board_id,
+        action="update",
+        payload=incoming_data,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_board
+
 # -------------------- PROJECTS --------------------
 @app.get("/db/projects", response_model=list[schemas.Project])
 def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Project).offset(skip).limit(limit).all()
 
+@app.post("/db/projects", response_model=schemas.Project)
+def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+    db_project = models.Project(**project.model_dump())
+    db.add(db_project)
+    db.commit()
+    db.refresh(db_project)
+
+    log_entry = models.ActivityLog(
+        entity_type="project",
+        entity_id=db_project.project_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_project
+
+@app.patch("/db/projects/{project_id}", response_model=schemas.Project)
+def update_project(project_id: int, project: schemas.ProjectUpdate, db: Session = Depends(get_db)):
+    db_project = db.query(models.Project).filter(models.Project.project_id == project_id).first()
+    if not db_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    incoming_data = project.model_dump(exclude_unset=True)
+    for k, v in incoming_data.items():
+        setattr(db_project, k, v)
+    db.commit()
+    db.refresh(db_project)
+
+    log_entry = models.ActivityLog(
+        entity_type="project",
+        entity_id=db_project.project_id,
+        action="update",
+        payload=incoming_data,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_project
+
 # -------------------- PHASES --------------------
 @app.get("/db/phases", response_model=list[schemas.Phase])
 def read_phases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Phase).offset(skip).limit(limit).all()
+
+@app.post("/db/phases", response_model=schemas.Phase)
+def create_phase(phase: schemas.PhaseCreate, db: Session = Depends(get_db)):
+    db_phase = models.Phase(**phase.model_dump())
+    db.add(db_phase)
+    db.commit()
+    db.refresh(db_phase)
+
+    log_entry = models.ActivityLog(
+        entity_type="phase",
+        entity_id=db_phase.phase_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_phase
+
+@app.patch("/db/phases/{phase_id}", response_model=schemas.Phase)
+def update_phase(phase_id: int, phase: schemas.PhaseUpdate, db: Session = Depends(get_db)):
+    db_phase = db.query(models.Phase).filter(models.Phase.phase_id == phase_id).first()
+    if not db_phase:
+        raise HTTPException(status_code=404, detail="Phase not found")
+
+    incoming_data = phase.model_dump(exclude_unset=True)
+    for k, v in incoming_data.items():
+        setattr(db_phase, k, v)
+    db.commit()
+    db.refresh(db_phase)
+
+    log_entry = models.ActivityLog(
+        entity_type="phase",
+        entity_id=db_phase.phase_id,
+        action="update",
+        payload=incoming_data,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_phase
+
+# -------------------- GROUPS --------------------
+@app.get("/db/groups", response_model=list[schemas.Group])
+def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Group).offset(skip).limit(limit).all()
+
+@app.post("/db/groups", response_model=schemas.Group)
+def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):
+    db_group = models.Group(**group.model_dump())
+    db.add(db_group)
+    db.commit()
+    db.refresh(db_group)
+
+    log_entry = models.ActivityLog(
+        entity_type="group",
+        entity_id=db_group.group_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_group
+
+@app.patch("/db/groups/{group_id}", response_model=schemas.Group)
+def update_group(group_id: int, group: schemas.GroupUpdate, db: Session = Depends(get_db)):
+    db_group = db.query(models.Group).filter(models.Group.group_id == group_id).first()
+    if not db_group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    incoming_data = group.model_dump(exclude_unset=True)
+    for k, v in incoming_data.items():
+        setattr(db_group, k, v)
+    db.commit()
+    db.refresh(db_group)
+
+    log_entry = models.ActivityLog(
+        entity_type="group",
+        entity_id=db_group.group_id,
+        action="update",
+        payload=incoming_data,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_group
+
+# -------------------- ITEMS --------------------
+@app.get("/db/items", response_model=list[schemas.Item])
+def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Item).offset(skip).limit(limit).all()
+
+@app.post("/db/items", response_model=schemas.Item)
+def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
+    db_item = models.Item(**item.model_dump())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+
+    log_entry = models.ActivityLog(
+        entity_type="item",
+        entity_id=db_item.item_id,
+        action="create",
+        payload={},
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_item
+
+@app.patch("/db/items/{item_id}", response_model=schemas.Item)
+def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(get_db)):
+    db_item = db.query(models.Item).filter(models.Item.item_id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    incoming_data = item.model_dump(exclude_unset=True)
+    for k, v in incoming_data.items():
+        setattr(db_item, k, v)
+    db.commit()
+    db.refresh(db_item)
+
+    log_entry = models.ActivityLog(
+        entity_type="item",
+        entity_id=db_item.item_id,
+        action="update",
+        payload=incoming_data,
+        created_at=datetime.utcnow(),
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return db_item
 
 # -------------------- ACTIVITY LOG --------------------
 @app.get("/db/activity", response_model=list[schemas.ActivityLog])

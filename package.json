@@ -1,1 +1,16 @@
-{}
+{
+  "name": "holly-v6",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "start": "./scripts/start-dev.sh"
+  },
+  "pnpm": {
+    "overrides": {
+      "@date-io/date-fns": "2.16.0"
+    }
+  }
+}

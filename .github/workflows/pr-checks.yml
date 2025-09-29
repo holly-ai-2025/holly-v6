@@ -1,0 +1,30 @@
+name: PR Quality Checks
+
+on:
+  pull_request:
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Detect placeholders/stubs
+        run: |
+          echo "Checking for forbidden placeholder text..."
+          if git diff --unified=0 origin/${{ github.base_ref }} | grep -E '\.\.\.|placeholder|unchanged'; then
+            echo "❌ Placeholder/stub text detected in PR. Remove before merging."
+            exit 1
+          fi
+          echo "✅ No placeholders found."
+
+      - name: Enforce changelog updates
+        run: |
+          echo "Checking for changelog update on schema changes..."
+          if git diff --name-only origin/${{ github.base_ref }} | grep -qE 'apps/backend/(models|schemas)\\.py|apps/backend/main\\.py'; then
+            if ! git diff --name-only origin/${{ github.base_ref }} | grep -q 'docs/CHANGELOG.md'; then
+              echo "❌ Schema/API change detected but CHANGELOG.md not updated."
+              exit 1
+            fi
+          fi
+          echo "✅ Changelog check passed."
