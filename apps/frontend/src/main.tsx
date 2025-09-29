@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import axios from "axios";
 
 // --- Console log forwarding ---
 const origLog = console.log;
@@ -12,7 +13,6 @@ let logServerUrl: string | undefined;
 if (import.meta.env.DEV) {
   logServerUrl = "http://localhost:9000/log";
 } else if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
-  // Use ngrok endpoint set via env var at build time
   logServerUrl = import.meta.env.VITE_LOG_SERVER_URL;
 }
 
@@ -23,7 +23,7 @@ function sendLog(level: string, message: any, ...optionalParams: any[]) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      // Add minimal headers for ngrok
+      // Add minimal headers for ngrok bypass
       "ngrok-skip-browser-warning": "true",
     },
     body: JSON.stringify({
@@ -48,6 +48,12 @@ console.warn = (message?: any, ...optionalParams: any[]) => {
   origWarn(message, ...optionalParams);
   sendLog("warn", message, ...optionalParams);
 };
+
+// --- Axios baseURL setup ---
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+if (!import.meta.env.DEV) {
+  axios.defaults.headers.common["ngrok-skip-browser-warning"] = "true";
+}
 
 // --- App Render ---
 ReactDOM.createRoot(document.getElementById("root")!).render(
