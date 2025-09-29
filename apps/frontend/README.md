@@ -1,155 +1,47 @@
-# Frontend (Holly v6)
+# Frontend
 
 ## Overview
-The frontend is a React + Vite application using MUI Core + Joy UI for all styling and components.
-No other UI libraries are permitted except explicitly listed dependencies.
+The frontend is built with React, Vite, and MUI (Core + Joy UI). It communicates with the backend through a unified API client (`src/lib/api.ts`).
 
-### Directory Structure
-apps/frontend/
-│
-├── src/
-│   ├── main.tsx       # React entrypoint
-│   ├── App.tsx        # Main layout wrapper
-│   ├── api/           # REST API clients (e.g. tasks.ts, boards.ts)
-│   ├── lib/api.ts     # Unified Axios client (all API calls go through here)
-│   ├── components/    # Reusable dialogs, forms, modals
-│   └── tabs/          # Feature views (Tasks, Boards, Calendar, etc.)
-│
-├── vite.config.ts     # Vite build configuration
-├── package.json
-└── README.md          # (this file)
+## API Client
+- Location: `src/lib/api.ts`
+- All API calls **must** use this client. Do not import `axios` directly in components.
+- Development:
+  - Base URL: `http://localhost:8000`
+- Production (Vercel):
+  - Base URL: `VITE_API_URL` (must be set in Vercel environment variables)
+- Automatically attaches the header:
+  ```
+  ngrok-skip-browser-warning: true
+  ```
+  This ensures ngrok does not inject its browser warning page.
 
-### Tech Stack
-- React 18 (Vite)
-- MUI Core + Joy UI (no other UI kits)
-- TypeScript
-- Axios (API requests)
-- Redux Toolkit (state management)
+### Debugging API Requests
+- Every API request is logged to the browser console:
+  ```
+  [API Request] https://<ngrok>.ngrok-free.app /db/tasks {...headers}
+  ```
+- If you see requests as relative paths (e.g. `/db/tasks`), it means `VITE_API_URL` was not set in production.
+- If `VITE_API_URL` is missing, an error is logged:
+  ```
+  [API] Missing VITE_API_URL in production build!
+  ```
 
-### API Clients
-- All API modules in `src/api/` now use the unified client in `src/lib/api.ts`.
-- This client automatically:
-  - Selects baseURL: `http://localhost:8000` in dev, `VITE_API_URL` in prod.
-  - Attaches the header `ngrok-skip-browser-warning: true`.
-  - Provides consistent axios configuration.
-- `client.ts` remains as a compatibility shim, re-exporting the same client.
-- Each API wrapper (e.g. `tasks.ts`, `boards.ts`) still handles camelCase ↔ snake_case mapping.
+## Logging
+- Console logs are forwarded to a log server.
+- Development: `http://localhost:9000/log`
+- Production: `VITE_LOG_SERVER_URL`
 
-### Components
-- `src/components/TaskDialog.tsx` → Handles create/edit for tasks.
-- `src/components/ProjectBoardView.tsx` → Displays board + project hierarchy.
-- Shared dialogs and UI primitives live here.
+## Development Setup
+1. Start backend: `hypercorn apps/backend/main.py`
+2. Start log server: `scripts/log_server.js`
+3. Run frontend: `npm run dev`
+4. Expose backend with ngrok: `ngrok http 8000`
 
-### Tabs
-Feature views under `src/tabs/`:
-- `TabTasks.tsx` → Task lists, Kanban view.
-- `TabBoards.tsx` → Board management.
-- `TabCalendar.tsx` → FullCalendar integration with tasks.
-
-### Required Dependencies
-- @mui/material
-- @mui/joy
-- @mui/system
-- @mui/x-data-grid
-- @mui/x-date-pickers
-- @date-io/date-fns@^3
-- date-fns@^3
-- dayjs
-- react-quill
-- @fullcalendar/react
-- @fullcalendar/daygrid
-- @fullcalendar/timegrid
-- @fullcalendar/interaction
-- @hello-pangea/dnd
-
-### Development
-Start frontend manually:
-```bash
-cd apps/frontend
-pnpm install
-pnpm dev
-```
-Runs on http://localhost:5173 (auto-increments if busy).
-
-### Integration with Backend
-- Backend API served by Hypercorn on port 8000.
-- Frontend talks to backend via REST API (/db/*).
-- Ensure Postgres is running before starting frontend.
-
-### Pre-commit Hook
-- A safety hook is installed under `.githooks/pre-commit`.
-- To enable it, run:
-```bash
-git config core.hooksPath .githooks
-```
-- It enforces:
-  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
-  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
-  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
-
----
-
-## TaskDialog Updates
-
-### Sliders
-- **Priority**, **Effort**, and **Tokens** use custom gradient sliders.
-- Value shown on the right of each slider.
-
-### Input Fields
-- Standardized to **42px height**.
-- Description allows multiline input.
-
-### Date & Time
-- Task supports **Due Date**, **Start Time**, **End Time**.
-- End auto-fills to +1h after Start (editable).
-- Tasks cannot span multiple days.
-
-### Status Toggles
-- Controlled by ToggleButtonGroup:
-  - **Todo** → Blue
-  - **In Progress** → Orange
-  - **Done** → Green
-
-### Connections Section
-- Accordion with grey header + white text.
-- Dropdowns for **Board**, **Phase**, free-text **Category**.
-
-### Notes Section
-- Accordion for long-form notes.
-- Includes placeholder **Attach Files** button (disabled).
-- `notes` included in payload.
-
-### Delete Behavior
-- Always soft delete (`archived=true`).
-- Archived tasks fetched but filtered out in views.
-
----
-
-## Task Management
-
-### Archived Tasks
-- Soft deleted via `archived = true`.
-- Tabs (`TabTasks`, `TabCalendar`, `TabBoards`) filter out archived tasks.
-- Possible future Archive tab → skip filter.
-
-### Delete Support
-- `TaskDialog` supports `onDelete` → triggers soft delete + refresh.
-- Passed down as `handleDialogDelete` from tabs.
-
-### Consistency
-- Each tab implements its own `fetchTasks()` with `!t.archived` filter.
-- Do not move filter into `api/tasks.ts` (reserved for archive view).
-
----
-
-## Development Notes
-- All UI = **MUI Core + Joy UI** only.
-- Styling → `sx` props or `styled()`.
-- ✅ Removed obsolete Tailwind components.
-- Critical files (App.tsx, MainContent.tsx, BoardDetailPage.tsx, TaskDialog.tsx) must never be stripped or placeholdered.
-- Tooltip usage:
-  - Children must forward `ref`.
-  - Use `React.forwardRef` in custom components (e.g., TaskCard).
-  - Do not wrap MUI X components directly; wrap in `<span>` if needed.
-- Tab components must `export default` (imports rely on it).
-- Drag and drop → use `@hello-pangea/dnd` (not react-beautiful-dnd).
+## Notes
+- Do **not** set axios defaults in `main.tsx`.
+- Always import the API client:
+  ```ts
+  import api from "../lib/api";
+  ```
+- This ensures consistent headers and base URL handling across all requests.
