@@ -7,14 +7,25 @@ const origLog = console.log;
 const origError = console.error;
 const origWarn = console.warn;
 
-// Use environment variable for log forwarding (only in local dev)
-const logServerUrl = import.meta.env.DEV ? "http://localhost:9000/log" : undefined;
+// Decide log server dynamically: use localhost in dev, ngrok in Vercel
+let logServerUrl: string | undefined;
+if (import.meta.env.DEV) {
+  logServerUrl = "http://localhost:9000/log";
+} else if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+  // Use ngrok endpoint set via env var at build time
+  logServerUrl = import.meta.env.VITE_LOG_SERVER_URL;
+}
 
 function sendLog(level: string, message: any, ...optionalParams: any[]) {
   if (!logServerUrl) return;
+
   fetch(logServerUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // Add minimal headers for ngrok
+      "ngrok-skip-browser-warning": "true",
+    },
     body: JSON.stringify({
       level,
       message: String(message),
