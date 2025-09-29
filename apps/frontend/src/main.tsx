@@ -1,62 +1,50 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import axios from "axios";
+import api from "./lib/api";
 
-// --- Console log forwarding ---
-const origLog = console.log;
-const origError = console.error;
-const origWarn = console.warn;
-
-// Decide log server dynamically: use localhost in dev, ngrok in Vercel
-let logServerUrl: string | undefined;
-if (import.meta.env.DEV) {
-  logServerUrl = "http://localhost:9000/log";
-} else if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
-  logServerUrl = import.meta.env.VITE_LOG_SERVER_URL;
-}
-
-function sendLog(level: string, message: any, ...optionalParams: any[]) {
-  if (!logServerUrl) return;
-
-  fetch(logServerUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      // Add minimal headers for ngrok bypass
-      "ngrok-skip-browser-warning": "true",
-    },
-    body: JSON.stringify({
-      level,
-      message: String(message),
-      data: optionalParams,
-    }),
-  }).catch(() => {});
-}
-
-console.log = (message?: any, ...optionalParams: any[]) => {
-  origLog(message, ...optionalParams);
-  sendLog("info", message, ...optionalParams);
+// Forward console logs to backend log server
+const originalLog = console.log;
+console.log = (...args) => {
+  originalLog(...args);
+  try {
+    fetch(
+      import.meta.env.DEV
+        ? "http://localhost:9000/log"
+        : import.meta.env.VITE_LOG_SERVER_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ level: "log", message: args }),
+      }
+    );
+  } catch {}
 };
 
-console.error = (message?: any, ...optionalParams: any[]) => {
-  origError(message, ...optionalParams);
-  sendLog("error", message, ...optionalParams);
+const originalError = console.error;
+console.error = (...args) => {
+  originalError(...args);
+  try {
+    fetch(
+      import.meta.env.DEV
+        ? "http://localhost:9000/log"
+        : import.meta.env.VITE_LOG_SERVER_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+        },
+        body: JSON.stringify({ level: "error", message: args }),
+      }
+    );
+  } catch {}
 };
 
-console.warn = (message?: any, ...optionalParams: any[]) => {
-  origWarn(message, ...optionalParams);
-  sendLog("warn", message, ...optionalParams);
-};
-
-// --- Axios baseURL setup ---
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-if (!import.meta.env.DEV) {
-  axios.defaults.headers.common["ngrok-skip-browser-warning"] = "true";
-}
-
-// --- App Render ---
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

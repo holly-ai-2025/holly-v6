@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import axios from "axios";
+import api from "../../lib/api";
 
 const FlowboardTab = () => {
   const [phases, setPhases] = useState<any[]>([]);
 
   useEffect(() => {
-    axios.get("/api/phases_with_tasks").then((res) => {
+    api.get("/api/phases_with_tasks").then((res) => {
       setPhases(res.data);
     });
   }, []);

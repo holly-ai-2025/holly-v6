@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { DesktopDatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import axios from "axios";
+import api from "../lib/api";
 
 interface PhaseDialogProps {
   open: boolean;
@@ -24,7 +24,7 @@ const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onP
 
   const handleSave = async () => {
     try {
-      await axios.post("/db/phases", {
+      await api.post("/db/phases", {
         name,
         project_id: projectId,
         deadline: deadline ? deadline.toISOString() : null,
