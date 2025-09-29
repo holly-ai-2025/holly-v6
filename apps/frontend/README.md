@@ -1,65 +1,150 @@
 # Frontend (Holly v6)
 
+## Overview
+The frontend is a React + Vite application using MUI Core + Joy UI for all styling and components.
+No other UI libraries are permitted except explicitly listed dependencies.
+
+### Directory Structure
+apps/frontend/
+│
+├── src/
+│   ├── main.tsx       # React entrypoint
+│   ├── App.tsx        # Main layout wrapper
+│   ├── api/           # REST API clients (e.g. tasks.ts, boards.ts)
+│   ├── components/    # Reusable dialogs, forms, modals
+│   └── tabs/          # Feature views (Tasks, Boards, Calendar, etc.)
+│
+├── vite.config.ts     # Vite build configuration
+├── package.json
+└── README.md          # (this file)
+
+### Tech Stack
+- React 18 (Vite)
+- MUI Core + Joy UI (no other UI kits)
+- TypeScript
+- Axios (API requests)
+- Redux Toolkit (state management)
+
+### API Clients
+- Located in src/api/.
+- Handle REST calls to backend /db/* endpoints.
+- Automatic camelCase ↔ snake_case mapping for API compatibility.
+
+### Components
+- `src/components/TaskDialog.tsx` → Handles create/edit for tasks.
+- `src/components/ProjectBoardView.tsx` → Displays board + project hierarchy.
+- Shared dialogs and UI primitives live here.
+
+### Tabs
+Feature views under `src/tabs/`:
+- `TabTasks.tsx` → Task lists, Kanban view.
+- `TabBoards.tsx` → Board management.
+- `TabCalendar.tsx` → FullCalendar integration with tasks.
+
+### Required Dependencies
+- @mui/material
+- @mui/joy
+- @mui/system
+- @mui/x-data-grid
+- @mui/x-date-pickers
+- @date-io/date-fns@^3
+- date-fns@^3
+- dayjs
+- react-quill
+- @fullcalendar/react
+- @fullcalendar/daygrid
+- @fullcalendar/timegrid
+- @fullcalendar/interaction
+- @hello-pangea/dnd
+
+### Development
+Start frontend manually:
+```bash
+cd apps/frontend
+pnpm install
+pnpm dev
+```
+Runs on http://localhost:5173 (auto-increments if busy).
+
+### Integration with Backend
+- Backend API served by Hypercorn on port 8000.
+- Frontend talks to backend via REST API (/db/*).
+- Ensure Postgres is running before starting frontend.
+
+### Pre-commit Hook
+- A safety hook is installed under `.githooks/pre-commit`.
+- To enable it, run:
+```bash
+git config core.hooksPath .githooks
+```
+- It enforces:
+  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
+  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
+  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
+
+---
+
 ## TaskDialog Updates
 
 ### Sliders
 - **Priority**, **Effort**, and **Tokens** use custom gradient sliders.
-- Value is shown on the right of each slider.
-- Spacing reduced for a tighter layout.
+- Value shown on the right of each slider.
 
 ### Input Fields
-- All input fields, selectors, and dropdowns are standardized to **42px height**.
-- Description field allows multiline input.
+- Standardized to **42px height**.
+- Description allows multiline input.
 
 ### Date & Time
-- Task supports a **Due Date**, **Start Time**, and **End Time**.
-- When a Start Time is entered, End Time auto-fills to +1 hour (editable).
-- Tasks cannot span multiple days (end date = start date).
+- Task supports **Due Date**, **Start Time**, **End Time**.
+- End auto-fills to +1h after Start (editable).
+- Tasks cannot span multiple days.
 
 ### Status Toggles
-- Task status is controlled by a **ToggleButtonGroup**:
+- Controlled by ToggleButtonGroup:
   - **Todo** → Blue
   - **In Progress** → Orange
   - **Done** → Green
 
 ### Connections Section
-- Shown inside a styled accordion with **grey header + white text**.
-- Contains dropdowns for **Board**, **Phase**, and free-text **Category**.
+- Accordion with grey header + white text.
+- Dropdowns for **Board**, **Phase**, free-text **Category**.
 
 ### Notes Section
-- New accordion below Connections.
-- Supports long-form notes via multiline text input.
-- Includes placeholder **Attach Files** button (disabled for now).
-- `notes` field is included in the payload (backend support TBD).
+- Accordion for long-form notes.
+- Includes placeholder **Attach Files** button (disabled).
+- `notes` included in payload.
 
 ### Delete Behavior
-- Deleting a task triggers a soft delete (archives it).
-- Archived tasks are still fetched until filtering is added in `TabTasks.tsx`.
+- Always soft delete (`archived=true`).
+- Archived tasks fetched but filtered out in views.
 
 ---
 
 ## Task Management
 
 ### Archived Tasks
-- Tasks marked as deleted are **soft deleted** → stored with `archived = true`.
-- `TabTasks.tsx`, `TabCalendar.tsx`, and `TabBoards.tsx` filter out archived tasks in their `fetchTasks()` implementations.
-- This ensures deleted tasks no longer appear in active task views, but remain in DB.
-- If a future “Archive” tab is built, it should skip the filter so archived tasks are visible.
+- Soft deleted via `archived = true`.
+- Tabs (`TabTasks`, `TabCalendar`, `TabBoards`) filter out archived tasks.
+- Possible future Archive tab → skip filter.
 
 ### Delete Support
-- `TaskDialog` supports `onDelete`, which calls `deleteTask()` and refreshes tasks.
-- Each tab passes `handleDialogDelete` into `TaskDialog`.
-- Deletion is always **soft** (sets `archived = true`), never hard deletes.
+- `TaskDialog` supports `onDelete` → triggers soft delete + refresh.
+- Passed down as `handleDialogDelete` from tabs.
 
 ### Consistency
-- Each tab (`TabTasks`, `TabCalendar`, `TabBoards`) has its own `fetchTasks()` implementation, all must include the `!t.archived` filter.
-- Do not move the filter into `api/tasks.ts`, since we may want an “Archived view” later.
+- Each tab implements its own `fetchTasks()` with `!t.archived` filter.
+- Do not move filter into `api/tasks.ts` (reserved for archive view).
 
 ---
 
 ## Development Notes
-- All UI built with **MUI Core + Joy UI**.
-- Ensure no other UI libraries are introduced.
-- Styling changes should use `sx` props or `styled()` from MUI.
-- ✅ Obsolete Tailwind UI components (`Card.tsx`, `NavItem.tsx`) were removed.
-- Repo is now fully compliant with the MUI-only rule.
+- All UI = **MUI Core + Joy UI** only.
+- Styling → `sx` props or `styled()`.
+- ✅ Removed obsolete Tailwind components.
+- Critical files (App.tsx, MainContent.tsx, BoardDetailPage.tsx, TaskDialog.tsx) must never be stripped or placeholdered.
+- Tooltip usage:
+  - Children must forward `ref`.
+  - Use `React.forwardRef` in custom components (e.g., TaskCard).
+  - Do not wrap MUI X components directly; wrap in `<span>` if needed.
+- Tab components must `export default` (imports rely on it).
+- Drag and drop → use `@hello-pangea/dnd` (not react-beautiful-dnd).

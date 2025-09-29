@@ -1,284 +1,121 @@
 # Backend (Holly v6)
 
-## Task Schema
+## Overview
+The backend is a FastAPI + SQLAlchemy application using Postgres 15 (preferred) as the database.
+It exposes REST APIs under the /db/* namespace.
 
-Each task record contains the following fields:
+### Directory Structure
+apps/backend/
+│
+├── main.py        # API entrypoint (CRUD routes)
+├── models.py      # SQLAlchemy ORM models
+├── schemas.py     # Pydantic schemas (validation/serialization)
+├── database.py    # DB engine + session setup
+└── README.md      # (this file)
 
-- `task_id` (integer, primary key)
-- `task_name` (string)
-- `description` (string, nullable)
-- `board_id` (integer, nullable)
-- `project_id` (integer, nullable)
-- `phase_id` (integer, nullable)
-- `group_id` (integer, nullable)
-- `status` (string, e.g. "Todo", "In Progress", "Done")
-- `urgency_score` (integer, nullable)
-- `priority` (string, e.g. "Low", "Medium", "High", "Urgent")
-- `category` (string, nullable)
-- `token_value` (integer, nullable)
-- `due_date` (date, nullable)
-- `start_date` (timestamp, nullable)
-- `end_date` (timestamp, nullable)
-- `effort_level` (string, e.g. "Low", "Medium", "High", nullable)
-- `archived` (boolean, soft delete flag)
-- `pinned` (boolean)
-- `created_at` (timestamp)
-- `updated_at` (timestamp)
-- `notes` (text, nullable)
+### Tech Stack
+- FastAPI (web framework)
+- SQLAlchemy (ORM)
+- Pydantic (validation + serialization)
+- Postgres 15 (preferred DB)
+
+### Database Setup
+Start Postgres:
+```bash
+brew services start postgresql@15
+```
+
+Create DB + User:
+```sql
+CREATE DATABASE holly_v6;
+CREATE USER holly_user WITH PASSWORD 'holly_pass';
+GRANT ALL PRIVILEGES ON DATABASE holly_v6 TO holly_user;
+```
+
+### Schema Evolution
+- ⚠️ No Alembic migrations. Schema evolves via **manual SQL**.
+- Example migration:
+```sql
+ALTER TABLE boards ADD COLUMN archived BOOLEAN DEFAULT FALSE;
+```
+- Update `models.py` and `schemas.py` in sync.
+- Clear `__pycache__` if changes don’t take effect:
+```bash
+find apps/backend -type d -name "__pycache__" -exec rm -rf {} +
+```
+- Restart backend and test changes with `curl`.
+- Log all schema changes in `docs/CHANGELOG.md`.
+
+### Pre-commit Hook
+- A safety hook is installed under `.githooks/pre-commit`.
+- To enable it, run:
+```bash
+git config core.hooksPath .githooks
+```
+- It enforces:
+  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
+  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
+  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
 
 ---
 
-## Endpoints: Tasks API
+## API Conventions
+All routes live under /db/*.
+CRUD endpoints implemented for:
+- Boards (/db/boards)
+- Projects (/db/projects)
+- Phases (/db/phases)
+- Tasks (/db/tasks)
+- Groups (/db/groups)
+- Items (/db/items)
+- Activity Log (/db/activity)
 
-### `GET /db/tasks`
-Fetch a list of tasks. Supports `skip` and `limit` query params for pagination.
-```http
-GET /db/tasks?skip=0&limit=100
-```
-Response:
-```json
-[
-  {
-    "task_id": 1,
-    "task_name": "Example Task",
-    "description": "This is a task",
-    "status": "Todo",
-    "priority": "Medium",
-    "archived": false,
-    "created_at": "2025-01-01T12:00:00",
-    "updated_at": "2025-01-01T12:00:00"
-  }
-]
-```
+Soft deletes: records are never truly deleted.
+- `archived = true` used for tasks and boards (implemented).
+- Projects, phases, groups, items: planned but not yet implemented.
 
-### `POST /db/tasks`
-Create a new task.
-```http
-POST /db/tasks
-Content-Type: application/json
-
-{
-  "task_name": "Write backend docs",
-  "description": "Expand README with examples",
-  "status": "In Progress",
-  "priority": "High",
-  "due_date": "2025-09-20",
-  "board_id": 1,
-  "project_id": 2,
-  "phase_id": 3,
-  "notes": "This task was created via API",
-  "token_value": 10,
-  "effort_level": "Medium"
-}
-```
-Response:
-```json
-{
-  "task_id": 42,
-  "task_name": "Write backend docs",
-  "description": "Expand README with examples",
-  "status": "In Progress",
-  "priority": "High",
-  "archived": false,
-  "board_id": 1,
-  "project_id": 2,
-  "phase_id": 3,
-  "notes": "This task was created via API",
-  "token_value": 10,
-  "effort_level": "Medium",
-  "created_at": "2025-09-18T10:30:00",
-  "updated_at": "2025-09-18T10:30:00"
-}
-```
-
-### `PATCH /db/tasks/{task_id}`
-Update a task. This is also used for **soft delete**.
-```http
-PATCH /db/tasks/42
-Content-Type: application/json
-
-{
-  "archived": true
-}
-```
-Response:
-```json
-{
-  "task_id": 42,
-  "task_name": "Write backend docs",
-  "status": "In Progress",
-  "priority": "High",
-  "archived": true,
-  "created_at": "2025-09-18T10:30:00",
-  "updated_at": "2025-09-18T11:00:00"
-}
-```
-
-Notes:
-- `DELETE /db/tasks/{task_id}` is **not supported** and returns `405 Method Not Allowed`.
-- Always use PATCH with `{ "archived": true }` for deletion.
-- Partial updates are supported: you may send any subset of fields.
-- Soft deletes are logged as `delete` actions in the Activity Log.
+Timestamps are UTC.
 
 ---
 
-## Endpoints: Boards API
-
-### `GET /db/boards`
-Fetch all boards.
-```http
-GET /db/boards
-```
-Response:
-```json
-[
-  {
-    "board_id": 1,
-    "name": "Work Projects",
-    "type": "project",
-    "category": "work",
-    "color": "#2196F3",
-    "description": "Main work board",
-    "pinned": false
-  }
-]
-```
+## Primary Key Conventions
+- Task → `task_id`
+- Board → `board_id`
+- Project → `project_id`
+- Phase → `phase_id`
+- Group → `group_id`
+- Item → `item_id`
+- Activity Log → `log_id`
 
 ---
 
-## Endpoints: Projects API
-
-### `GET /db/projects`
-Fetch all projects.
-```http
-GET /db/projects
-```
-Response:
-```json
-[
-  {
-    "project_id": 2,
-    "name": "Backend Rewrite",
-    "notes": "Using FastAPI + SQLAlchemy",
-    "goal": "Restore CRUD",
-    "board_id": 1,
-    "deadline": "2025-09-30"
-  }
-]
-```
-
----
-
-## Endpoints: Phases API
-
-### `GET /db/phases`
-Fetch all phases.
-```http
-GET /db/phases
-```
-Response:
-```json
-[
-  {
-    "phase_id": 3,
-    "project_id": 2,
-    "name": "Step 1 - Core CRUD",
-    "deadline": "2025-09-18",
-    "depends_on_previous": false
-  }
-]
-```
+## Task Model
+- task_id (integer, primary key)
+- task_name (string)
+- description (string, nullable)
+- board_id (integer, nullable)
+- project_id (integer, nullable)
+- phase_id (integer, nullable)
+- group_id (integer, nullable)
+- status (string: "Todo" | "In Progress" | "Done")
+- urgency_score (integer)
+- priority (string: "Low" | "Medium" | "High" | "Urgent")
+- category (string, nullable)
+- token_value (integer)
+- due_date (date)
+- start_date (timestamp, nullable)
+- end_date (timestamp, nullable)
+- effort_level (string: "Low" | "Medium" | "High")
+- archived (boolean, soft delete flag)
+- pinned (boolean)
+- created_at (timestamp)
+- updated_at (timestamp)
+- notes (text, nullable)
+- parent_task_id (integer, nullable)
 
 ---
 
-## Endpoints: Activity Log API
-
-### `GET /db/activity`
-Fetch recent activity logs. Supports pagination.
-```http
-GET /db/activity?skip=0&limit=50
-```
-Response (example of full snapshot after task update):
-```json
-[
-  {
-    "log_id": 101,
-    "entity_type": "task",
-    "entity_id": 42,
-    "action": "update",
-    "payload": {
-      "task_id": 42,
-      "task_name": "Write backend docs",
-      "description": "Expand README with examples",
-      "status": "In Progress",
-      "priority": "High",
-      "archived": false,
-      "token_value": 10,
-      "notes": "Initial value",
-      "effort_level": "Medium",
-      "created_at": "2025-09-18T10:30:00",
-      "updated_at": "2025-09-18T10:45:00"
-    },
-    "created_at": "2025-09-18T10:45:00"
-  }
-]
-```
-
-### Example: Soft delete logged
-```json
-{
-  "log_id": 102,
-  "entity_type": "task",
-  "entity_id": 42,
-  "action": "delete",
-  "payload": {
-    "task_id": 42,
-    "task_name": "Write backend docs",
-    "archived": false
-  },
-  "created_at": "2025-09-18T11:00:00"
-}
-```
-
-### `POST /db/activity/undo/{log_id}`
-Undo a previous action by restoring its snapshot.
-```http
-POST /db/activity/undo/101
-```
-Response:
-```json
-{
-  "log_id": 101,
-  "entity_type": "task",
-  "entity_id": 42,
-  "action": "update",
-  "payload": {
-    "task_id": 42,
-    "task_name": "Write backend docs",
-    "status": "In Progress",
-    "priority": "High",
-    "archived": false,
-    "token_value": 10,
-    "notes": "Initial value",
-    "effort_level": "Medium"
-  },
-  "created_at": "2025-09-18T10:45:00"
-}
-```
-
-Notes:
-- Every action (create, update, delete) creates a log entry.
-- Undo restores the **exact previous state** from `payload`.
-- Undo itself creates a new `undo` log entry for auditing.
-- Currently implemented for tasks only. Future extension planned for boards, projects, and phases.
-
----
-
-## Development Notes
-
-- All API payloads use **snake_case** (frontend handles mapping to camelCase).
-- `notes`, `token_value`, and `effort_level` are persisted end-to-end.
-- Soft delete is enforced via `archived: true`.
-- Filtering out archived tasks is handled in frontend (future work).
-- Activity Log persists all changes for auditing + undo.
-- ⚠️ The ORM model defines `task_id` as the primary key (not `id`). Always query tasks using `Task.task_id` instead of `Task.id`. 
+## Known Issues
+- `goal` field deprecated: present in schemas, not persisted in DB.
+- Postgres lock errors may require clearing `postmaster.pid` and shared memory.
+- No DELETE endpoints implemented (use PATCH archived=true).
