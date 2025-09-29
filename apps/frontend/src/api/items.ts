@@ -1,4 +1,4 @@
-import client from "./client";
+import api from "../lib/api";
 
 const base = "/db/items";
 
@@ -54,21 +54,21 @@ function denormalizeItem(payload: Partial<Item>): any {
 }
 
 export async function getItems(): Promise<Item[]> {
-  const res = await client.get(base);
+  const res = await api.get(base);
   return res.data.map(normalizeItem);
 }
 
 export async function createItem(payload: Partial<Item>): Promise<Item> {
-  const res = await client.post(base, denormalizeItem(payload));
+  const res = await api.post(base, denormalizeItem(payload));
   return normalizeItem(res.data);
 }
 
 export async function updateItem(id: number, payload: Partial<Item>): Promise<Item> {
-  const res = await client.patch(`${base}/${id}`, denormalizeItem(payload));
+  const res = await api.patch(`${base}/${id}`, denormalizeItem(payload));
   return normalizeItem(res.data);
 }
 
 export async function deleteItem(id: number): Promise<{ ok: boolean }> {
-  const res = await client.delete(`${base}/${id}`);
+  const res = await api.delete(`${base}/${id}`);
   return res.data;
 }

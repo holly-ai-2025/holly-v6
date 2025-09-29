@@ -11,6 +11,7 @@ apps/frontend/
 │   ├── main.tsx       # React entrypoint
 │   ├── App.tsx        # Main layout wrapper
 │   ├── api/           # REST API clients (e.g. tasks.ts, boards.ts)
+│   ├── lib/api.ts     # Unified Axios client (all API calls go through here)
 │   ├── components/    # Reusable dialogs, forms, modals
 │   └── tabs/          # Feature views (Tasks, Boards, Calendar, etc.)
 │
@@ -26,9 +27,13 @@ apps/frontend/
 - Redux Toolkit (state management)
 
 ### API Clients
-- Located in src/api/.
-- Handle REST calls to backend /db/* endpoints.
-- Automatic camelCase ↔ snake_case mapping for API compatibility.
+- All API modules in `src/api/` now use the unified client in `src/lib/api.ts`.
+- This client automatically:
+  - Selects baseURL: `http://localhost:8000` in dev, `VITE_API_URL` in prod.
+  - Attaches the header `ngrok-skip-browser-warning: true`.
+  - Provides consistent axios configuration.
+- `client.ts` remains as a compatibility shim, re-exporting the same client.
+- Each API wrapper (e.g. `tasks.ts`, `boards.ts`) still handles camelCase ↔ snake_case mapping.
 
 ### Components
 - `src/components/TaskDialog.tsx` → Handles create/edit for tasks.

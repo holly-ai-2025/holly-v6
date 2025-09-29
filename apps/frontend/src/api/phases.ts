@@ -1,4 +1,4 @@
-import client from "./client";
+import api from "../lib/api";
 
 const base = "/db/phases";
 
@@ -36,21 +36,21 @@ function denormalizePhase(payload: Partial<Phase>): any {
 }
 
 export async function getPhases(): Promise<Phase[]> {
-  const res = await client.get(base);
+  const res = await api.get(base);
   return res.data.map(normalizePhase);
 }
 
 export async function createPhase(payload: Partial<Phase>): Promise<Phase> {
-  const res = await client.post(base, denormalizePhase(payload));
+  const res = await api.post(base, denormalizePhase(payload));
   return normalizePhase(res.data);
 }
 
 export async function updatePhase(id: number, payload: Partial<Phase>): Promise<Phase> {
-  const res = await client.patch(`${base}/${id}`, denormalizePhase(payload));
+  const res = await api.patch(`${base}/${id}`, denormalizePhase(payload));
   return normalizePhase(res.data);
 }
 
 export async function deletePhase(id: number): Promise<{ ok: boolean }> {
-  const res = await client.delete(`${base}/${id}`);
+  const res = await api.delete(`${base}/${id}`);
   return res.data;
 }

@@ -23,6 +23,7 @@ holly-v6/
 │       │   ├── main.tsx      # React entrypoint
 │       │   ├── App.tsx       # Main layout wrapper
 │       │   ├── api/          # REST API clients (e.g. tasks.ts)
+│       │   ├── lib/api.ts    # Unified Axios client (all API calls go through here)
 │       │   ├── components/   # Reusable UI components
 │       │   └── tabs/         # Feature views (e.g. Task tabs)
 │       └── README.md         # Frontend UI rules & guidelines
@@ -53,7 +54,11 @@ CRUD: All major entities (tasks, boards, projects, phases, groups, items) have C
 Framework: React (Vite) with MUI Core + Joy UI (no other UI libs allowed).
 Entrypoint: apps/frontend/src/main.tsx.
 Layout: Root component in App.tsx.
-API Client: src/api/ contains REST clients (e.g. tasks.ts) with camelCase ↔ snake_case mapping.
+API Client: src/lib/api.ts is the unified Axios client. All modules in src/api/ now use this client, which:
+- Applies camelCase ↔ snake_case mapping in each API wrapper.
+- Automatically attaches the header `ngrok-skip-browser-warning: true`.
+- Selects baseURL dynamically: localhost:8000 in dev, VITE_API_URL in Vercel.
+- Legacy `client.ts` re-exports this unified client for compatibility.
 UI Components: src/components/ for dialogs/forms, src/tabs/ for feature views.
 Dependencies: Requires date-fns@^3, @date-io/date-fns@^3, @mui/system, @mui/x-date-pickers, react-quill, dayjs, and @fullcalendar/*.
 Rules: See apps/frontend/README.md for UI guidelines and TaskDialog behaviors.

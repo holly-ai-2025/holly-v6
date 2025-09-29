@@ -1,4 +1,4 @@
-import client from "./client";
+import api from "../lib/api";
 
 const base = "/db/boards";
 
@@ -48,21 +48,21 @@ function denormalizeBoard(payload: any): any {
 }
 
 export async function getBoards(): Promise<Board[]> {
-  const res = await client.get(base);
+  const res = await api.get(base);
   return res.data.map(normalizeBoard);
 }
 
 export async function createBoard(payload: any): Promise<Board> {
-  const res = await client.post(base, denormalizeBoard(payload));
+  const res = await api.post(base, denormalizeBoard(payload));
   return normalizeBoard(res.data);
 }
 
 export async function updateBoard(id: number, payload: any): Promise<Board> {
-  const res = await client.patch(`${base}/${id}`, denormalizeBoard(payload));
+  const res = await api.patch(`${base}/${id}`, denormalizeBoard(payload));
   return normalizeBoard(res.data);
 }
 
 export async function deleteBoard(id: number): Promise<{ ok: boolean }> {
-  const res = await client.delete(`${base}/${id}`);
+  const res = await api.delete(`${base}/${id}`);
   return res.data;
 }

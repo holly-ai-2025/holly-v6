@@ -1,4 +1,4 @@
-import client from "./client";
+import api from "../lib/api";
 
 const base = "/db/projects";
 
@@ -39,21 +39,21 @@ function denormalizeProject(payload: Partial<Project>): any {
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const res = await client.get(base);
+  const res = await api.get(base);
   return res.data.map(normalizeProject);
 }
 
 export async function createProject(payload: Partial<Project>): Promise<Project> {
-  const res = await client.post(base, denormalizeProject(payload));
+  const res = await api.post(base, denormalizeProject(payload));
   return normalizeProject(res.data);
 }
 
 export async function updateProject(id: number, payload: Partial<Project>): Promise<Project> {
-  const res = await client.patch(`${base}/${id}`, denormalizeProject(payload));
+  const res = await api.patch(`${base}/${id}`, denormalizeProject(payload));
   return normalizeProject(res.data);
 }
 
 export async function deleteProject(id: number): Promise<{ ok: boolean }> {
-  const res = await client.delete(`${base}/${id}`);
+  const res = await api.delete(`${base}/${id}`);
   return res.data;
 }
