@@ -8,11 +8,11 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Middleware for CORS (restored from c26a9b70)
+# Middleware for CORS - allow all origins, disable credentials (Safari compatible)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=[
         "Authorization",
