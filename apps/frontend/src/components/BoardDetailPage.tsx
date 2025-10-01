@@ -1,30 +1,37 @@
-import React from "react";
-import { Box, Typography } from "@mui/material";
-import { Board } from "../api/boards";
+import React, { useEffect, useState } from "react";
 import ProjectBoardView from "./ProjectBoardView";
 import ListBoardView from "./ListBoardView";
+import { Board } from "../api/boards";
+import { getBoards } from "../api/boards";
 
 interface BoardDetailPageProps {
-  board: Board;
+  boardId: number;
+  onClose: () => void;
 }
 
-const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ board }) => {
-  if (!board) {
-    return (
-      <Box p={2}>
-        <Typography variant="body1">No board selected.</Typography>
-      </Box>
-    );
-  }
+const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ boardId, onClose }) => {
+  const [board, setBoard] = useState<Board | null>(null);
 
-  return (
-    <Box>
-      {board.type === "project" ? (
-        <ProjectBoardView board={board} />
-      ) : (
-        <ListBoardView board={board} />
-      )}
-    </Box>
+  useEffect(() => {
+    fetchBoard();
+  }, [boardId]);
+
+  const fetchBoard = async () => {
+    const data = await getBoards();
+    const found = data.find((b) => b.board_id === boardId);
+    setBoard(found || null);
+  };
+
+  const handleBoardDeleted = () => {
+    onClose(); // return user back to TabBoards
+  };
+
+  if (!board) return <div>Loading...</div>;
+
+  return board.type === "project" ? (
+    <ProjectBoardView board={board} onBoardDeleted={handleBoardDeleted} />
+  ) : (
+    <ListBoardView board={board} onBoardDeleted={handleBoardDeleted} />
   );
 };
 

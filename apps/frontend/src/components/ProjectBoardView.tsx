@@ -22,9 +22,10 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 interface ProjectBoardViewProps {
   board: Board;
+  onBoardDeleted?: () => void;
 }
 
-const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
+const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDeleted }) => {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
@@ -143,6 +144,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const handleDeleteBoard = async () => {
     try {
       await updateBoard(board.id, { archived: true });
+      if (onBoardDeleted) onBoardDeleted();
     } catch (err) {
       console.error("[ProjectBoardView] Failed to archive board", err);
     }
