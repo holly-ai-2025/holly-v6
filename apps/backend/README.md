@@ -1,31 +1,35 @@
 # Backend (Holly v6)
 
 ## Overview
-The backend is a FastAPI + SQLAlchemy application using Postgres 15 (preferred) as the database.
-It exposes REST APIs under the /db/* namespace.
+The backend is a FastAPI + SQLAlchemy application using PostgreSQL 15 as the database. It exposes REST APIs under the `/db/*` namespace and supports full project/board/task management with **soft delete**.
+
+All entities — Boards, Projects, Phases, Tasks, Groups, Items, ActivityLog — implement **soft delete** via an `archived` boolean column. Queries filter out archived entities, and delete actions are performed via `PATCH` setting `archived=true`.
 
 ### Directory Structure
+```
 apps/backend/
-│
 ├── main.py        # API entrypoint (CRUD routes)
 ├── models.py      # SQLAlchemy ORM models
 ├── schemas.py     # Pydantic schemas (validation/serialization)
 ├── database.py    # DB engine + session setup
 └── README.md      # (this file)
+```
 
 ### Tech Stack
 - FastAPI (web framework)
 - SQLAlchemy (ORM)
-- Pydantic (validation + serialization)
-- Postgres 15 (preferred DB)
+- Pydantic (validation/serialization)
+- PostgreSQL 15 (preferred DB)
 
-### Database Setup
-Start Postgres:
+---
+
+## Database Setup
+Start PostgreSQL:
 ```bash
 brew services start postgresql@15
 ```
 
-Create DB + User:
+Create DB + User (first time only):
 ```sql
 CREATE DATABASE holly_v6;
 CREATE USER holly_user WITH PASSWORD 'holly_pass';
@@ -33,52 +37,51 @@ GRANT ALL PRIVILEGES ON DATABASE holly_v6 TO holly_user;
 ```
 
 ### Schema Evolution
-- ⚠️ No Alembic migrations. Schema evolves via **manual SQL**.
+- ⚠️ No Alembic. Schema evolves via **manual SQL migrations**.
+- Migrations live in `scripts/migrations/`.
 - Example migration:
 ```sql
-ALTER TABLE boards ADD COLUMN archived BOOLEAN DEFAULT FALSE;
+ALTER TABLE projects ADD COLUMN archived BOOLEAN DEFAULT FALSE;
 ```
-- Update `models.py` and `schemas.py` in sync.
-- Clear `__pycache__` if changes don’t take effect:
+- Apply migration:
 ```bash
-find apps/backend -type d -name "__pycache__" -exec rm -rf {} +
+psql -U holly_user -d holly_v6 -f scripts/migrations/<file>.sql
 ```
-- Restart backend and test changes with `curl`.
-- Log all schema changes in `docs/CHANGELOG.md`.
-
-### Pre-commit Hook
-- A safety hook is installed under `.githooks/pre-commit`.
-- To enable it, run:
+- Verify:
 ```bash
-git config core.hooksPath .githooks
+psql -U holly_user -d holly_v6
+\d projects;
 ```
-- It enforces:
-  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
-  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
-  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
+- Always update `models.py` and `schemas.py` in sync.
+- Restart backend after migrations: `scripts/start-dev.sh`
 
 ---
 
 ## API Conventions
-All routes live under /db/*.
-CRUD endpoints implemented for:
-- Boards (/db/boards)
-- Projects (/db/projects)
-- Phases (/db/phases)
-- Tasks (/db/tasks)
-- Groups (/db/groups)
-- Items (/db/items)
-- Activity Log (/db/activity)
+All routes live under `/db/*`.
 
-Soft deletes: records are never truly deleted.
-- `archived = true` used for tasks and boards (implemented).
-- Projects, phases, groups, items: planned but not yet implemented.
+CRUD endpoints are implemented for:
+- Boards → `/db/boards`
+- Projects → `/db/projects`
+- Phases → `/db/phases`
+- Tasks → `/db/tasks`
+- Groups → `/db/groups`
+- Items → `/db/items`
+- Activity Log → `/db/activity`
 
-Timestamps are UTC.
+### Soft Deletes
+- All tables have `archived BOOLEAN DEFAULT FALSE`.
+- `GET` routes always filter out archived entities.
+- `PATCH` routes toggle `archived`.
+- No hard DELETE is used.
+- Example:
+```bash
+curl -X PATCH http://localhost:8000/db/projects/1 \
+  -H "Content-Type: application/json" \
+  -d '{"archived": true}'
+```
 
----
-
-## Primary Key Conventions
+### Primary Key Conventions
 - Task → `task_id`
 - Board → `board_id`
 - Project → `project_id`
@@ -89,33 +92,58 @@ Timestamps are UTC.
 
 ---
 
-## Task Model
-- task_id (integer, primary key)
-- task_name (string)
-- description (string, nullable)
-- board_id (integer, nullable)
-- project_id (integer, nullable)
-- phase_id (integer, nullable)
-- group_id (integer, nullable)
-- status (string: "Todo" | "In Progress" | "Done")
-- urgency_score (integer)
-- priority (string: "Low" | "Medium" | "High" | "Urgent")
-- category (string, nullable)
-- token_value (integer)
-- due_date (date)
-- start_date (timestamp, nullable)
-- end_date (timestamp, nullable)
-- effort_level (string: "Low" | "Medium" | "High")
-- archived (boolean, soft delete flag)
-- pinned (boolean)
-- created_at (timestamp)
-- updated_at (timestamp)
-- notes (text, nullable)
-- parent_task_id (integer, nullable)
+## CORS Setup
+The backend uses explicit headers for CORS to support the frontend.
+
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "ngrok-skip-browser-warning"
+    ],
+)
+```
+
+This is required because the frontend API client always sends `ngrok-skip-browser-warning: true`.
+
+---
+
+## Development Workflow
+- Always start backend using the script:
+```bash
+scripts/start-dev.sh
+```
+This kills stale processes and starts backend, frontend, and log server.
+
+- Never edit `main` directly. Always branch from main and commit atomic changes.
+- Never use placeholders (`...`, `unchanged`, `TODO`).
+
+### Adding or Editing Tables
+1. Add/modify model in `models.py` (must include `archived`).
+2. Add/modify schema in `schemas.py` (must include `archived`).
+3. Add/update CRUD endpoints in `main.py`.
+4. Create a migration SQL file under `scripts/migrations/`.
+5. Apply migration with `psql`.
+6. Restart dev with `scripts/start-dev.sh`.
+7. Test with curl and frontend.
+
+---
+
+## Logging
+- All backend logs go to `logs/backend-live.log`.
+- Debug log for activity tracking: `logs/debug.log`.
+- Frontend console logs are proxied to `http://localhost:9000/log`.
 
 ---
 
 ## Known Issues
-- `goal` field deprecated: present in schemas, not persisted in DB.
-- Postgres lock errors may require clearing `postmaster.pid` and shared memory.
-- No DELETE endpoints implemented (use PATCH archived=true).
+- Postgres lock errors: may require clearing `postmaster.pid` and shared memory.
+- Pre-commit hook enforces: no placeholders, schemas must match DB, frontend must not import stray UI libraries.
