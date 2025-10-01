@@ -85,7 +85,6 @@ class BoardBase(BaseModel):
     color: Optional[str] = None
     description: Optional[str] = None
     pinned: Optional[int] = None
-    archived: bool = False
 
 class BoardCreate(BoardBase):
     name: str
@@ -108,7 +107,6 @@ class ProjectBase(BaseModel):
     goal: Optional[str] = None
     board_id: Optional[int] = None
     deadline: Optional[date] = None
-    archived: bool = False
 
     @field_validator("deadline", mode="before")
     def parse_deadline(cls, v):
@@ -143,7 +141,6 @@ class PhaseBase(BaseModel):
     project_id: Optional[int] = None
     deadline: Optional[date] = None
     depends_on_previous: Optional[bool] = None
-    archived: bool = False
 
     @field_validator("deadline", mode="before")
     def parse_deadline(cls, v):
@@ -178,7 +175,6 @@ class GroupBase(BaseModel):
     name: Optional[str] = None
     board_id: Optional[int] = None
     sort_order: Optional[int] = None
-    archived: bool = False
 
 class GroupCreate(GroupBase):
     name: str
@@ -201,7 +197,6 @@ class ItemBase(BaseModel):
     pinned: Optional[int] = None
     board_id: Optional[int] = None
     group_id: Optional[int] = None
-    archived: bool = False
 
 class ItemCreate(ItemBase):
     title: str
@@ -225,7 +220,6 @@ class ActivityLog(BaseModel):
     entity_id: int
     action: str
     payload: dict   # raw JSON snapshot
-    archived: bool = False
     created_at: datetime
 
     class Config:

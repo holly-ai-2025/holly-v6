@@ -45,7 +45,7 @@ class Board(Base):
     color = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     pinned = Column(Boolean, default=False)
-    archived = Column(Boolean, default=False)
+    archived = Column(Boolean, default=False)  # soft delete support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -57,7 +57,6 @@ class Group(Base):
     board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=False)
     name = Column(String, nullable=False)
     sort_order = Column(Integer, default=0)
-    archived = Column(Boolean, default=False)
 
 # --- Items ---
 class Item(Base):
@@ -70,7 +69,6 @@ class Item(Base):
     content = Column(Text, nullable=True)
     category = Column(String, nullable=True)
     pinned = Column(Boolean, default=False)
-    archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -84,7 +82,6 @@ class Project(Base):
     goal = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
     deadline = Column(Date, nullable=True)
-    archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # --- Phases ---
@@ -96,7 +93,6 @@ class Phase(Base):
     name = Column(String, nullable=False)
     deadline = Column(Date, nullable=True)
     depends_on_previous = Column(Boolean, default=False)
-    archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # --- Activity Log ---
@@ -108,5 +104,4 @@ class ActivityLog(Base):
     entity_id = Column(Integer, nullable=False)
     action = Column(String, nullable=False)        # "create", "update", "delete", "undo"
     payload = Column(JSON, nullable=False)         # snapshot of previous state
-    archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
