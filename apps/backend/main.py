@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from sqlalchemy import text
 from apps.backend import models, schemas
 from apps.backend.database import engine, SessionLocal
@@ -9,7 +8,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Middleware for CORS
+# Middleware for CORS (restored from c26a9b70)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
