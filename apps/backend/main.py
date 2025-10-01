@@ -1,4 +1,5 @@
 import logging
+import os, sys
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -6,6 +7,9 @@ from sqlalchemy import text
 
 from apps.backend import models, schemas
 from apps.backend.database import engine, SessionLocal
+
+logging.info("[DB DEBUG] main.py loaded from: %s", __file__)
+logging.info("[DB DEBUG] sys.path: %s", sys.path)
 
 models.Base.metadata.create_all(bind=engine)
 
