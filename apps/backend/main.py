@@ -21,7 +21,14 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*", "ngrok-skip-browser-warning"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "ngrok-skip-browser-warning"
+    ],
 )
 
 # --- Debug Startup Check ---
