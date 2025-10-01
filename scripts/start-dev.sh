@@ -4,8 +4,8 @@ set -e
 
 echo "=== Starting Holly Dev Environment ==="
 
-# Force Postgres DB URL (can be overridden by .env)
-export DATABASE_URL="${DATABASE_URL:-postgresql+psycopg2://holly_user:holly_pass@localhost:5432/holly_v6}"
+# Force Postgres DB URL to holly_v6 (no fallback)
+export DATABASE_URL="postgresql+psycopg2://holly_user:holly_pass@localhost:5432/holly_v6"
 
 # --- Frontend ---
 echo "-> Installing frontend dependencies"
