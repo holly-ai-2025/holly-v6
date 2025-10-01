@@ -52,7 +52,7 @@ def get_db():
 # -------------------- TASKS --------------------
 @app.get("/db/tasks", response_model=list[schemas.Task])
 def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Task).offset(skip).limit(limit).all()
+    return db.query(models.Task).filter(models.Task.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/tasks", response_model=schemas.Task)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
@@ -112,7 +112,7 @@ def update_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(ge
 # -------------------- BOARDS --------------------
 @app.get("/db/boards", response_model=list[schemas.Board])
 def read_boards(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Board).offset(skip).limit(limit).all()
+    return db.query(models.Board).filter(models.Board.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/boards", response_model=schemas.Board)
 def create_board(board: schemas.BoardCreate, db: Session = Depends(get_db)):
@@ -143,27 +143,30 @@ def update_board(board_id: int, board: schemas.BoardUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Board not found")
 
     incoming_data = board.model_dump(exclude_unset=True)
-    for k, v in incoming_data.items():
-        setattr(db_board, k, v)
-    db.commit()
-    db.refresh(db_board)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_board.archived is False:
+        action_type = "delete"
 
     log_entry = models.ActivityLog(
         entity_type="board",
         entity_id=db_board.board_id,
-        action="update",
+        action=action_type,
         payload=incoming_data,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
+
+    for k, v in incoming_data.items():
+        setattr(db_board, k, v)
     db.commit()
+    db.refresh(db_board)
 
     return db_board
 
 # -------------------- PROJECTS --------------------
 @app.get("/db/projects", response_model=list[schemas.Project])
 def read_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Project).offset(skip).limit(limit).all()
+    return db.query(models.Project).filter(models.Project.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/projects", response_model=schemas.Project)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
@@ -191,27 +194,30 @@ def update_project(project_id: int, project: schemas.ProjectUpdate, db: Session 
         raise HTTPException(status_code=404, detail="Project not found")
 
     incoming_data = project.model_dump(exclude_unset=True)
-    for k, v in incoming_data.items():
-        setattr(db_project, k, v)
-    db.commit()
-    db.refresh(db_project)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_project.archived is False:
+        action_type = "delete"
 
     log_entry = models.ActivityLog(
         entity_type="project",
         entity_id=db_project.project_id,
-        action="update",
+        action=action_type,
         payload=incoming_data,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
+
+    for k, v in incoming_data.items():
+        setattr(db_project, k, v)
     db.commit()
+    db.refresh(db_project)
 
     return db_project
 
 # -------------------- PHASES --------------------
 @app.get("/db/phases", response_model=list[schemas.Phase])
 def read_phases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Phase).offset(skip).limit(limit).all()
+    return db.query(models.Phase).filter(models.Phase.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/phases", response_model=schemas.Phase)
 def create_phase(phase: schemas.PhaseCreate, db: Session = Depends(get_db)):
@@ -239,27 +245,30 @@ def update_phase(phase_id: int, phase: schemas.PhaseUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Phase not found")
 
     incoming_data = phase.model_dump(exclude_unset=True)
-    for k, v in incoming_data.items():
-        setattr(db_phase, k, v)
-    db.commit()
-    db.refresh(db_phase)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_phase.archived is False:
+        action_type = "delete"
 
     log_entry = models.ActivityLog(
         entity_type="phase",
         entity_id=db_phase.phase_id,
-        action="update",
+        action=action_type,
         payload=incoming_data,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
+
+    for k, v in incoming_data.items():
+        setattr(db_phase, k, v)
     db.commit()
+    db.refresh(db_phase)
 
     return db_phase
 
 # -------------------- GROUPS --------------------
 @app.get("/db/groups", response_model=list[schemas.Group])
 def read_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Group).offset(skip).limit(limit).all()
+    return db.query(models.Group).filter(models.Group.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/groups", response_model=schemas.Group)
 def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):
@@ -287,27 +296,30 @@ def update_group(group_id: int, group: schemas.GroupUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Group not found")
 
     incoming_data = group.model_dump(exclude_unset=True)
-    for k, v in incoming_data.items():
-        setattr(db_group, k, v)
-    db.commit()
-    db.refresh(db_group)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_group.archived is False:
+        action_type = "delete"
 
     log_entry = models.ActivityLog(
         entity_type="group",
         entity_id=db_group.group_id,
-        action="update",
+        action=action_type,
         payload=incoming_data,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
+
+    for k, v in incoming_data.items():
+        setattr(db_group, k, v)
     db.commit()
+    db.refresh(db_group)
 
     return db_group
 
 # -------------------- ITEMS --------------------
 @app.get("/db/items", response_model=list[schemas.Item])
 def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Item).offset(skip).limit(limit).all()
+    return db.query(models.Item).filter(models.Item.archived == False).offset(skip).limit(limit).all()
 
 @app.post("/db/items", response_model=schemas.Item)
 def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
@@ -335,27 +347,30 @@ def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Item not found")
 
     incoming_data = item.model_dump(exclude_unset=True)
-    for k, v in incoming_data.items():
-        setattr(db_item, k, v)
-    db.commit()
-    db.refresh(db_item)
+    action_type = "update"
+    if "archived" in incoming_data and incoming_data["archived"] is True and db_item.archived is False:
+        action_type = "delete"
 
     log_entry = models.ActivityLog(
         entity_type="item",
         entity_id=db_item.item_id,
-        action="update",
+        action=action_type,
         payload=incoming_data,
         created_at=datetime.utcnow(),
     )
     db.add(log_entry)
+
+    for k, v in incoming_data.items():
+        setattr(db_item, k, v)
     db.commit()
+    db.refresh(db_item)
 
     return db_item
 
 # -------------------- ACTIVITY LOG --------------------
 @app.get("/db/activity", response_model=list[schemas.ActivityLog])
 def read_activity(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.ActivityLog).order_by(desc(models.ActivityLog.created_at)).offset(skip).limit(limit).all()
+    return db.query(models.ActivityLog).filter(models.ActivityLog.archived == False).order_by(desc(models.ActivityLog.created_at)).offset(skip).limit(limit).all()
 
 @app.post("/db/activity/undo/{log_id}", response_model=schemas.ActivityLog)
 def undo_activity(log_id: int, db: Session = Depends(get_db)):
