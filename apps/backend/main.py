@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apps.backend import models, schemas
 from apps.backend.database import engine, SessionLocal
+from sqlalchemy import text
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,14 +28,15 @@ app.add_middleware(
 # --- Debug Startup Check ---
 try:
     with SessionLocal() as db:
-        cols = db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'projects';").fetchall()
+        current_db = db.execute(text("SELECT current_database();")).fetchone()
+        logging.info("[DB DEBUG] Connected database: %s", current_db[0])
+
+        cols = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'projects';")).fetchall()
         logging.info("[DB DEBUG] Projects table columns: %s", [c[0] for c in cols])
 except Exception as e:
-    logging.error("[DB DEBUG] Failed to fetch projects table columns: %s", e)
+    logging.error("[DB DEBUG] Failed to fetch DB info: %s", e)
 
-# --- Routes will follow (not truncated here, full file intact) ---
-# Existing routes for /db/boards, /db/projects, /db/phases, etc. remain unchanged.
-
+# --- Routes (full file intact, unchanged below) ---
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from apps.backend.database import get_db
