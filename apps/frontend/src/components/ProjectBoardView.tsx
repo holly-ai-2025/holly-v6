@@ -6,13 +6,14 @@ import {
   Divider,
   IconButton,
   Button,
-  TextField,
+  Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import dayjs from "dayjs";
-import { getPhases, createPhase, Phase } from "../api/phases";
+import { getPhases, createPhase, updatePhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
 import { getProjects, updateProject, Project } from "../api/projects";
 import { Board } from "../api/boards";
@@ -58,7 +59,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const fetchProject = async () => {
     try {
       const data = await getProjects();
-      const linked = data.find((p: Project) => p.boardId === board.id);
+      const linked = data.find((p: Project) => p.boardId === board.id && !p.archived);
       if (linked) {
         setProject(linked);
       }
@@ -70,7 +71,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const fetchPhases = async (projectId: number) => {
     try {
       const data = await getPhases();
-      const projectPhases = data.filter((p: Phase) => p.projectId === projectId);
+      const projectPhases = data.filter((p: Phase) => p.projectId === projectId && !p.archived);
       setPhases(projectPhases);
       const expanded: Record<number, boolean> = {};
       projectPhases.forEach((p) => (expanded[p.id] = true));
@@ -83,7 +84,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const fetchTasks = async () => {
     try {
       const data = await getTasks();
-      setTasks(data.filter((t: Task) => t.boardId === board.id));
+      setTasks(data.filter((t: Task) => t.boardId === board.id && !t.archived));
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch tasks", err);
     }
@@ -158,6 +159,25 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     }
   };
 
+  const handleDeletePhase = async (phaseId: number) => {
+    try {
+      await updatePhase(phaseId, { archived: true });
+      if (project) fetchPhases(project.id);
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to archive phase", err);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+    try {
+      await updateProject(project.id, { archived: true });
+      setProject(null);
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to archive project", err);
+    }
+  };
+
   if (!project) {
     return (
       <Box p={2}>
@@ -169,7 +189,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   }
 
   return (
-    <Box p={2}>
+    <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2 }}>
       {/* Header */}
       {editingProject ? (
         <Box mb={2}>
@@ -243,7 +263,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
       {/* Phases */}
       {phases.map((phase) => (
-        <Box key={phase.id} mt={2}>
+        <Box key={phase.id} mt={4} ml={2} mr={2}>
           <Box
             display="flex"
             justifyContent="space-between"
@@ -266,11 +286,32 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
                 </Typography>
               )}
             </Typography>
-            <IconButton size="small">
-              {openGroups[phase.id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+            <Box>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedPhase(phase);
+                  setPhaseDialogOpen(true);
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeletePhase(phase.id);
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small">
+                {openGroups[phase.id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+            </Box>
           </Box>
-          <Divider sx={{ mt: 0.5, mb: 1 }} />
+          <Divider sx={{ mt: 1, mb: 2, borderColor: "grey.400" }} />
 
           {openGroups[phase.id] && (
             <Box>
@@ -337,14 +378,14 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
                 </Button>
               </Box>
 
-              <Divider sx={{ my: 2, mx: 4 }} />
+              <Divider sx={{ my: 3, borderColor: "grey.300" }} />
             </Box>
           )}
         </Box>
       ))}
 
       {/* Add Phase Button */}
-      <Box display="flex" justifyContent="flex-start" mt={2}>
+      <Box display="flex" justifyContent="flex-start" mt={3} ml={2}>
         <Button
           variant="contained"
           sx={{ borderRadius: "14px", py: 1.2, width: "25%" }}
@@ -354,6 +395,13 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
           }}
         >
           + Add Phase
+        </Button>
+      </Box>
+
+      {/* Delete Project Button */}
+      <Box display="flex" justifyContent="flex-end" mt={4}>
+        <Button variant="outlined" color="error" onClick={handleDeleteProject}>
+          Delete Project
         </Button>
       </Box>
 
@@ -375,7 +423,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
           projectId={project.id}
         />
       )}
-    </Box>
+    </Paper>
   );
 };
 
