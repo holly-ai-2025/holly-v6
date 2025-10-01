@@ -15,8 +15,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import dayjs from "dayjs";
 import { getPhases, createPhase, updatePhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
-import { getProjects, updateProject, Project } from "../api/projects";
-import { Board } from "../api/boards";
+import { updateBoard, Board } from "../api/boards";
 import TaskDialog from "./TaskDialog";
 import PhaseDialog from "./PhaseDialog";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -26,7 +25,6 @@ interface ProjectBoardViewProps {
 }
 
 const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
-  const [project, setProject] = useState<Project | null>(null);
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
@@ -37,54 +35,33 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
 
-  const [editingProject, setEditingProject] = useState(false);
-  const [editedName, setEditedName] = useState("");
-  const [editedNotes, setEditedNotes] = useState("");
-  const [editedDeadline, setEditedDeadline] = useState<any>(null);
+  const [editingBoard, setEditingBoard] = useState(false);
+  const [editedName, setEditedName] = useState(board.name);
+  const [editedNotes, setEditedNotes] = useState(board.description || "");
+  const [editedDeadline, setEditedDeadline] = useState<any>(board.deadline ? dayjs(board.deadline) : null);
 
   useEffect(() => {
-    fetchProject();
+    fetchPhases(board.id);
+    fetchTasks(board.id);
   }, [board.id]);
 
-  useEffect(() => {
-    if (project) {
-      fetchPhases(project.id);
-      fetchTasks();
-      setEditedName(project.name);
-      setEditedNotes(project.notes || board.description || "");
-      setEditedDeadline(project.deadline ? dayjs(project.deadline) : null);
-    }
-  }, [project]);
-
-  const fetchProject = async () => {
-    try {
-      const data = await getProjects();
-      const linked = data.find((p: Project) => p.boardId === board.id && !p.archived);
-      if (linked) {
-        setProject(linked);
-      }
-    } catch (err) {
-      console.error("[ProjectBoardView] Failed to fetch project", err);
-    }
-  };
-
-  const fetchPhases = async (projectId: number) => {
+  const fetchPhases = async (boardId: number) => {
     try {
       const data = await getPhases();
-      const projectPhases = data.filter((p: Phase) => p.projectId === projectId && !p.archived);
-      setPhases(projectPhases);
+      const boardPhases = data.filter((p: Phase) => p.boardId === boardId && !p.archived);
+      setPhases(boardPhases);
       const expanded: Record<number, boolean> = {};
-      projectPhases.forEach((p) => (expanded[p.id] = true));
+      boardPhases.forEach((p) => (expanded[p.id] = true));
       setOpenGroups(expanded);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch phases", err);
     }
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (boardId: number) => {
     try {
       const data = await getTasks();
-      setTasks(data.filter((t: Task) => t.boardId === board.id && !t.archived));
+      setTasks(data.filter((t: Task) => t.boardId === boardId && !t.archived));
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch tasks", err);
     }
@@ -94,7 +71,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     try {
       const newStatus = task.status === "Done" ? "Todo" : "Done";
       await updateTask(task.id, { status: newStatus });
-      fetchTasks();
+      fetchTasks(board.id);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to update task", err);
     }
@@ -106,10 +83,8 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   };
 
   const handleAddTaskClick = (phaseId: number) => {
-    if (!project) return;
     setSelectedTask({
       boardId: board.id,
-      projectId: project.id,
       phaseId,
       status: "Todo",
     });
@@ -121,9 +96,9 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
       if (form.id) {
         await updateTask(form.id, form);
       } else {
-        await createTask({ ...form, boardId: board.id, projectId: project?.id });
+        await createTask({ ...form, boardId: board.id });
       }
-      fetchTasks();
+      fetchTasks(board.id);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to save task", err);
     }
@@ -136,62 +111,47 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
   const handlePhaseSave = async (form: Partial<Phase>) => {
     try {
-      if (!project) return;
-      await createPhase({ ...form, projectId: project.id });
-      fetchPhases(project.id);
+      await createPhase({ ...form, boardId: board.id });
+      fetchPhases(board.id);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to save phase", err);
     }
   };
 
-  const handleProjectSave = async () => {
-    if (!project) return;
+  const handleBoardSave = async () => {
     try {
-      await updateProject(project.id, {
+      await updateBoard(board.id, {
         name: editedName,
-        notes: editedNotes,
+        description: editedNotes,
         deadline: editedDeadline ? editedDeadline.toISOString() : null,
       });
-      fetchProject();
-      setEditingProject(false);
+      setEditingBoard(false);
     } catch (err) {
-      console.error("[ProjectBoardView] Failed to update project", err);
+      console.error("[ProjectBoardView] Failed to update board", err);
     }
   };
 
   const handleDeletePhase = async (phaseId: number) => {
     try {
       await updatePhase(phaseId, { archived: true });
-      if (project) fetchPhases(project.id);
+      fetchPhases(board.id);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to archive phase", err);
     }
   };
 
-  const handleDeleteProject = async () => {
-    if (!project) return;
+  const handleDeleteBoard = async () => {
     try {
-      await updateProject(project.id, { archived: true });
-      setProject(null);
+      await updateBoard(board.id, { archived: true });
     } catch (err) {
-      console.error("[ProjectBoardView] Failed to archive project", err);
+      console.error("[ProjectBoardView] Failed to archive board", err);
     }
   };
-
-  if (!project) {
-    return (
-      <Box p={2}>
-        <Typography variant="body1" color="text.secondary">
-          Loading project...
-        </Typography>
-      </Box>
-    );
-  }
 
   return (
     <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 2 }}>
       {/* Header */}
-      {editingProject ? (
+      {editingBoard ? (
         <Box mb={2}>
           <input
             style={{
@@ -230,30 +190,30 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
           </Box>
 
           <Box display="flex" justifyContent="flex-end" mt={2} gap={1}>
-            <Button onClick={() => setEditingProject(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleProjectSave}>Save</Button>
+            <Button onClick={() => setEditingBoard(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleBoardSave}>Save</Button>
           </Box>
         </Box>
       ) : (
         <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
           <Box>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>{project.name}</Typography>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>{board.name}</Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              {project.notes || board.description}
+              {board.description}
             </Typography>
-            {project.deadline && (
+            {board.deadline && (
               <Typography
                 variant="body2"
                 sx={{
-                  color: dayjs(project.deadline).isBefore(dayjs()) ? "error.main" : "text.secondary",
+                  color: dayjs(board.deadline).isBefore(dayjs()) ? "error.main" : "text.secondary",
                   fontWeight: 500,
                 }}
               >
-                Deadline: {dayjs(project.deadline).format("MMM D, YYYY")}
+                Deadline: {dayjs(board.deadline).format("MMM D, YYYY")}
               </Typography>
             )}
           </Box>
-          <IconButton onClick={() => setEditingProject(true)}>
+          <IconButton onClick={() => setEditingBoard(true)}>
             <EditIcon />
           </IconButton>
         </Box>
@@ -398,10 +358,10 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
         </Button>
       </Box>
 
-      {/* Delete Project Button */}
+      {/* Delete Board Button */}
       <Box display="flex" justifyContent="flex-end" mt={4}>
-        <Button variant="outlined" color="error" onClick={handleDeleteProject}>
-          Delete Project
+        <Button variant="outlined" color="error" onClick={handleDeleteBoard}>
+          Delete Board
         </Button>
       </Box>
 
@@ -414,15 +374,13 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
       />
 
       {/* Phase Dialog */}
-      {project && (
-        <PhaseDialog
-          open={phaseDialogOpen}
-          phase={selectedPhase}
-          onClose={() => setPhaseDialogOpen(false)}
-          onSave={handlePhaseSave}
-          projectId={project.id}
-        />
-      )}
+      <PhaseDialog
+        open={phaseDialogOpen}
+        phase={selectedPhase}
+        onClose={() => setPhaseDialogOpen(false)}
+        onSave={handlePhaseSave}
+        projectId={board.id}
+      />
     </Paper>
   );
 };
