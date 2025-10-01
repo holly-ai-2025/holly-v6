@@ -76,9 +76,26 @@ def update_board(board_id: int, board: schemas.BoardUpdate):
         db_board = db.query(models.Board).filter(models.Board.board_id == board_id).first()
         if not db_board:
             raise HTTPException(status_code=404, detail="Board not found")
+
+        # Apply incoming updates
         for var, value in vars(board).items():
             if value is not None:
                 setattr(db_board, var, value)
+
+        # Cascade soft delete if board is archived
+        if board.archived is True:
+            phases = db.query(models.Phase).filter(models.Phase.board_id == board_id).all()
+            for phase in phases:
+                phase.archived = True
+                tasks = db.query(models.Task).filter(models.Task.phase_id == phase.phase_id).all()
+                for task in tasks:
+                    task.archived = True
+
+            # Also archive any tasks directly under the board (not tied to a phase)
+            tasks = db.query(models.Task).filter(models.Task.board_id == board_id).all()
+            for task in tasks:
+                task.archived = True
+
         db.commit()
         db.refresh(db_board)
         return db_board
