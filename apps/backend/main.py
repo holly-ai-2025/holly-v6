@@ -21,14 +21,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "User-Agent",
-        "ngrok-skip-browser-warning"
-    ],
+    allow_headers=["*", "ngrok-skip-browser-warning"],
 )
 
 # --- Debug Startup Check ---
@@ -83,3 +76,21 @@ def update_phase(phase_id: int, phase: schemas.PhaseUpdate):
         db.commit()
         db.refresh(db_phase)
         return db_phase
+
+@app.get("/db/tasks", response_model=list[schemas.Task])
+def read_tasks():
+    with SessionLocal() as db:
+        return db.query(models.Task).filter(models.Task.archived == False).all()
+
+@app.patch("/db/tasks/{task_id}", response_model=schemas.Task)
+def update_task(task_id: int, task: schemas.TaskUpdate):
+    with SessionLocal() as db:
+        db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
+        if not db_task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        for var, value in vars(task).items():
+            if value is not None:
+                setattr(db_task, var, value)
+        db.commit()
+        db.refresh(db_task)
+        return db_task
