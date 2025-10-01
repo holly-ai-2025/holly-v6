@@ -1,59 +1,25 @@
 import api from "../lib/api";
 
-const base = "/db/projects";
-
 export interface Project {
   id: number;
+  boardId: number;
   name: string;
   notes?: string;
-  goal?: string;
-  boardId: number;
   deadline?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  archived?: boolean;
 }
 
-function normalizeProject(raw: any): Project {
-  return {
-    id: raw.project_id,
-    name: raw.name,
-    notes: raw.notes,
-    goal: raw.goal,
-    boardId: raw.board_id,
-    deadline: raw.deadline,
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
-  };
-}
+export const getProjects = async (): Promise<Project[]> => {
+  const response = await api.get("/db/projects");
+  return response.data;
+};
 
-function denormalizeProject(payload: Partial<Project>): any {
-  return {
-    name: payload.name,
-    notes: payload.notes,
-    goal: payload.goal,
-    board_id: payload.boardId,
-    deadline: payload.deadline,
-    created_at: payload.createdAt,
-    updated_at: payload.updatedAt,
-  };
-}
+export const getProject = async (id: number): Promise<Project> => {
+  const response = await api.get(`/db/projects/${id}`);
+  return response.data;
+};
 
-export async function getProjects(): Promise<Project[]> {
-  const res = await api.get(base);
-  return res.data.map(normalizeProject);
-}
-
-export async function createProject(payload: Partial<Project>): Promise<Project> {
-  const res = await api.post(base, denormalizeProject(payload));
-  return normalizeProject(res.data);
-}
-
-export async function updateProject(id: number, payload: Partial<Project>): Promise<Project> {
-  const res = await api.patch(`${base}/${id}`, denormalizeProject(payload));
-  return normalizeProject(res.data);
-}
-
-export async function deleteProject(id: number): Promise<{ ok: boolean }> {
-  const res = await api.delete(`${base}/${id}`);
-  return res.data;
-}
+export const updateProject = async (id: number, data: Partial<Project>): Promise<Project> => {
+  const response = await api.patch(`/db/projects/${id}`, data);
+  return response.data;
+};

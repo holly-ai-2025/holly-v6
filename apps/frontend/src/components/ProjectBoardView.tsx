@@ -15,7 +15,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import dayjs from "dayjs";
 import { getPhases, createPhase, updatePhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
-import { getProjects, updateProject, Project } from "../api/projects";
+import { getProject, updateProject, Project } from "../api/projects";
 import { Board } from "../api/boards";
 import TaskDialog from "./TaskDialog";
 import PhaseDialog from "./PhaseDialog";
@@ -58,10 +58,10 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
   const fetchProject = async () => {
     try {
-      const data = await getProjects();
-      const linked = data.find((p: Project) => p.boardId === board.id && !p.archived);
-      if (linked) {
-        setProject(linked);
+      if (!board.projectId) return;
+      const proj = await getProject(board.projectId);
+      if (proj && !proj.archived) {
+        setProject(proj);
       }
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch project", err);
