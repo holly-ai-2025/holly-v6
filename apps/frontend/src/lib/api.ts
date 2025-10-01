@@ -10,14 +10,31 @@ if (!baseURL) {
 
 const api = axios.create({
   baseURL,
-  headers: {
-    "ngrok-skip-browser-warning": "true",
-  },
 });
 
-// Debug logging interceptor
+// ✅ Interceptor to enforce correct headers
 api.interceptors.request.use((config) => {
-  console.log("[API Request]", config.baseURL, config.url, config.headers);
+  // Always send JSON for write operations
+  if (
+    config.method === "post" ||
+    config.method === "patch" ||
+    config.method === "put"
+  ) {
+    if (!config.headers) config.headers = {};
+    config.headers["Content-Type"] = "application/json";
+  }
+
+  // Only include ngrok header if baseURL contains ngrok
+  if (baseURL?.includes("ngrok")) {
+    config.headers["ngrok-skip-browser-warning"] = "true";
+  }
+
+  console.log(
+    "[API Request]",
+    config.method?.toUpperCase(),
+    config.url,
+    config.headers
+  );
   return config;
 });
 
