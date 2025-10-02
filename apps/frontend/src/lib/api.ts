@@ -14,7 +14,6 @@ const api = axios.create({
 
 // ✅ Interceptor to enforce correct headers
 api.interceptors.request.use((config) => {
-  // Always send JSON for write operations
   if (
     config.method === "post" ||
     config.method === "patch" ||
@@ -24,7 +23,6 @@ api.interceptors.request.use((config) => {
     config.headers["Content-Type"] = "application/json";
   }
 
-  // Only include ngrok header if baseURL contains ngrok
   if (baseURL?.includes("ngrok")) {
     config.headers["ngrok-skip-browser-warning"] = "true";
   }
@@ -37,5 +35,49 @@ api.interceptors.request.use((config) => {
   );
   return config;
 });
+
+// =============================
+// Boards API
+// =============================
+export const getBoards = (boardType?: string) =>
+  api.get("/db/boards", { params: boardType ? { board_type: boardType } : {} });
+
+export const createBoard = (data: any) => api.post("/db/boards", data);
+
+export const updateBoard = (id: number, data: any) =>
+  api.patch(`/db/boards/${id}`, data);
+
+// =============================
+// Phases API
+// =============================
+export const getPhases = (boardId: number) =>
+  api.get(`/db/phases/${boardId}`);
+
+export const createPhase = (data: any) => api.post("/db/phases", data);
+
+export const updatePhase = (id: number, data: any) =>
+  api.patch(`/db/phases/${id}`, data);
+
+// =============================
+// Groups API
+// =============================
+export const getGroups = (boardId: number) =>
+  api.get(`/db/groups/${boardId}`);
+
+export const createGroup = (data: any) => api.post("/db/groups", data);
+
+export const updateGroup = (id: number, data: any) =>
+  api.patch(`/db/groups/${id}`, data);
+
+// =============================
+// Tasks API
+// =============================
+export const getTasks = (boardId: number) =>
+  api.get(`/db/tasks/${boardId}`);
+
+export const createTask = (data: any) => api.post("/db/tasks", data);
+
+export const updateTask = (id: number, data: any) =>
+  api.patch(`/db/tasks/${id}`, data);
 
 export default api;
