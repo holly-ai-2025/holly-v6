@@ -12,7 +12,7 @@ app = FastAPI()
 log_dir = os.path.abspath("logs")
 os.makedirs(log_dir, exist_ok=True)
 
-# ✅ CORS configuration (restored with ngrok header)
+# ✅ CORS configuration (restored exactly as before)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,7 +27,6 @@ app.add_middleware(
         "Origin",
         "User-Agent",
         "ngrok-skip-browser-warning",
-        "*",
     ],
 )
 
