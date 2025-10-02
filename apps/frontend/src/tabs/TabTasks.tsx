@@ -59,7 +59,7 @@ const groupTasksByDate = (tasks: any[]) => {
       return;
     }
 
-    const effectiveDate = task.start_time || task.deadline || null;
+    const effectiveDate = task.due_date || null;
 
     if (!effectiveDate) {
       if ((task.urgency_score || 0) > 5) {
@@ -87,9 +87,7 @@ const groupTasksByDate = (tasks: any[]) => {
 
   const sortByDate = (arr: any[]) =>
     arr.sort(
-      (a, b) =>
-        dayjs(a.start_time || a.deadline).valueOf() -
-        dayjs(b.start_time || b.deadline).valueOf()
+      (a, b) => dayjs(a.due_date).valueOf() - dayjs(b.due_date).valueOf()
     );
 
   sortByDate(groups.Overdue);
@@ -118,7 +116,7 @@ const TabTasks: React.FC = () => {
 
   const fetchTasks = async () => {
     try {
-      const res = await getTasks(1); // TODO: pass correct board_id dynamically
+      const res = await getTasks();
       setTasks(res.data);
       setGrouped(groupTasksByDate(res.data));
     } catch (err) {
@@ -172,12 +170,12 @@ const TabTasks: React.FC = () => {
     let updates: Partial<any> = {};
 
     if (toGroup === "Today") {
-      updates = { deadline: dayjs().toISOString(), start_time: null };
+      updates = { due_date: dayjs().toISOString() };
     } else if (toGroup === "Tomorrow") {
-      updates = { deadline: dayjs().add(1, "day").toISOString(), start_time: null };
+      updates = { due_date: dayjs().add(1, "day").toISOString() };
     }
 
-    if (updates.deadline !== undefined) {
+    if (updates.due_date !== undefined) {
       setTasks((prev) => prev.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t)));
       setGrouped(groupTasksByDate(tasks.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t))));
 
@@ -284,16 +282,6 @@ const TabTasks: React.FC = () => {
                 }}
               >
                 {task.title}
-                {task.start_time && task.end_time && (
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ ml: 0.5 }}
-                  >
-                    {dayjs(task.start_time).format("HH:mm")} – {dayjs(task.end_time).format("HH:mm")}
-                  </Typography>
-                )}
               </Typography>
 
               {task.board_id && (
