@@ -19,8 +19,11 @@ def get_db():
 # Boards
 # =============================
 @app.get("/db/boards", response_model=List[schemas.Board])
-def get_boards(db: Session = Depends(get_db)):
-    return db.query(models.Board).filter(models.Board.archived == False).all()
+def get_boards(db: Session = Depends(get_db), board_type: str = None):
+    query = db.query(models.Board).filter(models.Board.archived == False)
+    if board_type:
+        query = query.filter(models.Board.board_type == board_type)
+    return query.all()
 
 @app.post("/db/boards", response_model=schemas.Board)
 def create_board(board: schemas.BoardCreate, db: Session = Depends(get_db)):
@@ -31,7 +34,7 @@ def create_board(board: schemas.BoardCreate, db: Session = Depends(get_db)):
     return db_board
 
 @app.patch("/db/boards/{board_id}", response_model=schemas.Board)
-def update_board(board_id: int, board_update: schemas.Board, db: Session = Depends(get_db)):
+def update_board(board_id: int, board_update: schemas.BoardUpdate, db: Session = Depends(get_db)):
     db_board = db.query(models.Board).filter(models.Board.board_id == board_id).first()
     if not db_board:
         raise HTTPException(status_code=404, detail="Board not found")
@@ -64,7 +67,7 @@ def get_phases(board_id: int, db: Session = Depends(get_db)):
     return db.query(models.Phase).filter(models.Phase.board_id == board_id, models.Phase.archived == False).all()
 
 @app.patch("/db/phases/{phase_id}", response_model=schemas.Phase)
-def update_phase(phase_id: int, phase_update: schemas.PhaseCreate, db: Session = Depends(get_db)):
+def update_phase(phase_id: int, phase_update: schemas.PhaseUpdate, db: Session = Depends(get_db)):
     db_phase = db.query(models.Phase).filter(models.Phase.phase_id == phase_id).first()
     if not db_phase:
         raise HTTPException(status_code=404, detail="Phase not found")
@@ -75,15 +78,6 @@ def update_phase(phase_id: int, phase_update: schemas.PhaseCreate, db: Session =
     db.commit()
     db.refresh(db_phase)
     return db_phase
-
-@app.delete("/db/phases/{phase_id}")
-def archive_phase(phase_id: int, db: Session = Depends(get_db)):
-    db_phase = db.query(models.Phase).filter(models.Phase.phase_id == phase_id).first()
-    if not db_phase:
-        raise HTTPException(status_code=404, detail="Phase not found")
-    db_phase.archived = True
-    db.commit()
-    return {"message": "Phase archived"}
 
 # =============================
 # Tasks
@@ -113,18 +107,10 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
     db.refresh(db_task)
     return db_task
 
-@app.delete("/db/tasks/{task_id}")
-def archive_task(task_id: int, db: Session = Depends(get_db)):
-    db_task = db.query(models.Task).filter(models.Task.task_id == task_id).first()
-    if not db_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    db_task.archived = True
-    db.commit()
-    return {"message": "Task archived"}
-
 # =============================
-# Projects (handled via boards)
+# Projects (via Boards)
 # =============================
 @app.get("/db/projects", response_model=List[schemas.Board])
 def get_projects(db: Session = Depends(get_db)):
+    # Deprecated, kept for backward compatibility
     return db.query(models.Board).filter(models.Board.board_type == "project", models.Board.archived == False).all()
