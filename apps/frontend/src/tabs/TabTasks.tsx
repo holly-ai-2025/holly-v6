@@ -36,6 +36,15 @@ const normalizeStatus = (status?: string) => {
   return "Todo";
 };
 
+function shuffleArray<T>(array: T[]): T[] {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 const groupTasksByDate = (tasks: any[]) => {
   const groups: Record<string, any[]> = {
     Overdue: [],
@@ -52,6 +61,8 @@ const groupTasksByDate = (tasks: any[]) => {
   const tomorrow = today.add(1, "day");
   const endOfWeek = today.endOf("week");
 
+  const noDueDate: any[] = [];
+
   tasks.forEach((task) => {
     const status = normalizeStatus(task.status);
     if (status === "Done") {
@@ -59,18 +70,12 @@ const groupTasksByDate = (tasks: any[]) => {
       return;
     }
 
-    const effectiveDate = task.due_date || null;
-
-    if (!effectiveDate) {
-      if ((task.urgency_score || 0) > 5) {
-        groups.SuggestedToday.push(task);
-      } else {
-        groups.SuggestedTomorrow.push(task);
-      }
+    if (!task.due_date) {
+      noDueDate.push(task);
       return;
     }
 
-    const due = dayjs(effectiveDate).startOf("day");
+    const due = dayjs(task.due_date).startOf("day");
 
     if (due.isBefore(today, "day")) {
       groups.Overdue.push(task);
@@ -86,15 +91,20 @@ const groupTasksByDate = (tasks: any[]) => {
   });
 
   const sortByDate = (arr: any[]) =>
-    arr.sort(
-      (a, b) => dayjs(a.due_date).valueOf() - dayjs(b.due_date).valueOf()
-    );
+    arr.sort((a, b) => dayjs(a.due_date).valueOf() - dayjs(b.due_date).valueOf());
 
   sortByDate(groups.Overdue);
   sortByDate(groups.Today);
   sortByDate(groups.Tomorrow);
   sortByDate(groups["This Week"]);
   sortByDate(groups.Later);
+
+  // Suggested tasks logic → shuffle and split into Today/Tomorrow buckets
+  if (noDueDate.length > 0) {
+    const shuffled = shuffleArray(noDueDate);
+    groups.SuggestedToday = shuffled.slice(0, 3);
+    groups.SuggestedTomorrow = shuffled.slice(3, 6);
+  }
 
   return groups;
 };
