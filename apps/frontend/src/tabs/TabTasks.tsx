@@ -99,7 +99,6 @@ const groupTasksByDate = (tasks: any[]) => {
   sortByDate(groups["This Week"]);
   sortByDate(groups.Later);
 
-  // Suggested tasks logic → shuffle and split into Today/Tomorrow buckets
   if (noDueDate.length > 0) {
     const shuffled = shuffleArray(noDueDate);
     groups.SuggestedToday = shuffled.slice(0, 3);
@@ -176,7 +175,6 @@ const TabTasks: React.FC = () => {
     if (!task) return;
 
     const prevTasks = [...tasks];
-
     let updates: Partial<any> = {};
 
     if (toGroup === "Today") {
@@ -185,7 +183,7 @@ const TabTasks: React.FC = () => {
       updates = { due_date: dayjs().add(1, "day").toISOString() };
     }
 
-    if (updates.due_date !== undefined) {
+    if (Object.keys(updates).length > 0) {
       setTasks((prev) => prev.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t)));
       setGrouped(groupTasksByDate(tasks.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t))));
 
