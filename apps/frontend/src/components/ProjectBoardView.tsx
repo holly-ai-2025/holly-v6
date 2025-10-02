@@ -11,13 +11,12 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import EditIcon from "@mui/icons-material/Edit";
 import dayjs from "dayjs";
-import { getPhases, createPhase } from "../lib/api";
-import { getTasks, createTask, updateTask } from "../lib/api";
+import { getPhases } from "../api/phases";
+import { getTasks, updateTask } from "../api/tasks";
+import { updateBoard } from "../api/boards";
 import TaskDialog from "./TaskDialog";
 import PhaseDialog from "./PhaseDialog";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 interface Phase {
   phase_id: number;
@@ -32,7 +31,7 @@ interface Task {
   task_id: number;
   board_id?: number;
   phase_id?: number;
-  title: string;
+  name: string;
   description?: string;
   due_date?: string;
   status?: string;
@@ -60,21 +59,13 @@ interface ProjectBoardViewProps {
   onBoardDeleted?: () => void;
 }
 
-const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
+const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDeleted }) => {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
 
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Partial<Task> | null>(null);
-
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
-
-  const [editingProject, setEditingProject] = useState(false);
-  const [editedName, setEditedName] = useState(board.name);
-  const [editedNotes, setEditedNotes] = useState(board.description || "");
-  const [editedDeadline, setEditedDeadline] = useState<any>(null);
 
   useEffect(() => {
     if (board?.board_id) {
@@ -85,8 +76,8 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
   const fetchPhases = async () => {
     try {
-      const res = await getPhases();
-      const boardPhases = res.data.filter((p: Phase) => p.board_id === board.board_id && !p.archived);
+      const allPhases = await getPhases();
+      const boardPhases = allPhases.filter((p: Phase) => p.board_id === board.board_id && !p.archived);
       setPhases(boardPhases);
       const expanded: Record<number, boolean> = {};
       boardPhases.forEach((p) => (expanded[p.phase_id] = true));
@@ -99,8 +90,8 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
 
   const fetchTasks = async () => {
     try {
-      const res = await getTasks();
-      const boardTasks = res.data.filter((t: Task) => t.board_id === board.board_id && !t.archived);
+      const allTasks = await getTasks();
+      const boardTasks = allTasks.filter((t: Task) => t.board_id === board.board_id && !t.archived);
       setTasks(boardTasks);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch tasks", err);
@@ -112,30 +103,23 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     setOpenGroups((prev) => ({ ...prev, [phaseId]: !prev[phaseId] }));
   };
 
+  const handleArchiveBoard = async () => {
+    try {
+      await updateBoard(board.board_id, { archived: true });
+      if (onBoardDeleted) onBoardDeleted();
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to archive board", err);
+    }
+  };
+
   return (
     <Box p={2}>
-      <Typography variant="h5" gutterBottom>
-        {editingProject ? (
-          <TextField
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
-            fullWidth
-          />
-        ) : (
-          board.name
-        )}
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h5">{board.name}</Typography>
+        <Button color="error" onClick={handleArchiveBoard}>Archive Board</Button>
+      </Box>
       <Typography variant="body2" gutterBottom>
-        {editingProject ? (
-          <TextField
-            value={editedNotes}
-            onChange={(e) => setEditedNotes(e.target.value)}
-            fullWidth
-            multiline
-          />
-        ) : (
-          board.description || "No description"
-        )}
+        {board.description || "No description"}
       </Typography>
       <Divider sx={{ my: 2 }} />
 
@@ -153,7 +137,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
                 <Paper key={task.task_id} sx={{ p: 1.5, mb: 1, borderRadius: 1 }}>
                   <Box display="flex" alignItems="center" justifyContent="space-between">
                     <Box>
-                      <Typography variant="subtitle1" fontWeight="bold">{task.title}</Typography>
+                      <Typography variant="subtitle1" fontWeight="bold">{task.name}</Typography>
                       <Typography variant="body2" color="text.secondary">{task.description || "No description"}</Typography>
                       <Typography variant="caption" color="text.secondary">
                         Due: {task.due_date ? dayjs(task.due_date).format("MMM D, YYYY") : "–"}
@@ -175,7 +159,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
             <Paper key={task.task_id} sx={{ p: 1.5, mb: 1, borderRadius: 1 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">{task.title}</Typography>
+                  <Typography variant="subtitle1" fontWeight="bold">{task.name}</Typography>
                   <Typography variant="body2" color="text.secondary">{task.description || "No description"}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     Due: {task.due_date ? dayjs(task.due_date).format("MMM D, YYYY") : "–"}
