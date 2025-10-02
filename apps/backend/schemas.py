@@ -99,6 +99,35 @@ class Phase(PhaseBase):
 
 
 # -----------------------------
+# Group Schemas
+# -----------------------------
+
+class GroupBase(BaseModel):
+    name: str
+    archived: bool = False
+
+
+class GroupCreate(GroupBase):
+    board_id: int
+
+
+class GroupUpdate(BaseModel):
+    name: Optional[str] = None
+    archived: Optional[bool] = None
+    board_id: Optional[int] = None
+
+
+class Group(GroupBase):
+    group_id: int
+    board_id: int
+    created_at: datetime
+    updated_at: datetime
+    tasks: List[Task] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# -----------------------------
 # Board Schemas
 # -----------------------------
 
@@ -131,6 +160,7 @@ class Board(BoardBase):
     created_at: datetime
     updated_at: datetime
     phases: List[Phase] = []
+    groups: List[Group] = []
     tasks: List[Task] = []
 
     model_config = ConfigDict(from_attributes=True)
