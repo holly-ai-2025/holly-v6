@@ -1,96 +1,126 @@
 # Holly AI v6
 
 ## Overview
-Holly AI is a development partner framework that provides both backend and frontend services. The backend runs on Hypercorn (FastAPI + SQLAlchemy) and provides REST API endpoints, while the frontend runs on Vite + React with MUI (Core + Joy UI).
+Holly AI v6 is a full-stack application built with:
+- **Frontend**: React + Vite + MUI (Core + Joy UI)
+- **Backend**: FastAPI + Hypercorn + SQLAlchemy + PostgreSQL
+- **Logging**: Browser console logs are forwarded to a log server running at port 9000
 
-All core entities implement **soft delete** via an `archived` boolean flag. Queries automatically exclude archived entities, and delete operations set `archived=True` instead of removing rows.
+Entities:
+- Boards (two types: `list`, `project`)
+- Phases (for project boards)
+- Groups (for list boards)
+- Tasks (attached to boards, phases, or groups)
+- Items (attached to list boards/groups)
+- ActivityLog (captures create/update/archive actions)
 
-### Entities
-- **Boards**: Root container. Two types:
-  - `project` → contains **Phases** → contains **Tasks**
-  - `list` → contains **Groups** → contains **Tasks**
-- **Phases**: Belong to project boards. Used for project management workflows.
-- **Groups**: Belong to list boards. Used to group lists within boards.
-- **Tasks**: Belong to either phases (in project boards) or groups (in list boards).
-- **Other entities** (e.g., Items, ActivityLog) are being unified to follow the same CRUD + soft delete pattern.
+All entities use **soft delete** via `archived: boolean`. Delete = `PATCH { archived: true }`. The frontend must always filter archived = false when displaying data.
 
-## Backend
-- Entrypoint: `apps/backend/main.py`
-- Runs with Hypercorn on port `8000`
-- Example endpoint: `http://localhost:8000/db/tasks`
-- Database: PostgreSQL (default: `holly_v6` via `holly_user`)
-- Manual migrations with `.sql` files in `scripts/migrations/`
+---
 
-## Frontend
-- Entrypoint: `apps/frontend/src/main.tsx`
-- Framework: Vite + React + MUI (Core + Joy UI)
-- Uses a unified API client at `apps/frontend/src/lib/api.ts`
-- All frontend delete actions send PATCH requests with `{ archived: true }`
-
-### API Client
-- All frontend API requests **must** go through `lib/api.ts`.
-- In development, requests are sent to `http://localhost:8000`.
-- In production (Vercel), requests use `VITE_API_URL`.
-- The client automatically includes the `ngrok-skip-browser-warning: true` header.
-- Example log:
-  ```
-  [API Request] http://localhost:8000 /db/tasks {...headers}
-  ```
-
-### Logging
-- Console logs are forwarded to the backend log server.
-- In development: `http://localhost:9000/log`
-- In production: `VITE_LOG_SERVER_URL`
-
-## Development Workflow
-### Branching Rules
-- Never edit `main` directly.
-- Always create a feature branch from the latest `main`.
-- Each commit must be atomic, with no placeholders or stubs.
-
-### Starting the Environment
-Use the provided script:
+## Development Setup
+Always start with the unified dev script:
 ```bash
 scripts/start-dev.sh
 ```
 This will:
-- Install frontend dependencies
-- Start the frontend (Vite) on port 5173
-- Start the backend (FastAPI + Hypercorn) on port 8000
-- Start the log server on port 9000
+- Install frontend dependencies (via pnpm)
+- Start frontend (Vite) on port 5173
+- Start backend (FastAPI + Hypercorn) on port 8000
+- Start log server on port 9000
 
-### Database Migrations
-Migrations are manual and stored in `scripts/migrations/`.
+Do **not** run frontend/backend directly in isolation unless debugging.
 
-To apply a migration:
+### Debugging Backend Crashes
+If backend dies immediately after startup, run Hypercorn manually:
 ```bash
-psql -U holly_user -d holly_v6 -f scripts/migrations/<filename>.sql
+.venv/bin/hypercorn apps.backend.main:app --reload --bind 0.0.0.0:8000
 ```
-
-To verify:
-```bash
-psql -U holly_user -d holly_v6
-\\d boards;
-\\d phases;
-\\d groups;
-\\d tasks;
-```
-
-### Adding or Editing Tables
-1. Add/modify the model in `apps/backend/models.py` (must include `archived = Column(Boolean, default=False)`).
-2. Add/modify schema in `apps/backend/schemas.py` (must include `archived: bool = False`).
-3. Add/update CRUD endpoints in `apps/backend/main.py`.
-4. Create a migration SQL file under `scripts/migrations/`.
-5. Apply the migration with `psql`.
-6. Restart dev: `scripts/start-dev.sh`
-7. Test with curl and frontend.
-
-### Migration History
-- `2025-10-02_fix_boards_tasks_schema.sql` → Align boards and tasks schema.
-- `2025-10-02_fix_timestamps_defaults.sql` → Enforce default timestamps and backfill.
-- `2025-10-02_create_groups_table.sql` → Introduce groups table for list boards.
-- `2025-10-02_fix_groups_add_timestamps.sql` → Add timestamps to groups.
+This shows the raw traceback (often schema mismatch, migration issues, or CORS misconfig).
 
 ---
 
-This ensures consistent handling of soft deletes, migrations, and development across the stack.
+## Database
+PostgreSQL schema lives in `/apps/backend/models.py` and `/apps/backend/schemas.py`. Migrations are SQL scripts in `/migrations`.
+
+### Inspect Tables
+```bash
+psql -U holly_user -d holly_v6 -h localhost -c "\\d boards"
+psql -U holly_user -d holly_v6 -h localhost -c "\\d tasks"
+```
+
+### Migration Workflow
+1. Create SQL migration file in `/migrations`: `YYYY-MM-DD_short_description.sql`
+2. Apply migration:
+   ```bash
+   psql -U holly_user -d holly_v6 -h localhost -f migrations/2025-10-02_add_groups.sql
+   ```
+3. Update backend:
+   - `apps/backend/models.py`
+   - `apps/backend/schemas.py`
+   - `apps/backend/main.py`
+4. Test with curl:
+   ```bash
+   curl -X POST http://localhost:8000/db/boards -H "Content-Type: application/json" -d '{"name":"Test","board_type":"project"}'
+   ```
+
+### Uniform CRUD Contract
+Every entity follows this:
+- `CreateModel` → POST `/db/{entity}`
+- `UpdateModel` → PATCH `/db/{entity}/{id}`
+- `ResponseModel` → GET `/db/{entity}` or `/db/{entity}/{id}`
+- Common fields: `archived`, `created_at`, `updated_at`
+
+---
+
+## API Standards
+- Delete = soft delete: `PATCH { archived: true }`
+- Responses always include: `{ entity_id, created_at, updated_at, archived }`
+- Activity logs must store payload as JSON string.
+
+---
+
+## CORS
+Backend enables CORS in `main.py`:
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Authorization",
+        "Content-Language",
+        "Content-Type",
+        "Origin",
+        "User-Agent",
+        "ngrok-skip-browser-warning"
+    ],
+)
+```
+
+This ensures local dev (`http://localhost:5173`) and ngrok tunneling both work.
+
+---
+
+## Logging
+- Backend logs: `logs/backend-live.log`
+- Frontend console logs: `logs/frontend-console.log`
+
+To reset logs before debugging:
+```bash
+> logs/backend-live.log
+scripts/start-dev.sh
+```
+
+---
+
+## Contribution Rules
+- Never use placeholders (e.g. `TODO`, `...`).
+- Always keep DB schema, models, schemas, and main routes aligned.
+- Every commit must be atomic and describe exactly what was changed.
+- All API calls in frontend must go through `src/lib/api.ts`.

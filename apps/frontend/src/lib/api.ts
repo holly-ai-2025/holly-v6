@@ -72,8 +72,9 @@ export const updateGroup = (id: number, data: any) =>
 // =============================
 // Tasks API
 // =============================
-export const getTasks = (boardId: number) =>
-  api.get(`/db/tasks/${boardId}`);
+export const getTasks = () => api.get("/db/tasks");
+
+export const getTaskById = (id: number) => api.get(`/db/tasks/${id}`);
 
 export const createTask = (data: any) => api.post("/db/tasks", data);
 
