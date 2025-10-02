@@ -7,9 +7,7 @@ import {
   Button,
   TextField,
 } from "@mui/material";
-import { DesktopDatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import api from "../lib/api";
+import { createPhase } from "../api/phases";
 
 interface PhaseDialogProps {
   open: boolean;
@@ -20,14 +18,12 @@ interface PhaseDialogProps {
 
 const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, boardId, onPhaseAdded }) => {
   const [name, setName] = useState("");
-  const [deadline, setDeadline] = useState<Date | null>(null);
 
   const handleSave = async () => {
     try {
-      await api.post("/db/phases", {
+      await createPhase({
         name,
         board_id: boardId,
-        deadline: deadline ? deadline.toISOString() : null,
       });
       onPhaseAdded();
       onClose();
@@ -47,16 +43,6 @@ const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, boardId, onPha
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DesktopDatePicker
-            label="Deadline"
-            value={deadline}
-            onChange={(newValue) => setDeadline(newValue)}
-            renderInput={(params) => (
-              <TextField {...params} fullWidth margin="dense" />
-            )}
-          />
-        </LocalizationProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
