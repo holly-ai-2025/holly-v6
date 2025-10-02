@@ -10,26 +10,55 @@ class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
     deadline: Optional[date] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    category: Optional[str] = None
+    token_value: Optional[int] = None
+    notes: Optional[str] = None
+    urgency_score: Optional[int] = None
+    effort_level: Optional[str] = None
     completed: bool = False
+    pinned: bool = False
     archived: bool = False
 
 
 class TaskCreate(TaskBase):
-    phase_id: int
+    board_id: Optional[int] = None
+    phase_id: Optional[int] = None
+    group_id: Optional[int] = None
+    parent_task_id: Optional[int] = None
 
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     deadline: Optional[date] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    category: Optional[str] = None
+    token_value: Optional[int] = None
+    notes: Optional[str] = None
+    urgency_score: Optional[int] = None
+    effort_level: Optional[str] = None
     completed: Optional[bool] = None
+    pinned: Optional[bool] = None
     archived: Optional[bool] = None
+    board_id: Optional[int] = None
     phase_id: Optional[int] = None
+    group_id: Optional[int] = None
+    parent_task_id: Optional[int] = None
 
 
 class Task(TaskBase):
     task_id: int
-    phase_id: int
+    board_id: Optional[int] = None
+    phase_id: Optional[int] = None
+    group_id: Optional[int] = None
+    parent_task_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -76,6 +105,10 @@ class Phase(PhaseBase):
 class BoardBase(BaseModel):
     name: str
     board_type: str  # must be 'list' or 'project'
+    category: Optional[str] = None
+    color: Optional[str] = None
+    description: Optional[str] = None
+    pinned: bool = False
     archived: bool = False
 
 
@@ -86,6 +119,10 @@ class BoardCreate(BoardBase):
 class BoardUpdate(BaseModel):
     name: Optional[str] = None
     board_type: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[str] = None
+    description: Optional[str] = None
+    pinned: Optional[bool] = None
     archived: Optional[bool] = None
 
 
@@ -94,5 +131,6 @@ class Board(BoardBase):
     created_at: datetime
     updated_at: datetime
     phases: List[Phase] = []
+    tasks: List[Task] = []
 
     model_config = ConfigDict(from_attributes=True)
