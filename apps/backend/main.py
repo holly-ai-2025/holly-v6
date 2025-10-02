@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from . import models, schemas, database
 from datetime import datetime
 import json, logging, os
@@ -43,7 +43,13 @@ def get_db():
 # -------------------- TASKS --------------------
 @app.get("/db/tasks", response_model=list[schemas.Task])
 def read_tasks(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Task).filter(models.Task.archived == False).offset(skip).limit(limit).all()
+    return (
+        db.query(models.Task)
+        .filter(or_(models.Task.archived == False, models.Task.archived.is_(None)))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 @app.post("/db/tasks", response_model=schemas.Task)
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
