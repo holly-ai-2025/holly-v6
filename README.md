@@ -3,7 +3,16 @@
 ## Overview
 Holly AI is a development partner framework that provides both backend and frontend services. The backend runs on Hypercorn (FastAPI + SQLAlchemy) and provides REST API endpoints, while the frontend runs on Vite + React with MUI (Core + Joy UI).
 
-All core entities (Boards, Projects, Phases, Groups, Items, Tasks, ActivityLog) implement **soft delete** via an `archived` boolean flag. Queries automatically exclude archived entities, and delete operations set `archived=True` instead of removing rows.
+All core entities implement **soft delete** via an `archived` boolean flag. Queries automatically exclude archived entities, and delete operations set `archived=True` instead of removing rows.
+
+### Entities
+- **Boards**: Root container. Two types:
+  - `project` → contains **Phases** → contains **Tasks**
+  - `list` → contains **Groups** → contains **Tasks**
+- **Phases**: Belong to project boards. Used for project management workflows.
+- **Groups**: Belong to list boards. Used to group lists within boards.
+- **Tasks**: Belong to either phases (in project boards) or groups (in list boards).
+- **Other entities** (e.g., Items, ActivityLog) are being unified to follow the same CRUD + soft delete pattern.
 
 ## Backend
 - Entrypoint: `apps/backend/main.py`
@@ -61,8 +70,10 @@ psql -U holly_user -d holly_v6 -f scripts/migrations/<filename>.sql
 To verify:
 ```bash
 psql -U holly_user -d holly_v6
-\d projects;
-\d phases;
+\\d boards;
+\\d phases;
+\\d groups;
+\\d tasks;
 ```
 
 ### Adding or Editing Tables
@@ -73,6 +84,12 @@ psql -U holly_user -d holly_v6
 5. Apply the migration with `psql`.
 6. Restart dev: `scripts/start-dev.sh`
 7. Test with curl and frontend.
+
+### Migration History
+- `2025-10-02_fix_boards_tasks_schema.sql` → Align boards and tasks schema.
+- `2025-10-02_fix_timestamps_defaults.sql` → Enforce default timestamps and backfill.
+- `2025-10-02_create_groups_table.sql` → Introduce groups table for list boards.
+- `2025-10-02_fix_groups_add_timestamps.sql` → Add timestamps to groups.
 
 ---
 
