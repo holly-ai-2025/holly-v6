@@ -8,7 +8,7 @@ class Board(Base):
 
     board_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    board_type = Column(String, nullable=False)  # renamed from type
+    board_type = Column(String, nullable=False)
     category = Column(String, nullable=True)
     color = Column(String, nullable=True)
     description = Column(Text, nullable=True)
@@ -19,6 +19,7 @@ class Board(Base):
 
     phases = relationship("Phase", back_populates="board", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="board", cascade="all, delete-orphan")
+    groups = relationship("Group", back_populates="board", cascade="all, delete-orphan")
 
 
 class Phase(Base):
@@ -36,6 +37,21 @@ class Phase(Base):
     board = relationship("Board", back_populates="phases")
 
     tasks = relationship("Task", back_populates="phase", cascade="all, delete-orphan")
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    group_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    archived = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    board_id = Column(Integer, ForeignKey("boards.board_id", ondelete="CASCADE"), nullable=False)
+    board = relationship("Board", back_populates="groups")
+
+    tasks = relationship("Task", back_populates="group", cascade="all, delete-orphan")
 
 
 class Task(Base):
@@ -62,9 +78,10 @@ class Task(Base):
 
     board_id = Column(Integer, ForeignKey("boards.board_id"), nullable=True)
     phase_id = Column(Integer, ForeignKey("phases.phase_id", ondelete="CASCADE"), nullable=True)
-    group_id = Column(Integer, ForeignKey("groups.group_id"), nullable=True)
+    group_id = Column(Integer, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=True)
     parent_task_id = Column(Integer, ForeignKey("tasks.task_id"), nullable=True)
 
     board = relationship("Board", back_populates="tasks")
     phase = relationship("Phase", back_populates="tasks")
+    group = relationship("Group", back_populates="tasks")
     parent_task = relationship("Task", remote_side=[task_id])
