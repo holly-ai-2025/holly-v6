@@ -43,8 +43,8 @@ def update_board(board_id: int, board_update: schemas.BoardUpdate, db: Session =
         setattr(db_board, key, value)
 
     if getattr(board_update, "archived", False):
-        # Cascade archive phases + tasks
         db.query(models.Phase).filter(models.Phase.board_id == board_id).update({"archived": True})
+        db.query(models.Group).filter(models.Group.board_id == board_id).update({"archived": True})
         db.query(models.Task).filter(models.Task.board_id == board_id).update({"archived": True})
 
     db.commit()
@@ -80,6 +80,34 @@ def update_phase(phase_id: int, phase_update: schemas.PhaseUpdate, db: Session =
     return db_phase
 
 # =============================
+# Groups
+# =============================
+@app.post("/db/groups", response_model=schemas.Group)
+def create_group(group: schemas.GroupCreate, db: Session = Depends(get_db)):
+    db_group = models.Group(**group.dict())
+    db.add(db_group)
+    db.commit()
+    db.refresh(db_group)
+    return db_group
+
+@app.get("/db/groups/{board_id}", response_model=List[schemas.Group])
+def get_groups(board_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Group).filter(models.Group.board_id == board_id, models.Group.archived == False).all()
+
+@app.patch("/db/groups/{group_id}", response_model=schemas.Group)
+def update_group(group_id: int, group_update: schemas.GroupUpdate, db: Session = Depends(get_db)):
+    db_group = db.query(models.Group).filter(models.Group.group_id == group_id).first()
+    if not db_group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    for key, value in group_update.dict(exclude_unset=True).items():
+        setattr(db_group, key, value)
+
+    db.commit()
+    db.refresh(db_group)
+    return db_group
+
+# =============================
 # Tasks
 # =============================
 @app.post("/db/tasks", response_model=schemas.Task)
@@ -112,5 +140,4 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
 # =============================
 @app.get("/db/projects", response_model=List[schemas.Board])
 def get_projects(db: Session = Depends(get_db)):
-    # Deprecated, kept for backward compatibility
     return db.query(models.Board).filter(models.Board.board_type == "project", models.Board.archived == False).all()
