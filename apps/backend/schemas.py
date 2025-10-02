@@ -30,7 +30,7 @@ class Task(TaskBase):
     board_id: Optional[int] = None
     phase_id: Optional[int] = None
     group_id: Optional[int] = None
-    archived: bool
+    archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
@@ -59,7 +59,7 @@ class BoardUpdate(BaseModel):
 
 class Board(BoardBase):
     board_id: int
-    archived: bool
+    archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
@@ -79,7 +79,7 @@ class PhaseUpdate(BaseModel):
 
 class Phase(PhaseBase):
     phase_id: int
-    archived: bool
+    archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
@@ -99,7 +99,7 @@ class GroupUpdate(BaseModel):
 
 class Group(GroupBase):
     group_id: int
-    archived: bool
+    archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
@@ -122,7 +122,7 @@ class ItemUpdate(BaseModel):
 
 class Item(ItemBase):
     item_id: int
-    archived: bool
+    archived: Optional[bool] = False
     created_at: datetime
     updated_at: datetime
 
@@ -136,6 +136,6 @@ class ActivityLog(BaseModel):
     action: str
     payload: Optional[str] = None
     created_at: datetime
-    archived: bool
+    archived: Optional[bool] = False
 
     model_config = ConfigDict(from_attributes=True)
