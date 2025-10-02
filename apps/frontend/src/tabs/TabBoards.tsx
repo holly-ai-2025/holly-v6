@@ -90,7 +90,7 @@ const TabBoards: React.FC = () => {
   };
 
   const filteredBoards = boards.filter(
-    (b) => b.board_type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
+    (b) => !b.archived && b.board_type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
   );
 
   const renderProjectCard = (board: Board) => {
