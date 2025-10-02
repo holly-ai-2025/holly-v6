@@ -14,11 +14,11 @@ import api from "../lib/api";
 interface PhaseDialogProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
+  boardId: number;
   onPhaseAdded: () => void;
 }
 
-const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onPhaseAdded }) => {
+const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, boardId, onPhaseAdded }) => {
   const [name, setName] = useState("");
   const [deadline, setDeadline] = useState<Date | null>(null);
 
@@ -26,7 +26,7 @@ const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onP
     try {
       await api.post("/db/phases", {
         name,
-        project_id: projectId,
+        board_id: boardId,
         deadline: deadline ? deadline.toISOString() : null,
       });
       onPhaseAdded();

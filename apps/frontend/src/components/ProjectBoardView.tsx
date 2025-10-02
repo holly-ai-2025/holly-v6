@@ -13,7 +13,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import dayjs from "dayjs";
-import { getPhases, createPhase, updatePhase, Phase } from "../api/phases";
+import { getPhases, updatePhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
 import { updateBoard, Board } from "../api/boards";
 import TaskDialog from "./TaskDialog";
@@ -34,7 +34,6 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
   const [selectedTask, setSelectedTask] = useState<Partial<Task> | null>(null);
 
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
 
   const [editingBoard, setEditingBoard] = useState(false);
   const [editedName, setEditedName] = useState(board.name);
@@ -108,15 +107,6 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedTask(null);
-  };
-
-  const handlePhaseSave = async (form: Partial<Phase>) => {
-    try {
-      await createPhase({ ...form, boardId: board.id });
-      fetchPhases(board.id);
-    } catch (err) {
-      console.error("[ProjectBoardView] Failed to save phase", err);
-    }
   };
 
   const handleBoardSave = async () => {
@@ -253,7 +243,6 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedPhase(phase);
                   setPhaseDialogOpen(true);
                 }}
               >
@@ -351,10 +340,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
         <Button
           variant="contained"
           sx={{ borderRadius: "14px", py: 1.2, width: "25%" }}
-          onClick={() => {
-            setSelectedPhase(null);
-            setPhaseDialogOpen(true);
-          }}
+          onClick={() => setPhaseDialogOpen(true)}
         >
           + Add Phase
         </Button>
@@ -378,10 +364,9 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
       {/* Phase Dialog */}
       <PhaseDialog
         open={phaseDialogOpen}
-        phase={selectedPhase}
         onClose={() => setPhaseDialogOpen(false)}
-        onSave={handlePhaseSave}
-        projectId={board.id}
+        boardId={board.id}
+        onPhaseAdded={() => fetchPhases(board.id)}
       />
     </Paper>
   );
