@@ -2,8 +2,8 @@ import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from . import models, schemas, database
-from .routers import boards, tasks, phases, groups, items
+from apps.backend import models, schemas, database
+from apps.backend.routers import boards, tasks, phases, groups, items
 
 app = FastAPI()
 
