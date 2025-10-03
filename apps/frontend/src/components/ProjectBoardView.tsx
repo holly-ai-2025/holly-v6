@@ -6,7 +6,6 @@ import {
   Divider,
   IconButton,
   Button,
-  TextField,
   Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -69,18 +68,18 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
 
   useEffect(() => {
     if (board?.board_id) {
-      fetchPhases();
+      fetchPhases(board.board_id);
       fetchTasks();
     }
   }, [board?.board_id]);
 
-  const fetchPhases = async () => {
+  const fetchPhases = async (boardId: number) => {
     try {
-      const allPhases = await getPhases();
-      const boardPhases = allPhases.filter((p: Phase) => p.board_id === board.board_id && !p.archived);
-      setPhases(boardPhases);
+      const boardPhases = await getPhases(boardId);
+      const activePhases = boardPhases.filter((p) => !p.archived);
+      setPhases(activePhases);
       const expanded: Record<number, boolean> = {};
-      boardPhases.forEach((p) => (expanded[p.phase_id] = true));
+      activePhases.forEach((p) => (expanded[p.id] = true));
       setOpenGroups(expanded);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch phases", err);
@@ -124,16 +123,16 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
       <Divider sx={{ my: 2 }} />
 
       {phases.map((phase) => (
-        <Box key={phase.phase_id} mb={2}>
+        <Box key={phase.id} mb={2}>
           <Box display="flex" alignItems="center">
-            <IconButton onClick={() => handleTogglePhase(phase.phase_id)}>
-              {openGroups[phase.phase_id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            <IconButton onClick={() => handleTogglePhase(phase.id)}>
+              {openGroups[phase.id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
             <Typography variant="h6">{phase.name}</Typography>
           </Box>
-          {openGroups[phase.phase_id] && (
+          {openGroups[phase.id] && (
             <Box ml={4}>
-              {tasks.filter((t) => t.phase_id === phase.phase_id).map((task) => (
+              {tasks.filter((t) => t.phase_id === phase.id).map((task) => (
                 <Paper key={task.task_id} sx={{ p: 1.5, mb: 1, borderRadius: 1 }}>
                   <Box display="flex" alignItems="center" justifyContent="space-between">
                     <Box>
@@ -182,7 +181,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
       )}
 
       {phaseDialogOpen && (
-        <PhaseDialog open={phaseDialogOpen} onClose={() => setPhaseDialogOpen(false)} onPhaseAdded={fetchPhases} boardId={board.board_id} />
+        <PhaseDialog open={phaseDialogOpen} onClose={() => setPhaseDialogOpen(false)} onPhaseAdded={() => fetchPhases(board.board_id)} boardId={board.board_id} />
       )}
     </Box>
   );

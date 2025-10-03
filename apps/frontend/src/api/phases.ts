@@ -27,9 +27,14 @@ function denormalizePhase(payload: Partial<Phase>): any {
   };
 }
 
-export async function getPhases(): Promise<Phase[]> {
-  const res = await api.get(base);
-  return res.data.map(normalizePhase);
+export async function getPhases(boardId?: number): Promise<Phase[]> {
+  if (boardId) {
+    const res = await api.get(`${base}?board_id=${boardId}`);
+    return res.data.map(normalizePhase);
+  } else {
+    const res = await api.get(base);
+    return res.data.map(normalizePhase);
+  }
 }
 
 export async function createPhase(payload: Partial<Phase>): Promise<Phase> {
