@@ -15,7 +15,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { getGroups, createGroup, getTasks, createTask } from "../lib/api";
 
 interface Board {
-  board_id: number;
+  boardId: number;
   name: string;
   board_type: "project" | "list";
   description?: string;
@@ -24,14 +24,14 @@ interface Board {
 
 interface Group {
   group_id: number;
-  board_id: number;
+  boardId: number;
   name: string;
   archived?: boolean;
 }
 
 interface Task {
   task_id: number;
-  board_id: number;
+  boardId: number;
   group_id?: number;
   title: string;
   archived?: boolean;
@@ -51,12 +51,12 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
   useEffect(() => {
     fetchGroups();
     fetchTasks();
-  }, [board.board_id]);
+  }, [board.boardId]);
 
   const fetchGroups = async () => {
     try {
       const res = await getGroups();
-      setGroups(res.data.filter((g: Group) => g.board_id === board.board_id && !g.archived));
+      setGroups(res.data.filter((g: Group) => g.boardId === board.boardId && !g.archived));
     } catch (err) {
       console.error("[ListBoardView] Failed to fetch groups", err);
     }
@@ -64,8 +64,8 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
 
   const fetchTasks = async () => {
     try {
-      const res = await getTasks(board.board_id);
-      setTasks(res.data.filter((t: Task) => t.board_id === board.board_id && !t.archived));
+      const res = await getTasks(board.boardId);
+      setTasks(res.data.filter((t: Task) => t.boardId === board.boardId && !t.archived));
     } catch (err) {
       console.error("[ListBoardView] Failed to fetch tasks", err);
     }
@@ -74,7 +74,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
   const handleAddGroup = async () => {
     if (!newGroupName) return;
     try {
-      await createGroup({ board_id: board.board_id, name: newGroupName });
+      await createGroup({ boardId: board.boardId, name: newGroupName });
       setNewGroupName("");
       fetchGroups();
     } catch (err) {
@@ -86,7 +86,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
     if (!newTaskTitle) return;
     try {
       await createTask({
-        board_id: board.board_id,
+        boardId: board.boardId,
         group_id: groupId || null,
         title: newTaskTitle,
       });
