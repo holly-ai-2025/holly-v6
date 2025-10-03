@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from . import models, schemas, database
+from .routers import boards, tasks, phases, groups, items
 
 app = FastAPI()
 
@@ -45,16 +46,16 @@ def update_board(board_id: int, board: schemas.BoardUpdate, db: Session = Depend
     # Cascade archive if archived = true
     if board.archived is True:
         # Archive tasks
-        tasks = db.query(models.Task).filter(models.Task.board_id == board_id).all()
-        for t in tasks:
+        tasks_list = db.query(models.Task).filter(models.Task.board_id == board_id).all()
+        for t in tasks_list:
             t.archived = True
         # Archive phases
-        phases = db.query(models.Phase).filter(models.Phase.board_id == board_id).all()
-        for p in phases:
+        phases_list = db.query(models.Phase).filter(models.Phase.board_id == board_id).all()
+        for p in phases_list:
             p.archived = True
         # Archive groups
-        groups = db.query(models.Group).filter(models.Group.board_id == board_id).all()
-        for g in groups:
+        groups_list = db.query(models.Group).filter(models.Group.board_id == board_id).all()
+        for g in groups_list:
             g.archived = True
 
     db.commit()
@@ -73,8 +74,8 @@ def update_phase(phase_id: int, phase: schemas.PhaseUpdate, db: Session = Depend
 
     # Cascade archive if archived = true
     if phase.archived is True:
-        tasks = db.query(models.Task).filter(models.Task.phase_id == phase_id).all()
-        for t in tasks:
+        tasks_list = db.query(models.Task).filter(models.Task.phase_id == phase_id).all()
+        for t in tasks_list:
             t.archived = True
 
     db.commit()
@@ -93,12 +94,17 @@ def update_group(group_id: int, group: schemas.GroupUpdate, db: Session = Depend
 
     # Cascade archive if archived = true
     if group.archived is True:
-        tasks = db.query(models.Task).filter(models.Task.group_id == group_id).all()
-        for t in tasks:
+        tasks_list = db.query(models.Task).filter(models.Task.group_id == group_id).all()
+        for t in tasks_list:
             t.archived = True
 
     db.commit()
     db.refresh(db_group)
     return db_group
 
-# --- Other endpoints (tasks etc.) remain unchanged ---
+# --- Include Routers ---
+app.include_router(boards.router, prefix="/db/boards", tags=["boards"])
+app.include_router(tasks.router, prefix="/db/tasks", tags=["tasks"])
+app.include_router(phases.router, prefix="/db/phases", tags=["phases"])
+app.include_router(groups.router, prefix="/db/groups", tags=["groups"])
+app.include_router(items.router, prefix="/db/items", tags=["items"])
