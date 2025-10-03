@@ -8,21 +8,21 @@ import {
   AccordionSummary,
   AccordionDetails,
   Divider,
-  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EditIcon from "@mui/icons-material/Edit";
 import { getPhases, createPhase, Phase } from "../api/phases";
 import { getTasks, createTask, updateTask, Task } from "../api/tasks";
-import { Board } from "../api/boards";
+import { getBoards, updateBoard, Board } from "../api/boards";
 import TaskDialog from "./TaskDialog";
 import PhaseDialog from "./PhaseDialog";
 
 interface ProjectBoardViewProps {
   board: Board;
+  onBoardArchived?: () => void;
 }
 
-const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
+const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardArchived }) => {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openPhases, setOpenPhases] = useState<Record<number, boolean>>({});
@@ -86,11 +86,23 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
     }
   };
 
+  const handleArchiveBoard = async () => {
+    try {
+      await updateBoard(board.board_id, { archived: true });
+      if (onBoardArchived) onBoardArchived();
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to archive board", err);
+    }
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5" fontWeight="bold">{board.name}</Typography>
-        <Button variant="outlined" onClick={() => setPhaseDialogOpen(true)}>+ Add Phase</Button>
+        <Box display="flex" gap={2}>
+          <Button variant="outlined" onClick={() => setPhaseDialogOpen(true)}>+ Add Phase</Button>
+          <Button variant="outlined" color="error" onClick={handleArchiveBoard}>Archive Board</Button>
+        </Box>
       </Box>
 
       {phases.map((phase) => (
