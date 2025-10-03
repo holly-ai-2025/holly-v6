@@ -2,7 +2,6 @@ import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import update
 from . import models, schemas, database
 
 app = FastAPI()
@@ -75,4 +74,24 @@ def update_phase(phase_id: int, phase: schemas.PhaseUpdate, db: Session = Depend
 
     return db_phase
 
-# --- Other endpoints (tasks, groups, etc.) remain unchanged ---
+# --- Groups Endpoints ---
+@app.patch("/db/groups/{group_id}", response_model=schemas.Group)
+def update_group(group_id: int, group: schemas.GroupUpdate, db: Session = Depends(get_db)):
+    db_group = db.query(models.Group).filter(models.Group.group_id == group_id, models.Group.archived == False).first()
+    if not db_group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    for key, value in group.dict(exclude_unset=True).items():
+        setattr(db_group, key, value)
+
+    db.commit()
+    db.refresh(db_group)
+
+    # Cascade archive if archived = true
+    if group.archived is True:
+        db.query(models.Task).filter(models.Task.group_id == group_id).update({"archived": True})
+        db.commit()
+
+    return db_group
+
+# --- Other endpoints (tasks etc.) remain unchanged ---
