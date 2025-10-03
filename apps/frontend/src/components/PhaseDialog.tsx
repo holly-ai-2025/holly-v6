@@ -23,7 +23,7 @@ const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, boardId, onPha
     try {
       await createPhase({
         name,
-        board_id: boardId,
+        boardId, // ✅ fixed key
       });
       onPhaseAdded();
       onClose();
