@@ -29,7 +29,7 @@ const boardColors: string[] = ["#5cc9f5", "#5a96f5", "#a469f5", "#f57ad1", "#f55
 interface Board {
   board_id: number;
   name: string;
-  board_type: "project" | "list";
+  type: "project" | "list";
   category?: string;
   color?: string;
   description?: string;
@@ -44,7 +44,7 @@ const TabBoards: React.FC = () => {
   const [viewType, setViewType] = useState<"project" | "list">("project");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newBoard, setNewBoard] = useState<Partial<Board>>({ board_type: "project" });
+  const [newBoard, setNewBoard] = useState<Partial<Board>>({ type: "project" });
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
 
   const fetchBoards = async () => {
@@ -62,17 +62,17 @@ const TabBoards: React.FC = () => {
   }, []);
 
   const handleCreateBoard = async () => {
-    if (!newBoard.name || !newBoard.board_type) return;
+    if (!newBoard.name || !newBoard.type) return;
     try {
       await createBoard({
         name: newBoard.name,
-        board_type: newBoard.board_type,
+        type: newBoard.type,
         category: newBoard.category,
         color: newBoard.color,
         description: newBoard.description,
       });
       setDialogOpen(false);
-      setNewBoard({ board_type: "project" });
+      setNewBoard({ type: "project" });
       fetchBoards();
     } catch (err) {
       console.error("[TabBoards] Failed to create board", err);
@@ -94,7 +94,7 @@ const TabBoards: React.FC = () => {
   };
 
   const filteredBoards = boards.filter(
-    (b) => !b.archived && b.board_type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
+    (b) => !b.archived && b.type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
   );
 
   const renderProjectCard = (board: Board) => {
@@ -212,7 +212,7 @@ const TabBoards: React.FC = () => {
           <Grid container spacing={2}>
             {filteredBoards.map((b) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={b.board_id}>
-                {b.board_type === "project" ? renderProjectCard(b) : renderListCard(b)}
+                {b.type === "project" ? renderProjectCard(b) : renderListCard(b)}
               </Grid>
             ))}
           </Grid>
@@ -240,9 +240,9 @@ const TabBoards: React.FC = () => {
           <FormControl fullWidth>
             <InputLabel>Type</InputLabel>
             <Select
-              value={newBoard.board_type || "project"}
+              value={newBoard.type || "project"}
               label="Type"
-              onChange={(e) => setNewBoard({ ...newBoard, board_type: e.target.value as "project" | "list" })}
+              onChange={(e) => setNewBoard({ ...newBoard, type: e.target.value as "project" | "list" })}
             >
               <MenuItem value="project">Project</MenuItem>
               <MenuItem value="list">List</MenuItem>
