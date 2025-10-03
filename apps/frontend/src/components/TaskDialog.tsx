@@ -60,10 +60,11 @@ interface TaskDialogProps {
   onTaskAdded: (payload: any) => void;
   onDelete?: (task: any) => void;
   task?: any;
-  boardId?: string;
+  boardId?: number;
+  phaseId?: number;
 }
 
-const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onDelete, task, boardId }) => {
+const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onDelete, task, boardId, phaseId }) => {
   const isNew = !task;
 
   const [title, setTitle] = useState(task?.name || "");
@@ -79,8 +80,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
 
   const [boards, setBoards] = useState<any[]>([]);
   const [phases, setPhases] = useState<any[]>([]);
-  const [board, setBoard] = useState(task?.board_id || boardId || "");
-  const [phase, setPhase] = useState(task?.phase_id || "");
+  const [board, setBoard] = useState<number | "">(task?.board_id || boardId || "");
+  const [phase, setPhase] = useState<number | "">(task?.phase_id || phaseId || "");
   const [category, setCategory] = useState(task?.category || "");
 
   useEffect(() => {
@@ -89,7 +90,13 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
 
   useEffect(() => {
     if (board) {
-      getPhases().then((all) => setPhases(all.filter((p: any) => p.board_id === board)));
+      // If boardId is provided, fetch phases directly from backend with filtering
+      getPhases(typeof board === "number" ? board : undefined).then((fetched) => {
+        setPhases(fetched);
+      });
+    } else {
+      // Fallback: fetch all phases if no board selected
+      getPhases().then(setPhases);
     }
   }, [board]);
 
@@ -105,7 +112,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
       setArchived(task.archived || false);
       setPinned(task.pinned || false);
       setBoard(task.board_id || boardId || "");
-      setPhase(task.phase_id || "");
+      setPhase(task.phase_id || phaseId || "");
       setCategory(task.category || "");
       setNotes(task.notes || "");
     } else {
@@ -119,11 +126,11 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
       setArchived(false);
       setPinned(false);
       setBoard(boardId || "");
-      setPhase("");
+      setPhase(phaseId || "");
       setCategory("");
       setNotes("");
     }
-  }, [task, open, boardId]);
+  }, [task, open, boardId, phaseId]);
 
   const handleSave = () => {
     const priorityMap = ["Low", "Medium", "High", "Urgent"];
@@ -255,7 +262,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
             <Select
               fullWidth
               value={board}
-              onChange={(e) => setBoard(e.target.value)}
+              onChange={(e) => setBoard(Number(e.target.value))}
               displayEmpty
               size="small"
               sx={inputSx}
@@ -270,7 +277,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
             <Select
               fullWidth
               value={phase}
-              onChange={(e) => setPhase(e.target.value)}
+              onChange={(e) => setPhase(Number(e.target.value))}
               displayEmpty
               disabled={!board}
               size="small"
@@ -280,7 +287,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
                 Select a phase
               </MenuItem>
               {phases.map((p) => (
-                <MenuItem key={p.phase_id} value={p.phase_id}>{p.name}</MenuItem>
+                <MenuItem key={p.id || p.phase_id} value={p.id || p.phase_id}>{p.name}</MenuItem>
               ))}
             </Select>
             <TextField
