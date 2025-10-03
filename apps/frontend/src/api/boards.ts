@@ -11,6 +11,7 @@ export interface Board {
   description?: string | null;
   goal?: string | null;
   pinned?: boolean;
+  archived?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -26,6 +27,7 @@ function normalizeBoard(raw: any): Board {
     description: raw.description,
     goal: raw.goal,
     pinned: raw.pinned,
+    archived: raw.archived,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };
@@ -42,6 +44,7 @@ function denormalizeBoard(payload: any): any {
     description: payload.description,
     goal: payload.goal,
     pinned: payload.pinned,
+    archived: payload.archived,
     created_at: payload.createdAt,
     updated_at: payload.updatedAt,
   };
