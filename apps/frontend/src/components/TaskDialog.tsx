@@ -90,13 +90,11 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
 
   useEffect(() => {
     if (board) {
-      // If boardId is provided, fetch phases directly from backend with filtering
       getPhases(typeof board === "number" ? board : undefined).then((fetched) => {
         setPhases(fetched);
       });
     } else {
-      // Fallback: fetch all phases if no board selected
-      getPhases().then(setPhases);
+      setPhases([]);
     }
   }, [board]);
 
@@ -147,13 +145,13 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
     const payload = {
       name: title,
       description,
-      due_date: dueDate || null,
+      dueDate: dueDate || null,
       priority: priorityMap[priority - 1],
-      token_value: rewardTokens,
-      effort_level: effortMap[effort - 1],
+      tokenValue: rewardTokens,
+      effortLevel: effortMap[effort - 1],
       status: statusMap[status] || "Todo",
-      board_id: board || null,
-      phase_id: phase || null,
+      boardId: board || null,
+      phaseId: phase || null,
       category,
       archived,
       pinned,
@@ -287,7 +285,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onD
                 Select a phase
               </MenuItem>
               {phases.map((p) => (
-                <MenuItem key={p.id || p.phase_id} value={p.id || p.phase_id}>{p.name}</MenuItem>
+                <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
               ))}
             </Select>
             <TextField
