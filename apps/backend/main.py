@@ -42,16 +42,23 @@ def update_board(board_id: int, board: schemas.BoardUpdate, db: Session = Depend
     for key, value in board.dict(exclude_unset=True).items():
         setattr(db_board, key, value)
 
-    db.commit()
-    db.refresh(db_board)
-
     # Cascade archive if archived = true
     if board.archived is True:
-        db.query(models.Task).filter(models.Task.board_id == board_id).update({"archived": True})
-        db.query(models.Phase).filter(models.Phase.board_id == board_id).update({"archived": True})
-        db.query(models.Group).filter(models.Group.board_id == board_id).update({"archived": True})
-        db.commit()
+        # Archive tasks
+        tasks = db.query(models.Task).filter(models.Task.board_id == board_id).all()
+        for t in tasks:
+            t.archived = True
+        # Archive phases
+        phases = db.query(models.Phase).filter(models.Phase.board_id == board_id).all()
+        for p in phases:
+            p.archived = True
+        # Archive groups
+        groups = db.query(models.Group).filter(models.Group.board_id == board_id).all()
+        for g in groups:
+            g.archived = True
 
+    db.commit()
+    db.refresh(db_board)
     return db_board
 
 # --- Phases Endpoints ---
@@ -64,14 +71,14 @@ def update_phase(phase_id: int, phase: schemas.PhaseUpdate, db: Session = Depend
     for key, value in phase.dict(exclude_unset=True).items():
         setattr(db_phase, key, value)
 
-    db.commit()
-    db.refresh(db_phase)
-
     # Cascade archive if archived = true
     if phase.archived is True:
-        db.query(models.Task).filter(models.Task.phase_id == phase_id).update({"archived": True})
-        db.commit()
+        tasks = db.query(models.Task).filter(models.Task.phase_id == phase_id).all()
+        for t in tasks:
+            t.archived = True
 
+    db.commit()
+    db.refresh(db_phase)
     return db_phase
 
 # --- Groups Endpoints ---
@@ -84,14 +91,14 @@ def update_group(group_id: int, group: schemas.GroupUpdate, db: Session = Depend
     for key, value in group.dict(exclude_unset=True).items():
         setattr(db_group, key, value)
 
-    db.commit()
-    db.refresh(db_group)
-
     # Cascade archive if archived = true
     if group.archived is True:
-        db.query(models.Task).filter(models.Task.group_id == group_id).update({"archived": True})
-        db.commit()
+        tasks = db.query(models.Task).filter(models.Task.group_id == group_id).all()
+        for t in tasks:
+            t.archived = True
 
+    db.commit()
+    db.refresh(db_group)
     return db_group
 
 # --- Other endpoints (tasks etc.) remain unchanged ---
