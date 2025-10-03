@@ -1,88 +1,67 @@
 # Backend (FastAPI + PostgreSQL)
 
 ## Overview
-Backend provides REST API for boards, phases, groups, tasks, items, and activity logs.
-- Built with FastAPI, SQLAlchemy ORM, PostgreSQL
-- Served with Hypercorn
-- All entities support soft delete via `archived` flag
+- FastAPI + SQLAlchemy ORM
+- PostgreSQL (DB: `holly_v6`)
+- Hypercorn server
+- All entities support soft delete (`archived` flag)
 
 ---
 
-## Database
-### Entities
-- **Boards**: project or list
-- **Phases**: only for project boards
-- **Groups**: only for list boards
-- **Tasks**: linked to boards, phases, or groups
-- **Items**: linked to list boards and groups
-- **ActivityLog**: logs all create/update/archive actions
+## Database Entities
+- **Boards** → `board_type` = project | list
+- **Phases** → only for project boards
+- **Groups** → only for list boards
+- **Tasks** → may link to board, phase, or group
+- **Items** → list board contents
+- **ActivityLog** → stores JSON string payloads
 
-### Uniform CRUD
+---
+
+## Schema Renames & Deprecations
+| Old field     | New field   | Notes              |
+|---------------|-------------|--------------------|
+| end_date      | due_date    | Used everywhere    |
+| project_id    | board_id    | Migration complete |
+| urgency_score | ❌ removed  | May be readded     |
+
+---
+
+## Uniform CRUD
 Each entity has:
-- CreateModel → POST `/db/{entity}`
-- UpdateModel → PATCH `/db/{entity}/{id}`
-- ResponseModel → GET `/db/{entity}` or `/db/{entity}/{id}`
+- POST `/db/{entity}`
+- PATCH `/db/{entity}/{id}`
+- GET `/db/{entity}` / `/db/{entity}/{id}`
 
-All include: `archived`, `created_at`, `updated_at`.
-
-### Schema Alignment
-The **source of truth** is PostgreSQL. Always:
-1. Inspect DB with `psql`:
-   ```bash
-   psql -U holly_user -d holly_v6 -h localhost -c "\\d tasks"
-   ```
-2. Create migration in `/migrations`.
-3. Update:
-   - `apps/backend/models.py`
-   - `apps/backend/schemas.py`
-   - `apps/backend/main.py`
-
-**Never leave DB columns undocumented in schema or model.**
-
-### Example Migration
-Rename column `end_date` to `due_date`:
-```sql
-ALTER TABLE tasks RENAME COLUMN end_date TO due_date;
-```
+All responses include:
+- `id`
+- `archived`
+- `created_at`
+- `updated_at`
 
 ---
 
-## API Endpoints
-### Boards
-- `GET /db/boards`
-- `POST /db/boards` { name, board_type }
-- `PATCH /db/boards/{id}` { archived: true }
-
-### Tasks
-- `GET /db/tasks`
-- `POST /db/tasks` { title, description, board_id?, phase_id?, group_id? }
-- `PATCH /db/tasks/{id}` { due_date, status, archived }
-
-### Activity Logs
-- Created automatically on entity create/update/archive
-- `payload` always stored as **JSON string** (never raw dict)
-
----
-
-## Running Backend
-Use startup script:
-```bash
-scripts/start-dev.sh
+## Example: Tasks
+```json
+{
+  "task_id": 1,
+  "title": "Finish docs",
+  "description": "Write README updates",
+  "due_date": "2025-10-02",
+  "status": "open",
+  "priority": "high",
+  "category": "general",
+  "archived": false,
+  "created_at": "...",
+  "updated_at": "..."
+}
 ```
-
-If backend crashes, run manually:
-```bash
-.venv/bin/hypercorn apps.backend.main:app --reload --bind 0.0.0.0:8000
-```
-This ensures raw Python traceback is visible.
 
 ---
 
 ## CORS
 Configured in `apps/backend/main.py`:
 ```python
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -103,19 +82,48 @@ app.add_middleware(
 
 ---
 
-## Debugging
-- Logs: `logs/backend-live.log`
-- Reset logs:
-  ```bash
-  > logs/backend-live.log
-  scripts/start-dev.sh
-  ```
-- If schema mismatch error → inspect DB, apply migration, update models.py + schemas.py
+## Database Management
+
+### Resetting Data
+To clear test data:
+```bash
+psql -U holly_user -d holly_v6 -h localhost -f scripts/migrations/2025-10-02_reset_boards.sql
+```
+This clears:
+- projects
+- items
+- groups
+- activity_logs
+- tasks
+- phases
+- boards
+
+### Dummy Tasks
+Seed with:
+```bash
+psql -U holly_user -d holly_v6 -h localhost -f scripts/migrations/2025-10-02_insert_dummy_tasks.sql
+```
+Populates overdue, today, tomorrow, future, and suggested tasks.
+
+### Foreign Keys
+- Must delete dependent rows before deleting boards.
+- Example: delete phases/tasks/groups before a project board.
 
 ---
 
-## Known Standards
-- Soft delete only (archived = true)
-- All frontend API requests use `src/lib/api.ts`
-- Do not add direct axios calls inside components
-- Always JSON-encode payloads in activity logs
+## Debugging
+- Backend logs: `logs/backend-live.log`
+- Restart backend:
+  ```bash
+  .venv/bin/hypercorn apps.backend.main:app --reload --bind 0.0.0.0:8000
+  ```
+- If tasks/phases return `405` → check request method vs API spec.
+- If frontend blocked by CORS → ensure `ngrok-skip-browser-warning` header is present.
+
+---
+
+## Contribution Rules
+- Never use placeholders.
+- DB schema, models, and routes must remain aligned.
+- All payloads in activity logs must be JSON strings.
+- Frontend requests must always use `src/lib/api.ts`. 

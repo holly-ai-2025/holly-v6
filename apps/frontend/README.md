@@ -1,87 +1,76 @@
-# Frontend (React + Vite + MUI)
+# Frontend (Vite + React + MUI)
 
 ## Overview
-Frontend is built with:
-- React + Vite
-- MUI (Core + Joy UI)
-- Axios for API requests (wrapped in `src/lib/api.ts`)
-- Logs forwarded to `logs/frontend-console.log`
+- Built with **Vite + React**.
+- UI with **MUI Core + Joy UI**.
+- API calls **must** go through `src/lib/api.ts`.
 
 ---
 
-## API Usage Rules
-- **All API calls must go through `src/lib/api.ts`**
-- Do not call axios directly inside components
-- `lib/api.ts` provides wrappers for GET, POST, PATCH, DELETE
-
-### CRUD Examples
-#### Create Board
-```ts
-await api.post("/db/boards", { name: "My Board", board_type: "project" });
-```
-
-#### Update Board
-```ts
-await api.patch(`/db/boards/${id}`, { archived: true });
-```
-
-#### Fetch Tasks
-```ts
-const tasks = await api.get("/db/tasks");
-```
+## Standards
+- No direct Axios calls inside components.
+- All CRUD endpoints go via `lib/api.ts`.
+- All entities support `archived` flag (soft delete).
 
 ---
 
-## Soft Delete
-- All entities use `archived: boolean`
-- Delete = PATCH `{ archived: true }`
-- UI must filter out archived items
+## Schema Adjustments
+- Use `due_date` (not `end_date`).
+- Use `board_id` (not `project_id`).
+- `urgency_score` has been removed.
 
 ---
 
-## Uniform CRUD Contract
-All entities follow the same model pattern:
-- `CreateModel` → POST
-- `UpdateModel` → PATCH
-- `ResponseModel` → GET
+## Task Grouping (TabTasks)
+Tasks are automatically bucketed into:
+- **Today** → `due_date = current_date`
+- **Tomorrow** → `due_date = current_date + 1`
+- **Overdue** → `due_date < today`
+- **Future** → `due_date > tomorrow`
+- **Suggested** → `due_date IS NULL` (max 3 shown per day, shuffled)
 
-Each response includes:
-- `id`
-- `created_at`
-- `updated_at`
-- `archived`
+👉 Suggested tasks are intentional. They support ADHD-style workflows by allowing freeform entry without dates.
 
 ---
 
-## Dev Setup
-Start with unified script:
+## Drag & Drop
+- Dragging a **Suggested** task into Today/Tomorrow assigns the appropriate `due_date`.
+- Dragging between groups updates `due_date` accordingly.
+
+---
+
+## Boards
+- Boards load via `GET /db/boards` → frontend filters out `archived`.
+- **BoardDetailPage → ProjectBoardView** handles project-type boards:
+  - Phases load from `/db/phases?board_id={id}`
+  - Tasks load from `/db/tasks?board_id={id}`
+  - Supports creating phases, adding tasks, archiving boards.
+
+---
+
+## Known Fixes
+- `ProjectBoardView` was restored from main branch after accidental stripping of UI features.
+- `TaskDialog` fixed: `onSave` now passed properly.
+- **Calendar (TabCalendar)** still needs update to use `due_date` instead of `end_date`.
+
+---
+
+## Development
+Start frontend via:
 ```bash
 scripts/start-dev.sh
 ```
-- Frontend runs at `http://localhost:5173`
-- Backend runs at `http://localhost:8000`
 
----
-
-## Debugging API Errors
-1. Open browser console (`logs/frontend-console.log` will mirror messages)
-2. Check if API call is blocked by CORS
-3. If 500 error → check `logs/backend-live.log`
-4. Validate with curl:
-   ```bash
-   curl -X GET http://localhost:8000/db/tasks
-   ```
-
----
-
-## CORS in Dev
-Backend allows all origins + explicit `ngrok-skip-browser-warning` header. This ensures ngrok + Safari/WebKit work.
+Frontend console logs are piped to:
+```
+logs/frontend-console.log
+```
 
 ---
 
 ## Contribution Rules
-- Never use placeholders in code
-- Always use `lib/api.ts` for requests
+- Never use placeholders.
+- Always use `lib/api.ts` for requests.
 - When adding new entity:
   1. Ensure backend migration + models.py + schemas.py + main.py updated
   2. Add frontend API methods in `lib/api.ts`
