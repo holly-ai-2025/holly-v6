@@ -5,6 +5,7 @@ from sqlalchemy import desc, or_
 from . import models, schemas, database
 from datetime import datetime
 import json, logging, os
+from typing import Optional
 
 app = FastAPI()
 
@@ -153,8 +154,11 @@ def update_board(board_id: int, board: schemas.BoardUpdate, db: Session = Depend
 
 # -------------------- PHASES --------------------
 @app.get("/db/phases", response_model=list[schemas.Phase])
-def read_phases(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.Phase).filter(models.Phase.archived == False).offset(skip).limit(limit).all()
+def read_phases(board_id: Optional[int] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    query = db.query(models.Phase).filter(models.Phase.archived == False)
+    if board_id is not None:
+        query = query.filter(models.Phase.board_id == board_id)
+    return query.offset(skip).limit(limit).all()
 
 @app.post("/db/phases", response_model=schemas.Phase)
 def create_phase(phase: schemas.PhaseCreate, db: Session = Depends(get_db)):
