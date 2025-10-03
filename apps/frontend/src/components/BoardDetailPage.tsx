@@ -5,7 +5,7 @@ import ListBoardView from "./ListBoardView";
 interface Board {
   board_id: number;
   name: string;
-  board_type: "project" | "list";
+  type: "project" | "list";
   description?: string;
   category?: string;
   color?: string;
@@ -22,7 +22,7 @@ const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ board, onClose }) => 
     if (onClose) onClose();
   };
 
-  return board.board_type === "project" ? (
+  return board.type === "project" ? (
     <ProjectBoardView board={board} onBoardDeleted={handleBoardDeleted} />
   ) : (
     <ListBoardView board={board} onBoardDeleted={handleBoardDeleted} />
