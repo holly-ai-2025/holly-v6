@@ -2,186 +2,137 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Checkbox,
-  Divider,
   IconButton,
   Button,
-  Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import dayjs from "dayjs";
-import { getPhases } from "../api/phases";
-import { getTasks, updateTask } from "../api/tasks";
-import { updateBoard } from "../api/boards";
+import EditIcon from "@mui/icons-material/Edit";
+import { getPhases, createPhase, Phase } from "../api/phases";
+import { getTasks, createTask, updateTask, Task } from "../api/tasks";
+import { Board } from "../api/boards";
 import TaskDialog from "./TaskDialog";
 import PhaseDialog from "./PhaseDialog";
 
-interface Phase {
-  phase_id: number;
-  board_id: number;
-  name: string;
-  archived?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Task {
-  task_id: number;
-  board_id?: number;
-  phase_id?: number;
-  name: string;
-  description?: string;
-  due_date?: string;
-  status?: string;
-  priority?: string;
-  category?: string;
-  archived?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface Board {
-  board_id: number;
-  name: string;
-  board_type: string;
-  description?: string;
-  color?: string;
-  category?: string;
-  archived?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
 interface ProjectBoardViewProps {
   board: Board;
-  onBoardDeleted?: () => void;
 }
 
-const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDeleted }) => {
+const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board }) => {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({});
+  const [openPhases, setOpenPhases] = useState<Record<number, boolean>>({});
 
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Partial<Task> | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<Phase | null>(null);
+
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (board?.board_id) {
-      fetchPhases(board.board_id);
+    if (board) {
+      fetchPhases();
       fetchTasks();
     }
-  }, [board?.board_id]);
+  }, [board]);
 
-  const fetchPhases = async (boardId: number) => {
+  const fetchPhases = async () => {
     try {
-      const boardPhases = await getPhases(boardId);
-      const activePhases = boardPhases.filter((p) => !p.archived);
-      setPhases(activePhases);
-      const expanded: Record<number, boolean> = {};
-      activePhases.forEach((p) => (expanded[p.id] = true));
-      setOpenGroups(expanded);
+      const data = await getPhases(board.board_id);
+      setPhases(data);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch phases", err);
-      setPhases([]);
     }
   };
 
   const fetchTasks = async () => {
     try {
-      const allTasks = await getTasks();
-      const boardTasks = allTasks.filter((t: Task) => t.board_id === board.board_id && !t.archived);
-      setTasks(boardTasks);
+      const data = await getTasks(board.board_id);
+      setTasks(data);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch tasks", err);
-      setTasks([]);
     }
   };
 
-  const handleTogglePhase = (phaseId: number) => {
-    setOpenGroups((prev) => ({ ...prev, [phaseId]: !prev[phaseId] }));
+  const handleAddPhase = async (name: string) => {
+    try {
+      await createPhase({ name, boardId: board.board_id });
+      fetchPhases();
+    } catch (err) {
+      console.error("[ProjectBoardView] Failed to create phase", err);
+    }
   };
 
-  const handleArchiveBoard = async () => {
+  const handleAddTask = async (phase: Phase) => {
+    setSelectedTask(null);
+    setSelectedPhase(phase);
+    setTaskDialogOpen(true);
+  };
+
+  const handleSaveTask = async (payload: Partial<Task>) => {
     try {
-      await updateBoard(board.board_id, { archived: true });
-      if (onBoardDeleted) onBoardDeleted();
+      if (selectedTask && selectedTask.id) {
+        await updateTask(selectedTask.id, payload);
+      } else {
+        await createTask(payload);
+      }
+      fetchTasks();
     } catch (err) {
-      console.error("[ProjectBoardView] Failed to archive board", err);
+      console.error("[ProjectBoardView] Failed to save task", err);
     }
   };
 
   return (
-    <Box p={2}>
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h5">{board.name}</Typography>
-        <Button color="error" onClick={handleArchiveBoard}>Archive Board</Button>
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h5" fontWeight="bold">{board.name}</Typography>
+        <Button variant="outlined" onClick={() => setPhaseDialogOpen(true)}>+ Add Phase</Button>
       </Box>
-      <Typography variant="body2" gutterBottom>
-        {board.description || "No description"}
-      </Typography>
-      <Divider sx={{ my: 2 }} />
 
       {phases.map((phase) => (
-        <Box key={phase.id} mb={2}>
-          <Box display="flex" alignItems="center">
-            <IconButton onClick={() => handleTogglePhase(phase.id)}>
-              {openGroups[phase.id] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
+        <Accordion key={phase.id} expanded={!!openPhases[phase.id]} onChange={() => setOpenPhases({ ...openPhases, [phase.id]: !openPhases[phase.id] })}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6">{phase.name}</Typography>
-          </Box>
-          {openGroups[phase.id] && (
-            <Box ml={4}>
-              {tasks.filter((t) => t.phase_id === phase.id).map((task) => (
-                <Paper key={task.task_id} sx={{ p: 1.5, mb: 1, borderRadius: 1 }}>
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="bold">{task.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">{task.description || "No description"}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Due: {task.due_date ? dayjs(task.due_date).format("MMM D, YYYY") : "–"}
-                      </Typography>
-                    </Box>
-                    <Checkbox checked={task.status === "done"} onChange={() => updateTask(task.task_id, { status: task.status === "done" ? "todo" : "done" })} />
-                  </Box>
-                </Paper>
-              ))}
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box display="flex" justifyContent="flex-end" mb={2}>
+              <Button variant="contained" size="small" onClick={() => handleAddTask(phase)}>+ Add Task</Button>
             </Box>
-          )}
-        </Box>
+
+            {tasks.filter((t) => t.phase_id === phase.id && !t.archived).map((task) => (
+              <Box key={task.id} display="flex" alignItems="center" justifyContent="space-between" p={1} mb={1} border="1px solid #ddd" borderRadius={2}>
+                <Typography>{task.name}</Typography>
+                <IconButton onClick={() => { setSelectedTask(task); setSelectedPhase(phase); setTaskDialogOpen(true); }}>
+                  <EditIcon />
+                </IconButton>
+              </Box>
+            ))}
+          </AccordionDetails>
+        </Accordion>
       ))}
 
-      {tasks.filter((t) => !t.phase_id).length > 0 && (
-        <Box mt={4}>
-          <Typography variant="h6" gutterBottom>Unassigned Tasks</Typography>
-          {tasks.filter((t) => !t.phase_id).map((task) => (
-            <Paper key={task.task_id} sx={{ p: 1.5, mb: 1, borderRadius: 1 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle1" fontWeight="bold">{task.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">{task.description || "No description"}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Due: {task.due_date ? dayjs(task.due_date).format("MMM D, YYYY") : "–"}
-                  </Typography>
-                </Box>
-                <Checkbox checked={task.status === "done"} onChange={() => updateTask(task.task_id, { status: task.status === "done" ? "todo" : "done" })} />
-              </Box>
-            </Paper>
-          ))}
-        </Box>
+      {phaseDialogOpen && (
+        <PhaseDialog
+          open={phaseDialogOpen}
+          onClose={() => setPhaseDialogOpen(false)}
+          boardId={board.board_id}
+          onPhaseAdded={fetchPhases}
+        />
       )}
-
-      <Box mt={4}>
-        <Button variant="outlined" onClick={() => setPhaseDialogOpen(true)}>+ Add Phase</Button>
-        <Button variant="outlined" sx={{ ml: 2 }} onClick={() => setTaskDialogOpen(true)}>+ Add Task</Button>
-      </Box>
 
       {taskDialogOpen && (
-        <TaskDialog open={taskDialogOpen} onClose={() => setTaskDialogOpen(false)} onTaskAdded={fetchTasks} boardId={board.board_id} />
-      )}
-
-      {phaseDialogOpen && (
-        <PhaseDialog open={phaseDialogOpen} onClose={() => setPhaseDialogOpen(false)} onPhaseAdded={() => fetchPhases(board.board_id)} boardId={board.board_id} />
+        <TaskDialog
+          open={taskDialogOpen}
+          onClose={() => setTaskDialogOpen(false)}
+          onTaskAdded={handleSaveTask}
+          task={selectedTask}
+          boardId={board.board_id}
+          phaseId={selectedPhase?.id}
+        />
       )}
     </Box>
   );
