@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import dayjs from "dayjs";
-import { getBoards, createBoard, updateBoard } from "../lib/api";
+import { getBoards, createBoard, updateBoard } from "../api/boards";
 import BoardDetailPage from "../components/BoardDetailPage";
 
 const boardColors: string[] = ["#5cc9f5", "#5a96f5", "#a469f5", "#f57ad1", "#f55c5c"];
@@ -49,9 +49,8 @@ const TabBoards: React.FC = () => {
 
   const fetchBoards = async () => {
     try {
-      const res = await getBoards();
-      if (Array.isArray(res.data)) setBoards(res.data);
-      else setBoards([]);
+      const boards = await getBoards();
+      setBoards(boards);
     } catch (err) {
       console.error("[TabBoards] Failed to fetch boards", err);
       setBoards([]);
@@ -87,6 +86,11 @@ const TabBoards: React.FC = () => {
     } catch (err) {
       console.error("[TabBoards] Failed to archive board", err);
     }
+  };
+
+  const handleBoardClosed = () => {
+    setSelectedBoard(null);
+    fetchBoards();
   };
 
   const filteredBoards = boards.filter(
@@ -162,12 +166,12 @@ const TabBoards: React.FC = () => {
     return (
       <Box p={2}>
         <Box display="flex" alignItems="center" mb={2}>
-          <IconButton onClick={() => setSelectedBoard(null)}>
+          <IconButton onClick={() => handleBoardClosed()}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" ml={1}>{selectedBoard.name}</Typography>
         </Box>
-        <BoardDetailPage board={selectedBoard} />
+        <BoardDetailPage board={selectedBoard} onClose={handleBoardClosed} />
       </Box>
     );
   }

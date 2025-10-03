@@ -19,7 +19,7 @@ interface BoardDetailPageProps {
 
 const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ board, onClose }) => {
   const handleBoardDeleted = () => {
-    if (onClose) onClose(); // return user back to TabBoards
+    if (onClose) onClose();
   };
 
   return board.board_type === "project" ? (
