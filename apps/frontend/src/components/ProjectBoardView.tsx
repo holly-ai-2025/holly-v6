@@ -18,10 +18,10 @@ import PhaseDialog from "./PhaseDialog";
 
 interface ProjectBoardViewProps {
   board: Board;
-  onBoardArchived?: () => void;
+  onBoardDeleted?: () => void;
 }
 
-const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardArchived }) => {
+const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDeleted }) => {
   const [phases, setPhases] = useState<Phase[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [openPhases, setOpenPhases] = useState<Record<number, boolean>>({});
@@ -100,7 +100,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardArchi
   const handleArchiveBoard = async () => {
     try {
       await updateBoard(board.board_id, { archived: true });
-      if (onBoardArchived) onBoardArchived();
+      if (onBoardDeleted) onBoardDeleted();
     } catch (err) {
       console.error("[ProjectBoardView] Failed to archive board", err);
     }
