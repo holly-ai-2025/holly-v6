@@ -21,7 +21,7 @@ function normalizeBoard(raw: any): Board {
   return {
     id: raw.board_id,
     name: raw.name,
-    type: raw.type,
+    type: raw.board_type,
     category: raw.category,
     color: raw.color,
     description: raw.description,
@@ -38,7 +38,7 @@ function denormalizeBoard(payload: any): any {
   return {
     board_id: payload.id,
     name: payload.name,
-    type: payload.type,
+    board_type: payload.type,
     category: payload.category,
     color: payload.color,
     description: payload.description,
