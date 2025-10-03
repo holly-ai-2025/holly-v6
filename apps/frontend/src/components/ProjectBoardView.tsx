@@ -41,7 +41,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
 
   const fetchPhases = async () => {
     try {
-      const data = await getPhases(board.board_id);
+      const data = await getPhases(board.id);
       setPhases(data);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch phases", err);
@@ -50,7 +50,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
 
   const fetchTasks = async () => {
     try {
-      const data = await getTasks(board.board_id);
+      const data = await getTasks(board.id);
       setTasks(data);
     } catch (err) {
       console.error("[ProjectBoardView] Failed to fetch tasks", err);
@@ -59,7 +59,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
 
   const handleAddPhase = async (name: string) => {
     try {
-      await createPhase({ name, boardId: board.board_id });
+      await createPhase({ name, boardId: board.id });
       fetchPhases();
     } catch (err) {
       console.error("[ProjectBoardView] Failed to create phase", err);
@@ -82,13 +82,13 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
           ...payload,
           id: Math.random(), // temporary ID
           name: payload.name || "Untitled Task",
-          boardId: board.board_id,
+          boardId: board.id,
           phaseId: selectedPhase?.id,
           archived: false,
         } as Task;
         setTasks((prev) => [...prev, optimisticTask]);
 
-        const created = await createTask({ ...payload, boardId: board.board_id, phaseId: selectedPhase?.id });
+        const created = await createTask({ ...payload, boardId: board.id, phaseId: selectedPhase?.id });
         setTasks((prev) => prev.map((t) => (t.id === optimisticTask.id ? created : t)));
       }
       fetchTasks();
@@ -99,7 +99,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
 
   const handleArchiveBoard = async () => {
     try {
-      await updateBoard(board.board_id, { archived: true });
+      await updateBoard(board.id, { archived: true });
       if (onBoardDeleted) onBoardDeleted();
     } catch (err) {
       console.error("[ProjectBoardView] Failed to archive board", err);
@@ -142,7 +142,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
         <PhaseDialog
           open={phaseDialogOpen}
           onClose={() => setPhaseDialogOpen(false)}
-          boardId={board.board_id}
+          boardId={board.id}
           onPhaseAdded={fetchPhases}
         />
       )}
@@ -153,7 +153,7 @@ const ProjectBoardView: React.FC<ProjectBoardViewProps> = ({ board, onBoardDelet
           onClose={() => setTaskDialogOpen(false)}
           onTaskAdded={handleSaveTask}
           task={selectedTask}
-          boardId={board.board_id}
+          boardId={board.id}
           phaseId={selectedPhase?.id}
         />
       )}
