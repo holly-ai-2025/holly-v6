@@ -1,30 +1,31 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
-import { Board } from "../api/boards";
 import ProjectBoardView from "./ProjectBoardView";
 import ListBoardView from "./ListBoardView";
 
-interface BoardDetailPageProps {
-  board: Board;
+interface Board {
+  board_id: number;
+  name: string;
+  type: "project" | "list";
+  description?: string;
+  category?: string;
+  color?: string;
+  archived?: boolean;
 }
 
-const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ board }) => {
-  if (!board) {
-    return (
-      <Box p={2}>
-        <Typography variant="body1">No board selected.</Typography>
-      </Box>
-    );
-  }
+interface BoardDetailPageProps {
+  board: Board;
+  onClose?: () => void;
+}
 
-  return (
-    <Box>
-      {board.type === "project" ? (
-        <ProjectBoardView board={board} />
-      ) : (
-        <ListBoardView board={board} />
-      )}
-    </Box>
+const BoardDetailPage: React.FC<BoardDetailPageProps> = ({ board, onClose }) => {
+  const handleBoardDeleted = () => {
+    if (onClose) onClose();
+  };
+
+  return board.type === "project" ? (
+    <ProjectBoardView board={board} onBoardDeleted={handleBoardDeleted} />
+  ) : (
+    <ListBoardView board={board} onBoardDeleted={handleBoardDeleted} />
   );
 };
 

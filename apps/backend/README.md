@@ -1,121 +1,129 @@
-# Backend (Holly v6)
+# Backend (FastAPI + PostgreSQL)
 
 ## Overview
-The backend is a FastAPI + SQLAlchemy application using Postgres 15 (preferred) as the database.
-It exposes REST APIs under the /db/* namespace.
+- FastAPI + SQLAlchemy ORM
+- PostgreSQL (DB: `holly_v6`)
+- Hypercorn server
+- All entities support soft delete (`archived` flag)
 
-### Directory Structure
-apps/backend/
-│
-├── main.py        # API entrypoint (CRUD routes)
-├── models.py      # SQLAlchemy ORM models
-├── schemas.py     # Pydantic schemas (validation/serialization)
-├── database.py    # DB engine + session setup
-└── README.md      # (this file)
+---
 
-### Tech Stack
-- FastAPI (web framework)
-- SQLAlchemy (ORM)
-- Pydantic (validation + serialization)
-- Postgres 15 (preferred DB)
+## Database Entities
+- **Boards** → `board_type` = project | list
+- **Phases** → only for project boards
+- **Groups** → only for list boards
+- **Tasks** → may link to board, phase, or group
+- **Items** → list board contents
+- **ActivityLog** → stores JSON string payloads
 
-### Database Setup
-Start Postgres:
+---
+
+## Schema Renames & Deprecations
+| Old field     | New field   | Notes              |
+|---------------|-------------|--------------------|
+| end_date      | due_date    | Used everywhere    |
+| project_id    | board_id    | Migration complete |
+| urgency_score | ❌ removed  | May be readded     |
+
+---
+
+## Uniform CRUD
+Each entity has:
+- POST `/db/{entity}`
+- PATCH `/db/{entity}/{id}`
+- GET `/db/{entity}` / `/db/{entity}/{id}`
+
+All responses include:
+- `id`
+- `archived`
+- `created_at`
+- `updated_at`
+
+---
+
+## Example: Tasks
+```json
+{
+  "task_id": 1,
+  "title": "Finish docs",
+  "description": "Write README updates",
+  "due_date": "2025-10-02",
+  "status": "open",
+  "priority": "high",
+  "category": "general",
+  "archived": false,
+  "created_at": "...",
+  "updated_at": "..."
+}
+```
+
+---
+
+## CORS
+Configured in `apps/backend/main.py`:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Authorization",
+        "Content-Language",
+        "Content-Type",
+        "Origin",
+        "User-Agent",
+        "ngrok-skip-browser-warning"
+    ],
+)
+```
+
+---
+
+## Database Management
+
+### Resetting Data
+To clear test data:
 ```bash
-brew services start postgresql@15
+psql -U holly_user -d holly_v6 -h localhost -f scripts/migrations/2025-10-02_reset_boards.sql
 ```
+This clears:
+- projects
+- items
+- groups
+- activity_logs
+- tasks
+- phases
+- boards
 
-Create DB + User:
-```sql
-CREATE DATABASE holly_v6;
-CREATE USER holly_user WITH PASSWORD 'holly_pass';
-GRANT ALL PRIVILEGES ON DATABASE holly_v6 TO holly_user;
-```
-
-### Schema Evolution
-- ⚠️ No Alembic migrations. Schema evolves via **manual SQL**.
-- Example migration:
-```sql
-ALTER TABLE boards ADD COLUMN archived BOOLEAN DEFAULT FALSE;
-```
-- Update `models.py` and `schemas.py` in sync.
-- Clear `__pycache__` if changes don’t take effect:
+### Dummy Tasks
+Seed with:
 ```bash
-find apps/backend -type d -name "__pycache__" -exec rm -rf {} +
+psql -U holly_user -d holly_v6 -h localhost -f scripts/migrations/2025-10-02_insert_dummy_tasks.sql
 ```
-- Restart backend and test changes with `curl`.
-- Log all schema changes in `docs/CHANGELOG.md`.
+Populates overdue, today, tomorrow, future, and suggested tasks.
 
-### Pre-commit Hook
-- A safety hook is installed under `.githooks/pre-commit`.
-- To enable it, run:
-```bash
-git config core.hooksPath .githooks
-```
-- It enforces:
-  - ❌ No placeholders/stubs (`...`, `placeholder`, `unchanged`).
-  - 📑 Schema/API changes require `docs/CHANGELOG.md` update.
-  - 🎨 Frontend must not import stray UI libraries (Tailwind, Chakra, AntD, Shadcn).
+### Foreign Keys
+- Must delete dependent rows before deleting boards.
+- Example: delete phases/tasks/groups before a project board.
 
 ---
 
-## API Conventions
-All routes live under /db/*.
-CRUD endpoints implemented for:
-- Boards (/db/boards)
-- Projects (/db/projects)
-- Phases (/db/phases)
-- Tasks (/db/tasks)
-- Groups (/db/groups)
-- Items (/db/items)
-- Activity Log (/db/activity)
-
-Soft deletes: records are never truly deleted.
-- `archived = true` used for tasks and boards (implemented).
-- Projects, phases, groups, items: planned but not yet implemented.
-
-Timestamps are UTC.
+## Debugging
+- Backend logs: `logs/backend-live.log`
+- Restart backend:
+  ```bash
+  .venv/bin/hypercorn apps.backend.main:app --reload --bind 0.0.0.0:8000
+  ```
+- If tasks/phases return `405` → check request method vs API spec.
+- If frontend blocked by CORS → ensure `ngrok-skip-browser-warning` header is present.
 
 ---
 
-## Primary Key Conventions
-- Task → `task_id`
-- Board → `board_id`
-- Project → `project_id`
-- Phase → `phase_id`
-- Group → `group_id`
-- Item → `item_id`
-- Activity Log → `log_id`
-
----
-
-## Task Model
-- task_id (integer, primary key)
-- task_name (string)
-- description (string, nullable)
-- board_id (integer, nullable)
-- project_id (integer, nullable)
-- phase_id (integer, nullable)
-- group_id (integer, nullable)
-- status (string: "Todo" | "In Progress" | "Done")
-- urgency_score (integer)
-- priority (string: "Low" | "Medium" | "High" | "Urgent")
-- category (string, nullable)
-- token_value (integer)
-- due_date (date)
-- start_date (timestamp, nullable)
-- end_date (timestamp, nullable)
-- effort_level (string: "Low" | "Medium" | "High")
-- archived (boolean, soft delete flag)
-- pinned (boolean)
-- created_at (timestamp)
-- updated_at (timestamp)
-- notes (text, nullable)
-- parent_task_id (integer, nullable)
-
----
-
-## Known Issues
-- `goal` field deprecated: present in schemas, not persisted in DB.
-- Postgres lock errors may require clearing `postmaster.pid` and shared memory.
-- No DELETE endpoints implemented (use PATCH archived=true).
+## Contribution Rules
+- Never use placeholders.
+- DB schema, models, and routes must remain aligned.
+- All payloads in activity logs must be JSON strings.
+- Frontend requests must always use `src/lib/api.ts`. 

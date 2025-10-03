@@ -26,7 +26,6 @@ import "react-quill/dist/quill.snow.css";
 import { getBoards } from "../api/boards";
 import { getPhases } from "../api/phases";
 
-// Styled sliders with updated red→blue gradients
 const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) => ({
   height: 6,
   borderRadius: 4,
@@ -58,22 +57,22 @@ const ColoredSlider = styled(Slider)<{ sliderType: string }>(({ sliderType }) =>
 interface TaskDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (payload: any) => void;
+  onTaskAdded: (payload: any) => void;
   onDelete?: (task: any) => void;
   task?: any;
+  boardId?: number;
+  phaseId?: number;
 }
 
-const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete, task }) => {
+const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onTaskAdded, onDelete, task, boardId, phaseId }) => {
   const isNew = !task;
 
   const [title, setTitle] = useState(task?.name || "");
   const [description, setDescription] = useState(task?.description || "");
-  const [dueDate, setDueDate] = useState(task?.dueDate || "");
-  const [startTime, setStartTime] = useState(task?.startDate ? task.startDate.split("T")[1]?.slice(0,5) : "");
-  const [endTime, setEndTime] = useState(task?.endDate ? task.endDate.split("T")[1]?.slice(0,5) : "");
+  const [dueDate, setDueDate] = useState(task?.due_date || "");
   const [priority, setPriority] = useState(task?.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
-  const [rewardTokens, setRewardTokens] = useState(task?.tokenValue || 5);
-  const [effort, setEffort] = useState(task?.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
+  const [rewardTokens, setRewardTokens] = useState(task?.token_value || 5);
+  const [effort, setEffort] = useState(task?.effort_level ? ["Low", "Medium", "High"].indexOf(task.effort_level) + 1 : 2);
   const [status, setStatus] = useState(task?.status || "Todo");
   const [archived, setArchived] = useState(task?.archived || false);
   const [pinned, setPinned] = useState(task?.pinned || false);
@@ -81,8 +80,8 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
 
   const [boards, setBoards] = useState<any[]>([]);
   const [phases, setPhases] = useState<any[]>([]);
-  const [board, setBoard] = useState(task?.boardId || "");
-  const [phase, setPhase] = useState(task?.phaseId || "");
+  const [board, setBoard] = useState<number | "">(task?.board_id || boardId || "");
+  const [phase, setPhase] = useState<number | "">(task?.phase_id || phaseId || "");
   const [category, setCategory] = useState(task?.category || "");
 
   useEffect(() => {
@@ -90,56 +89,46 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
   }, []);
 
   useEffect(() => {
-    if (board) getPhases(board).then(setPhases);
+    if (board) {
+      getPhases(typeof board === "number" ? board : undefined).then((fetched) => {
+        setPhases(fetched);
+      });
+    } else {
+      setPhases([]);
+    }
   }, [board]);
 
   useEffect(() => {
     if (task) {
       setTitle(task.name || "");
       setDescription(task.description || "");
-      setDueDate(task.dueDate || "");
-      setStartTime(task.startDate ? task.startDate.split("T")[1]?.slice(0,5) : "");
-      setEndTime(task.endDate ? task.endDate.split("T")[1]?.slice(0,5) : "");
+      setDueDate(task.due_date || "");
       setPriority(task.priority ? ["Low", "Medium", "High", "Urgent"].indexOf(task.priority) + 1 : 2);
-      setRewardTokens(task.tokenValue || 5);
-      setEffort(task.effortLevel ? ["Low", "Medium", "High"].indexOf(task.effortLevel) + 1 : 2);
+      setRewardTokens(task.token_value || 5);
+      setEffort(task.effort_level ? ["Low", "Medium", "High"].indexOf(task.effort_level) + 1 : 2);
       setStatus(task.status || "Todo");
       setArchived(task.archived || false);
       setPinned(task.pinned || false);
-      setBoard(task.boardId || "");
-      setPhase(task.phaseId || "");
+      setBoard(task.board_id || boardId || "");
+      setPhase(task.phase_id || phaseId || "");
       setCategory(task.category || "");
       setNotes(task.notes || "");
     } else {
       setTitle("");
       setDescription("");
       setDueDate("");
-      setStartTime("");
-      setEndTime("");
       setPriority(2);
       setRewardTokens(5);
       setEffort(2);
       setStatus("Todo");
       setArchived(false);
       setPinned(false);
-      setBoard("");
-      setPhase("");
+      setBoard(boardId || "");
+      setPhase(phaseId || "");
       setCategory("");
       setNotes("");
     }
-  }, [task, open]);
-
-  const handleStartTimeChange = (val: string) => {
-    setStartTime(val);
-    if (val) {
-      const [h, m] = val.split(":").map(Number);
-      const end = new Date();
-      end.setHours(h, m + 60);
-      setEndTime(end.toTimeString().slice(0, 5));
-    } else {
-      setEndTime("");
-    }
-  };
+  }, [task, open, boardId, phaseId]);
 
   const handleSave = () => {
     const priorityMap = ["Low", "Medium", "High", "Urgent"];
@@ -153,26 +142,13 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
       Done: "Done",
     };
 
-    let startDateTime: string | null = null;
-    let endDateTime: string | null = null;
-
-    if (dueDate && startTime) {
-      startDateTime = new Date(`${dueDate}T${startTime}`).toISOString();
-      if (endTime) {
-        endDateTime = new Date(`${dueDate}T${endTime}`).toISOString();
-      }
-    }
-
     const payload = {
       name: title,
       description,
       dueDate: dueDate || null,
-      startDate: startDateTime,
-      endDate: endDateTime,
       priority: priorityMap[priority - 1],
       tokenValue: rewardTokens,
       effortLevel: effortMap[effort - 1],
-      urgencyScore: 5,
       status: statusMap[status] || "Todo",
       boardId: board || null,
       phaseId: phase || null,
@@ -182,7 +158,7 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
       notes,
     };
 
-    onSave(payload);
+    onTaskAdded(payload);
     onClose();
   };
 
@@ -219,7 +195,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Date + Time Fields */}
         <div style={{ display: "flex", gap: "10px" }}>
           <TextField
             label="Due Date"
@@ -231,33 +206,10 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
             size="small"
             sx={inputSx}
           />
-          <TextField
-            label="Start Time"
-            type="time"
-            InputLabelProps={{ shrink: true }}
-            value={startTime}
-            onChange={(e) => handleStartTimeChange(e.target.value)}
-            disabled={!dueDate}
-            fullWidth
-            size="small"
-            sx={inputSx}
-          />
-          <TextField
-            label="End Time"
-            type="time"
-            InputLabelProps={{ shrink: true }}
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            disabled={!startTime}
-            fullWidth
-            size="small"
-            sx={inputSx}
-          />
         </div>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Priority Slider */}
         <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>Priority</Typography>
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <ColoredSlider
@@ -272,7 +224,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
           <Typography sx={{ width: 30, textAlign: "center" }}>{priority}</Typography>
         </Box>
 
-        {/* Reward Tokens */}
         <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Reward Tokens</Typography>
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <ColoredSlider
@@ -287,7 +238,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
           <Typography sx={{ width: 30, textAlign: "center" }}>{rewardTokens}</Typography>
         </Box>
 
-        {/* Effort Slider */}
         <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, mb: 1 }}>Effort</Typography>
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <ColoredSlider
@@ -304,14 +254,13 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Connections */}
         <Accordion sx={{ bgcolor: "#f5f5f5", color: "#000", borderRadius: 1, mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#000" }} />}>Connections</AccordionSummary>
           <AccordionDetails sx={{ bgcolor: "#fff" }}>
             <Select
               fullWidth
               value={board}
-              onChange={(e) => setBoard(e.target.value)}
+              onChange={(e) => setBoard(Number(e.target.value))}
               displayEmpty
               size="small"
               sx={inputSx}
@@ -320,13 +269,13 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
                 Select a board
               </MenuItem>
               {boards.map((b) => (
-                <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+                <MenuItem key={b.board_id} value={b.board_id}>{b.name}</MenuItem>
               ))}
             </Select>
             <Select
               fullWidth
               value={phase}
-              onChange={(e) => setPhase(e.target.value)}
+              onChange={(e) => setPhase(Number(e.target.value))}
               displayEmpty
               disabled={!board}
               size="small"
@@ -351,7 +300,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
           </AccordionDetails>
         </Accordion>
 
-        {/* Notes */}
         <Accordion sx={{ bgcolor: "#f5f5f5", color: "#000", borderRadius: 1, mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: "#000" }} />}>Notes</AccordionSummary>
           <AccordionDetails sx={{ bgcolor: "#fff" }}>
@@ -359,7 +307,6 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
           </AccordionDetails>
         </Accordion>
 
-        {/* Flags */}
         <FormControlLabel
           control={<Checkbox checked={archived} onChange={(e) => setArchived(e.target.checked)} />}
           label="Archived"
@@ -379,33 +326,9 @@ const TaskDialog: React.FC<TaskDialogProps> = ({ open, onClose, onSave, onDelete
           onChange={(_, val) => val && setStatus(val)}
           size="small"
         >
-          <ToggleButton
-            value="Todo"
-            sx={{
-              "&.Mui-selected": { bgcolor: "#2196f3", color: "#fff" },
-              "&.Mui-selected:hover": { bgcolor: "#1976d2" },
-            }}
-          >
-            Todo
-          </ToggleButton>
-          <ToggleButton
-            value="In Progress"
-            sx={{
-              "&.Mui-selected": { bgcolor: "#ff9800", color: "#fff" },
-              "&.Mui-selected:hover": { bgcolor: "#e68900" },
-            }}
-          >
-            In Progress
-          </ToggleButton>
-          <ToggleButton
-            value="Done"
-            sx={{
-              "&.Mui-selected": { bgcolor: "#4caf50", color: "#fff" },
-              "&.Mui-selected:hover": { bgcolor: "#3e8e41" },
-            }}
-          >
-            Done
-          </ToggleButton>
+          <ToggleButton value="Todo">Todo</ToggleButton>
+          <ToggleButton value="In Progress">In Progress</ToggleButton>
+          <ToggleButton value="Done">Done</ToggleButton>
         </ToggleButtonGroup>
 
         <div>

@@ -11,6 +11,7 @@ export interface Board {
   description?: string | null;
   goal?: string | null;
   pinned?: boolean;
+  archived?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,12 +21,13 @@ function normalizeBoard(raw: any): Board {
   return {
     id: raw.board_id,
     name: raw.name,
-    type: raw.type,
+    type: raw.board_type,
     category: raw.category,
     color: raw.color,
     description: raw.description,
     goal: raw.goal,
     pinned: raw.pinned,
+    archived: raw.archived,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };
@@ -36,12 +38,13 @@ function denormalizeBoard(payload: any): any {
   return {
     board_id: payload.id,
     name: payload.name,
-    type: payload.type,
+    board_type: payload.type,
     category: payload.category,
     color: payload.color,
     description: payload.description,
     goal: payload.goal,
     pinned: payload.pinned,
+    archived: payload.archived,
     created_at: payload.createdAt,
     updated_at: payload.updatedAt,
   };

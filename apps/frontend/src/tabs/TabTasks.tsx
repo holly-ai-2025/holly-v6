@@ -13,7 +13,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import FolderIcon from "@mui/icons-material/Folder";
-import { Task, getTasks, createTask, updateTask, deleteTask } from "../api/tasks";
+import { getTasks, createTask, updateTask } from "../lib/api";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import dayjs from "dayjs";
 import TaskDialog from "../components/TaskDialog";
@@ -36,8 +36,17 @@ const normalizeStatus = (status?: string) => {
   return "Todo";
 };
 
-const groupTasksByDate = (tasks: Task[]) => {
-  const groups: Record<string, Task[]> = {
+function shuffleArray<T>(array: T[]): T[] {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+const groupTasksByDate = (tasks: any[]) => {
+  const groups: Record<string, any[]> = {
     Overdue: [],
     Today: [],
     SuggestedToday: [],
@@ -52,6 +61,8 @@ const groupTasksByDate = (tasks: Task[]) => {
   const tomorrow = today.add(1, "day");
   const endOfWeek = today.endOf("week");
 
+  const noDueDate: any[] = [];
+
   tasks.forEach((task) => {
     const status = normalizeStatus(task.status);
     if (status === "Done") {
@@ -59,18 +70,12 @@ const groupTasksByDate = (tasks: Task[]) => {
       return;
     }
 
-    const effectiveDate = task.startDate || task.dueDate || null;
-
-    if (!effectiveDate) {
-      if ((task.urgencyScore || 0) > 5) {
-        groups.SuggestedToday.push(task);
-      } else {
-        groups.SuggestedTomorrow.push(task);
-      }
+    if (!task.due_date) {
+      noDueDate.push(task);
       return;
     }
 
-    const due = dayjs(effectiveDate).startOf("day");
+    const due = dayjs(task.due_date).startOf("day");
 
     if (due.isBefore(today, "day")) {
       groups.Overdue.push(task);
@@ -85,12 +90,8 @@ const groupTasksByDate = (tasks: Task[]) => {
     }
   });
 
-  const sortByDate = (arr: Task[]) =>
-    arr.sort(
-      (a, b) =>
-        dayjs(a.startDate || a.dueDate).valueOf() -
-        dayjs(b.startDate || b.dueDate).valueOf()
-    );
+  const sortByDate = (arr: any[]) =>
+    arr.sort((a, b) => dayjs(a.due_date).valueOf() - dayjs(b.due_date).valueOf());
 
   sortByDate(groups.Overdue);
   sortByDate(groups.Today);
@@ -98,12 +99,18 @@ const groupTasksByDate = (tasks: Task[]) => {
   sortByDate(groups["This Week"]);
   sortByDate(groups.Later);
 
+  if (noDueDate.length > 0) {
+    const shuffled = shuffleArray(noDueDate);
+    groups.SuggestedToday = shuffled.slice(0, 3);
+    groups.SuggestedTomorrow = shuffled.slice(3, 6);
+  }
+
   return groups;
 };
 
 const TabTasks: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [grouped, setGrouped] = useState<Record<string, Task[]>>({});
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [grouped, setGrouped] = useState<Record<string, any[]>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Overdue: true,
     Today: true,
@@ -114,14 +121,14 @@ const TabTasks: React.FC = () => {
   });
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
   const fetchTasks = async () => {
     try {
-      const data = await getTasks();
-      const active = data.filter((t: Task) => !t.archived); // hide archived (soft-deleted)
-      setTasks(active);
-      setGrouped(groupTasksByDate(active));
+      const res = await getTasks();
+      const activeTasks = res.data.filter((t: any) => !t.archived);
+      setTasks(activeTasks);
+      setGrouped(groupTasksByDate(activeTasks));
     } catch (err) {
       console.error("[TabTasks] Failed to fetch tasks", err);
     }
@@ -135,10 +142,10 @@ const TabTasks: React.FC = () => {
     setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const handleDialogSave = async (form: Partial<Task>) => {
+  const handleDialogSave = async (form: Partial<any>) => {
     try {
-      if (selectedTask && selectedTask.id) {
-        await updateTask(selectedTask.id, form);
+      if (selectedTask && selectedTask.task_id) {
+        await updateTask(selectedTask.task_id, form);
       } else {
         await createTask(form);
       }
@@ -148,18 +155,7 @@ const TabTasks: React.FC = () => {
     }
   };
 
-  const handleDialogDelete = async (task: Task) => {
-    try {
-      if (task.id) {
-        await deleteTask(task.id);
-        fetchTasks();
-      }
-    } catch (err) {
-      console.error("[TabTasks] Failed to delete task", err);
-    }
-  };
-
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (task: any) => {
     setSelectedTask(task);
     setDialogOpen(true);
   };
@@ -176,26 +172,21 @@ const TabTasks: React.FC = () => {
     const taskId = parseInt(draggableId);
     const toGroup = destination.droppableId;
 
-    if (toGroup === "Later" || toGroup === "Completed" || toGroup === "Overdue") {
-      return;
-    }
-
-    const task = tasks.find((t) => t.id === taskId);
+    const task = tasks.find((t) => t.task_id === taskId);
     if (!task) return;
 
     const prevTasks = [...tasks];
-
-    let updates: Partial<Task> = {};
+    let updates: Partial<any> = {};
 
     if (toGroup === "Today") {
-      updates = { dueDate: dayjs().toISOString(), startDate: null };
+      updates = { due_date: dayjs().toISOString() };
     } else if (toGroup === "Tomorrow") {
-      updates = { dueDate: dayjs().add(1, "day").toISOString(), startDate: null };
+      updates = { due_date: dayjs().add(1, "day").toISOString() };
     }
 
-    if (updates.dueDate !== undefined) {
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
-      setGrouped(groupTasksByDate(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))));
+    if (Object.keys(updates).length > 0) {
+      setTasks((prev) => prev.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t)));
+      setGrouped(groupTasksByDate(tasks.map((t) => (t.task_id === taskId ? { ...t, ...updates } : t))));
 
       try {
         await updateTask(taskId, updates);
@@ -207,7 +198,7 @@ const TabTasks: React.FC = () => {
     }
   };
 
-  const renderTaskRow = (task: Task, groupName: string, index: number) => {
+  const renderTaskRow = (task: any, groupName: string, index: number) => {
     const isCompleted = normalizeStatus(task.status) === "Done";
 
     let bgColor = "#fff";
@@ -226,7 +217,7 @@ const TabTasks: React.FC = () => {
     }
 
     return (
-      <Draggable draggableId={task.id!.toString()} index={index} key={task.id}>
+      <Draggable draggableId={task.task_id!.toString()} index={index} key={task.task_id}>
         {(provided) => (
           <Box
             ref={provided.innerRef}
@@ -245,14 +236,14 @@ const TabTasks: React.FC = () => {
                 onClick={(e) => e.stopPropagation()}
                 onChange={async (e) => {
                   e.stopPropagation();
-                  await updateTask(task.id!, { status: e.target.checked ? "Done" : "Todo" });
+                  await updateTask(task.task_id!, { status: e.target.checked ? "Done" : "Todo" });
                   fetchTasks();
                 }}
               />
             </Box>
 
-            {task.tokenValue !== undefined && (
-              <Tooltip title={`Reward: ${task.tokenValue} tokens`} arrow>
+            {task.token_value !== undefined && (
+              <Tooltip title={`Reward: ${task.token_value} tokens`} arrow>
                 <Typography
                   component="span"
                   sx={{
@@ -269,7 +260,7 @@ const TabTasks: React.FC = () => {
                     boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                   }}
                 >
-                  +{task.tokenValue}
+                  +{task.token_value}
                 </Typography>
               </Tooltip>
             )}
@@ -299,20 +290,10 @@ const TabTasks: React.FC = () => {
                   color: isCompleted ? "#888" : "inherit",
                 }}
               >
-                {task.name}
-                {task.startDate && task.endDate && (
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ ml: 0.5 }}
-                  >
-                    {dayjs(task.startDate).format("HH:mm")} – {dayjs(task.endDate).format("HH:mm")}
-                  </Typography>
-                )}
+                {task.title}
               </Typography>
 
-              {(task.projectId || (task as any).project) && (
+              {task.board_id && (
                 <FolderIcon fontSize="small" sx={{ ml: 1, color: isCompleted ? "#aaa" : "#555" }} />
               )}
             </Box>
@@ -394,7 +375,6 @@ const TabTasks: React.FC = () => {
           task={selectedTask}
           onClose={handleDialogClose}
           onSave={handleDialogSave}
-          onDelete={handleDialogDelete}
         />
       </Box>
     </DragDropContext>

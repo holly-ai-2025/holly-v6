@@ -5,38 +5,32 @@ const base = "/db/phases";
 export interface Phase {
   id: number;
   name: string;
-  description?: string;
-  projectId: number;
-  order?: number;
+  boardId: number;
   createdAt?: string;
   updatedAt?: string;
+  archived?: boolean;
 }
 
 function normalizePhase(raw: any): Phase {
   return {
     id: raw.phase_id,
     name: raw.name,
-    description: raw.description,
-    projectId: raw.project_id,
-    order: raw.order,
+    boardId: raw.board_id,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
+    archived: raw.archived,
   };
 }
 
 function denormalizePhase(payload: Partial<Phase>): any {
   return {
     name: payload.name,
-    description: payload.description,
-    project_id: payload.projectId,
-    order: payload.order,
-    created_at: payload.createdAt,
-    updated_at: payload.updatedAt,
+    board_id: payload.boardId,
   };
 }
 
-export async function getPhases(): Promise<Phase[]> {
-  const res = await api.get(base);
+export async function getPhases(boardId: number): Promise<Phase[]> {
+  const res = await api.get(`${base}?board_id=${boardId}`);
   return res.data.map(normalizePhase);
 }
 

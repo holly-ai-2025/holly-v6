@@ -7,27 +7,23 @@ import {
   Button,
   TextField,
 } from "@mui/material";
-import { DesktopDatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import api from "../lib/api";
+import { createPhase } from "../api/phases";
 
 interface PhaseDialogProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
+  boardId: number;
   onPhaseAdded: () => void;
 }
 
-const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onPhaseAdded }) => {
+const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, boardId, onPhaseAdded }) => {
   const [name, setName] = useState("");
-  const [deadline, setDeadline] = useState<Date | null>(null);
 
   const handleSave = async () => {
     try {
-      await api.post("/db/phases", {
+      await createPhase({
         name,
-        project_id: projectId,
-        deadline: deadline ? deadline.toISOString() : null,
+        boardId, // ✅ fixed key
       });
       onPhaseAdded();
       onClose();
@@ -47,16 +43,6 @@ const PhaseDialog: React.FC<PhaseDialogProps> = ({ open, onClose, projectId, onP
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <DesktopDatePicker
-            label="Deadline"
-            value={deadline}
-            onChange={(newValue) => setDeadline(newValue)}
-            renderInput={(params) => (
-              <TextField {...params} fullWidth margin="dense" />
-            )}
-          />
-        </LocalizationProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>

@@ -1,47 +1,78 @@
-# Frontend
+# Frontend (Vite + React + MUI)
 
 ## Overview
-The frontend is built with React, Vite, and MUI (Core + Joy UI). It communicates with the backend through a unified API client (`src/lib/api.ts`).
+- Built with **Vite + React**.
+- UI with **MUI Core + Joy UI**.
+- API calls **must** go through `src/lib/api.ts`.
 
-## API Client
-- Location: `src/lib/api.ts`
-- All API calls **must** use this client. Do not import `axios` directly in components.
-- Development:
-  - Base URL: `http://localhost:8000`
-- Production (Vercel):
-  - Base URL: `VITE_API_URL` (must be set in Vercel environment variables)
-- Automatically attaches the header:
-  ```
-  ngrok-skip-browser-warning: true
-  ```
-  This ensures ngrok does not inject its browser warning page.
+---
 
-### Debugging API Requests
-- Every API request is logged to the browser console:
-  ```
-  [API Request] https://<ngrok>.ngrok-free.app /db/tasks {...headers}
-  ```
-- If you see requests as relative paths (e.g. `/db/tasks`), it means `VITE_API_URL` was not set in production.
-- If `VITE_API_URL` is missing, an error is logged:
-  ```
-  [API] Missing VITE_API_URL in production build!
-  ```
+## Standards
+- No direct Axios calls inside components.
+- All CRUD endpoints go via `lib/api.ts`.
+- All entities support `archived` flag (soft delete).
 
-## Logging
-- Console logs are forwarded to a log server.
-- Development: `http://localhost:9000/log`
-- Production: `VITE_LOG_SERVER_URL`
+---
 
-## Development Setup
-1. Start backend: `hypercorn apps/backend/main.py`
-2. Start log server: `scripts/log_server.js`
-3. Run frontend: `npm run dev`
-4. Expose backend with ngrok: `ngrok http 8000`
+## Schema Adjustments
+- Use `due_date` (not `end_date`).
+- Use `board_id` (not `project_id`).
+- `urgency_score` has been removed.
 
-## Notes
-- Do **not** set axios defaults in `main.tsx`.
-- Always import the API client:
-  ```ts
-  import api from "../lib/api";
-  ```
-- This ensures consistent headers and base URL handling across all requests.
+---
+
+## Task Grouping (TabTasks)
+Tasks are automatically bucketed into:
+- **Today** → `due_date = current_date`
+- **Tomorrow** → `due_date = current_date + 1`
+- **Overdue** → `due_date < today`
+- **Future** → `due_date > tomorrow`
+- **Suggested** → `due_date IS NULL` (max 3 shown per day, shuffled)
+
+👉 Suggested tasks are intentional. They support ADHD-style workflows by allowing freeform entry without dates.
+
+---
+
+## Drag & Drop
+- Dragging a **Suggested** task into Today/Tomorrow assigns the appropriate `due_date`.
+- Dragging between groups updates `due_date` accordingly.
+
+---
+
+## Boards
+- Boards load via `GET /db/boards` → frontend filters out `archived`.
+- **BoardDetailPage → ProjectBoardView** handles project-type boards:
+  - Phases load from `/db/phases?board_id={id}`
+  - Tasks load from `/db/tasks?board_id={id}`
+  - Supports creating phases, adding tasks, archiving boards.
+
+---
+
+## Known Fixes
+- `ProjectBoardView` was restored from main branch after accidental stripping of UI features.
+- `TaskDialog` fixed: `onSave` now passed properly.
+- **Calendar (TabCalendar)** still needs update to use `due_date` instead of `end_date`.
+
+---
+
+## Development
+Start frontend via:
+```bash
+scripts/start-dev.sh
+```
+
+Frontend console logs are piped to:
+```
+logs/frontend-console.log
+```
+
+---
+
+## Contribution Rules
+- Never use placeholders.
+- Always use `lib/api.ts` for requests.
+- When adding new entity:
+  1. Ensure backend migration + models.py + schemas.py + main.py updated
+  2. Add frontend API methods in `lib/api.ts`
+  3. Update relevant tabs/pages
+  4. Test with curl before UI integration

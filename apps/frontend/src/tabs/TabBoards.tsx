@@ -21,11 +21,23 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import dayjs from "dayjs";
-import { getBoards, createBoard, Board } from "../api/boards";
-import { createProject } from "../api/projects";
+import { getBoards, createBoard, updateBoard } from "../api/boards";
 import BoardDetailPage from "../components/BoardDetailPage";
 
 const boardColors: string[] = ["#5cc9f5", "#5a96f5", "#a469f5", "#f57ad1", "#f55c5c"];
+
+interface Board {
+  board_id: number;
+  name: string;
+  type: "project" | "list";
+  category?: string;
+  color?: string;
+  description?: string;
+  pinned?: boolean;
+  archived?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
 const TabBoards: React.FC = () => {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -37,9 +49,8 @@ const TabBoards: React.FC = () => {
 
   const fetchBoards = async () => {
     try {
-      const data = await getBoards();
-      if (Array.isArray(data)) setBoards(data);
-      else setBoards([]);
+      const boards = await getBoards();
+      setBoards(boards);
     } catch (err) {
       console.error("[TabBoards] Failed to fetch boards", err);
       setBoards([]);
@@ -53,22 +64,13 @@ const TabBoards: React.FC = () => {
   const handleCreateBoard = async () => {
     if (!newBoard.name || !newBoard.type) return;
     try {
-      const createdBoard = await createBoard({
+      await createBoard({
         name: newBoard.name,
         type: newBoard.type,
         category: newBoard.category,
         color: newBoard.color,
         description: newBoard.description,
       });
-
-      if (createdBoard.type === "project") {
-        await createProject({
-          boardId: createdBoard.id, // FIXED: use normalized id from wrapper
-          name: createdBoard.name,
-          notes: createdBoard.description,
-        });
-      }
-
       setDialogOpen(false);
       setNewBoard({ type: "project" });
       fetchBoards();
@@ -77,17 +79,31 @@ const TabBoards: React.FC = () => {
     }
   };
 
+  const handleArchiveBoard = async (board_id: number) => {
+    try {
+      await updateBoard(board_id, { archived: true });
+      fetchBoards();
+    } catch (err) {
+      console.error("[TabBoards] Failed to archive board", err);
+    }
+  };
+
+  const handleBoardClosed = () => {
+    setSelectedBoard(null);
+    fetchBoards();
+  };
+
   const filteredBoards = boards.filter(
-    (b) => b.type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
+    (b) => !b.archived && b.type === viewType && (categoryFilter === "all" || b.category === categoryFilter)
   );
 
   const renderProjectCard = (board: Board) => {
     const completion = Math.floor(Math.random() * 100);
-    const deadline = board.updatedAt || null;
+    const deadline = board.updated_at || null;
 
     return (
       <Paper
-        key={board.id}
+        key={board.board_id}
         elevation={3}
         sx={{ p: 2, borderRadius: 3, minHeight: 180, display: "flex", flexDirection: "column", cursor: "pointer" }}
         onClick={() => setSelectedBoard(board)}
@@ -104,6 +120,11 @@ const TabBoards: React.FC = () => {
           <LinearProgress variant="determinate" value={completion} sx={{ mt: 1, borderRadius: 1 }} />
           <Typography variant="caption">{completion}% complete</Typography>
         </Box>
+        <Box mt={1}>
+          <Button size="small" color="error" onClick={() => handleArchiveBoard(board.board_id)}>
+            Archive
+          </Button>
+        </Box>
       </Paper>
     );
   };
@@ -114,7 +135,7 @@ const TabBoards: React.FC = () => {
 
     return (
       <Paper
-        key={board.id}
+        key={board.board_id}
         elevation={3}
         sx={{ p: 2, borderRadius: 3, minHeight: 160, display: "flex", flexDirection: "column", cursor: "pointer" }}
         onClick={() => setSelectedBoard(board)}
@@ -129,8 +150,13 @@ const TabBoards: React.FC = () => {
             {taskCount} tasks • {itemCount} items
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block">
-            Updated {board.updatedAt ? dayjs(board.updatedAt).fromNow() : "–"}
+            Updated {board.updated_at ? dayjs(board.updated_at).fromNow() : "–"}
           </Typography>
+        </Box>
+        <Box mt={1}>
+          <Button size="small" color="error" onClick={() => handleArchiveBoard(board.board_id)}>
+            Archive
+          </Button>
         </Box>
       </Paper>
     );
@@ -140,12 +166,12 @@ const TabBoards: React.FC = () => {
     return (
       <Box p={2}>
         <Box display="flex" alignItems="center" mb={2}>
-          <IconButton onClick={() => setSelectedBoard(null)}>
+          <IconButton onClick={() => handleBoardClosed()}>
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" ml={1}>{selectedBoard.name}</Typography>
         </Box>
-        <BoardDetailPage board={selectedBoard} />
+        <BoardDetailPage board={selectedBoard} onClose={handleBoardClosed} />
       </Box>
     );
   }
@@ -185,7 +211,7 @@ const TabBoards: React.FC = () => {
         {filteredBoards.length > 0 ? (
           <Grid container spacing={2}>
             {filteredBoards.map((b) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={b.id}>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={b.board_id}>
                 {b.type === "project" ? renderProjectCard(b) : renderListCard(b)}
               </Grid>
             ))}

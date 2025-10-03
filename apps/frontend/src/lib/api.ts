@@ -10,15 +10,75 @@ if (!baseURL) {
 
 const api = axios.create({
   baseURL,
-  headers: {
-    "ngrok-skip-browser-warning": "true",
-  },
 });
 
-// Debug logging interceptor
+// ✅ Interceptor to enforce correct headers
 api.interceptors.request.use((config) => {
-  console.log("[API Request]", config.baseURL, config.url, config.headers);
+  if (
+    config.method === "post" ||
+    config.method === "patch" ||
+    config.method === "put"
+  ) {
+    if (!config.headers) config.headers = {};
+    config.headers["Content-Type"] = "application/json";
+  }
+
+  if (baseURL?.includes("ngrok")) {
+    config.headers["ngrok-skip-browser-warning"] = "true";
+  }
+
+  console.log(
+    "[API Request]",
+    config.method?.toUpperCase(),
+    config.url,
+    config.headers
+  );
   return config;
 });
+
+// =============================
+// Boards API
+// =============================
+export const getBoards = (boardType?: string) =>
+  api.get("/db/boards", { params: boardType ? { board_type: boardType } : {} });
+
+export const createBoard = (data: any) => api.post("/db/boards", data);
+
+export const updateBoard = (id: number, data: any) =>
+  api.patch(`/db/boards/${id}`, data);
+
+// =============================
+// Phases API
+// =============================
+export const getPhases = (boardId: number) =>
+  api.get(`/db/phases/${boardId}`);
+
+export const createPhase = (data: any) => api.post("/db/phases", data);
+
+export const updatePhase = (id: number, data: any) =>
+  api.patch(`/db/phases/${id}`, data);
+
+// =============================
+// Groups API
+// =============================
+export const getGroups = (boardId: number) =>
+  api.get(`/db/groups/${boardId}`);
+
+export const createGroup = (data: any) => api.post("/db/groups", data);
+
+export const updateGroup = (id: number, data: any) =>
+  api.patch(`/db/groups/${id}`, data);
+
+// =============================
+// Tasks API
+// =============================
+export const getTasks = () => api.get("/db/tasks");
+
+export const getTaskById = (id: number) => api.get(`/db/tasks/${id}`);
+
+export const createTask = (data: any) => api.post("/db/tasks", data);
+
+export const updateTask = (id: number, data: any) =>
+  api.patch(`/db/tasks/${id}`, data);
 
 export default api;

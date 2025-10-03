@@ -12,51 +12,60 @@ import {
   Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { getGroups, createGroup, Group } from "../api/groups";
-import { getItems, createItem, Item } from "../api/items";
-import { getTasks, createTask, Task } from "../api/tasks";
-import { Board } from "../api/boards";
+import { getGroups, createGroup, getTasks, createTask } from "../lib/api";
+
+interface Board {
+  boardId: number;
+  name: string;
+  board_type: "project" | "list";
+  description?: string;
+  color?: string;
+}
+
+interface Group {
+  group_id: number;
+  boardId: number;
+  name: string;
+  archived?: boolean;
+}
+
+interface Task {
+  task_id: number;
+  boardId: number;
+  group_id?: number;
+  title: string;
+  archived?: boolean;
+}
 
 interface ListBoardViewProps {
   board: Board;
+  onBoardDeleted?: () => void;
 }
 
 const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
   const [groups, setGroups] = useState<Group[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
-  const [newTaskName, setNewTaskName] = useState("");
-  const [newItemTitle, setNewItemTitle] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
 
   useEffect(() => {
     fetchGroups();
-    fetchItems();
     fetchTasks();
-  }, [board.id]);
+  }, [board.boardId]);
 
   const fetchGroups = async () => {
     try {
-      const data = await getGroups();
-      setGroups(data.filter((g: Group) => g.boardId === board.id));
+      const res = await getGroups();
+      setGroups(res.data.filter((g: Group) => g.boardId === board.boardId && !g.archived));
     } catch (err) {
       console.error("[ListBoardView] Failed to fetch groups", err);
     }
   };
 
-  const fetchItems = async () => {
-    try {
-      const data = await getItems();
-      setItems(data.filter((i: Item) => i.boardId === board.id));
-    } catch (err) {
-      console.error("[ListBoardView] Failed to fetch items", err);
-    }
-  };
-
   const fetchTasks = async () => {
     try {
-      const data = await getTasks();
-      setTasks(data.filter((t: Task) => t.boardId === board.id));
+      const res = await getTasks(board.boardId);
+      setTasks(res.data.filter((t: Task) => t.boardId === board.boardId && !t.archived));
     } catch (err) {
       console.error("[ListBoardView] Failed to fetch tasks", err);
     }
@@ -65,7 +74,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
   const handleAddGroup = async () => {
     if (!newGroupName) return;
     try {
-      await createGroup({ boardId: board.id, name: newGroupName });
+      await createGroup({ boardId: board.boardId, name: newGroupName });
       setNewGroupName("");
       fetchGroups();
     } catch (err) {
@@ -74,32 +83,17 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
   };
 
   const handleAddTask = async (groupId?: number) => {
-    if (!newTaskName) return;
+    if (!newTaskTitle) return;
     try {
       await createTask({
-        boardId: board.id,
-        groupId: groupId || null,
-        name: newTaskName,
+        boardId: board.boardId,
+        group_id: groupId || null,
+        title: newTaskTitle,
       });
-      setNewTaskName("");
+      setNewTaskTitle("");
       fetchTasks();
     } catch (err) {
       console.error("[ListBoardView] Failed to create task", err);
-    }
-  };
-
-  const handleAddItem = async (groupId?: number) => {
-    if (!newItemTitle) return;
-    try {
-      await createItem({
-        boardId: board.id,
-        groupId: groupId || null,
-        name: newItemTitle,
-      });
-      setNewItemTitle("");
-      fetchItems();
-    } catch (err) {
-      console.error("[ListBoardView] Failed to create item", err);
     }
   };
 
@@ -125,7 +119,7 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
 
       {/* Groups */}
       {groups.map((group) => (
-        <Accordion key={group.id} defaultExpanded>
+        <Accordion key={group.group_id} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography fontWeight="bold">{group.name}</Typography>
           </AccordionSummary>
@@ -135,48 +129,22 @@ const ListBoardView: React.FC<ListBoardViewProps> = ({ board }) => {
               <TextField
                 size="small"
                 label="New Task"
-                value={newTaskName}
-                onChange={(e) => setNewTaskName(e.target.value)}
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
               />
               <Tooltip title="Add a task" arrow>
                 <span>
-                  <Button variant="contained" onClick={() => handleAddTask(group.id)}>Add Task</Button>
-                </span>
-              </Tooltip>
-            </Box>
-
-            {/* Add Item */}
-            <Box display="flex" gap={2} mb={2}>
-              <TextField
-                size="small"
-                label="New Item"
-                value={newItemTitle}
-                onChange={(e) => setNewItemTitle(e.target.value)}
-              />
-              <Tooltip title="Add an item" arrow>
-                <span>
-                  <Button variant="contained" onClick={() => handleAddItem(group.id)}>Add Item</Button>
+                  <Button variant="contained" onClick={() => handleAddTask(group.group_id)}>Add Task</Button>
                 </span>
               </Tooltip>
             </Box>
 
             {/* Tasks */}
             <Grid container spacing={1}>
-              {tasks.filter((t) => t.groupId === group.id).map((task) => (
-                <Grid item xs={12} key={task.id}>
+              {tasks.filter((t) => t.group_id === group.group_id).map((task) => (
+                <Grid item xs={12} key={task.task_id}>
                   <Paper sx={{ p: 1, borderRadius: 2 }}>
-                    <Typography>📝 {task.name}</Typography>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Items */}
-            <Grid container spacing={1}>
-              {items.filter((i) => i.groupId === group.id).map((item) => (
-                <Grid item xs={12} key={item.id}>
-                  <Paper sx={{ p: 1, borderRadius: 2 }}>
-                    <Typography>📌 {item.name}</Typography>
+                    <Typography>📝 {task.title}</Typography>
                   </Paper>
                 </Grid>
               ))}
